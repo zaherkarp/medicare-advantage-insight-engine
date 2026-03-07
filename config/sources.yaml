@@ -1,0 +1,56 @@
+# MA Signal Monitor - Source Configuration
+# Each source has a name, type, URL, priority (1-5, higher = more important),
+# and an enabled flag.
+
+sources:
+  # --- CMS / Government ---
+  - name: "CMS Newsroom"
+    type: rss
+    url: "https://www.cms.gov/newsroom/rss"
+    priority: 5
+    enabled: true
+    tags: ["cms", "policy", "regulatory"]
+
+  - name: "Federal Register - CMS Rules"
+    type: rss
+    url: "https://www.federalregister.gov/documents/search.rss?conditions%5Bagencies%5D%5B%5D=centers-for-medicare-medicaid-services&conditions%5Btype%5D%5B%5D=RULE&conditions%5Btype%5D%5B%5D=PRORULE"
+    priority: 5
+    enabled: true
+    tags: ["regulatory", "cms", "rules"]
+
+  # --- Industry News ---
+  - name: "Healthcare Dive"
+    type: rss
+    url: "https://www.healthcaredive.com/feeds/news/"
+    priority: 3
+    enabled: true
+    tags: ["industry", "general"]
+
+  - name: "Modern Healthcare"
+    type: rss
+    url: "https://www.modernhealthcare.com/section/rss"
+    priority: 3
+    enabled: true
+    tags: ["industry", "general"]
+
+  - name: "Fierce Healthcare"
+    type: rss
+    url: "https://www.fiercehealthcare.com/rss/xml"
+    priority: 3
+    enabled: true
+    tags: ["industry", "general"]
+
+  - name: "KFF Health News"
+    type: rss
+    url: "https://kffhealthnews.org/feed/"
+    priority: 4
+    enabled: true
+    tags: ["policy", "analysis"]
+
+  # --- SEC / Financial (Phase 2 - stubs) ---
+  # - name: "SEC EDGAR - UNH"
+  #   type: sec
+  #   url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766&type=8-K&dateb=&owner=include&count=10&search_text=&action=getcompany"
+  #   priority: 4
+  #   enabled: false
+  #   tags: ["financial", "sec"]

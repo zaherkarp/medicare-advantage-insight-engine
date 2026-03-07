@@ -1,0 +1,154 @@
+# MA Signal Monitor - Trigger Taxonomy Configuration
+# Each category has a name, description, keywords, and weight.
+# Keywords are used for initial classification. Weights influence scoring.
+
+categories:
+  membership_movement:
+    label: "Membership Movement"
+    description: "Payer gains/losses, market share, enrollment, county/region expansion or exit, contract consolidation"
+    weight: 1.0
+    keywords:
+      - "enrollment"
+      - "membership"
+      - "market share"
+      - "disenrollment"
+      - "county expansion"
+      - "county exit"
+      - "service area"
+      - "contract consolidation"
+      - "new members"
+      - "member growth"
+      - "member loss"
+      - "plan exits"
+      - "plan entry"
+      - "open enrollment"
+      - "annual enrollment"
+      - "special enrollment"
+
+  demographic_shifts:
+    label: "Demographic Shifts"
+    description: "Aging Medicare population, dual growth, SNP growth, regional demographic shifts"
+    weight: 0.8
+    keywords:
+      - "aging population"
+      - "dual eligible"
+      - "dual-eligible"
+      - "D-SNP"
+      - "DSNP"
+      - "special needs plan"
+      - "SNP"
+      - "chronic condition"
+      - "C-SNP"
+      - "I-SNP"
+      - "institutional"
+      - "baby boomer"
+      - "65 and older"
+      - "Medicare eligible"
+      - "demographic"
+
+  policy_regulatory:
+    label: "Policy / Regulatory Changes"
+    description: "CMS rules, Stars changes, risk adjustment, chart review, bid changes"
+    weight: 1.2
+    keywords:
+      - "CMS"
+      - "proposed rule"
+      - "final rule"
+      - "star rating"
+      - "Stars"
+      - "risk adjustment"
+      - "V28"
+      - "chart review"
+      - "bid"
+      - "benchmark"
+      - "Part C"
+      - "Part D"
+      - "RADV"
+      - "HCC"
+      - "advance notice"
+      - "rate notice"
+      - "regulation"
+      - "regulatory"
+      - "rulemaking"
+      - "MLR requirement"
+
+  financial_pressure:
+    label: "Financial / Operating Pressure"
+    description: "Margin pressure, MLR, benefit reductions, premium increases, cost trends"
+    weight: 1.0
+    keywords:
+      - "margin"
+      - "medical loss ratio"
+      - "MLR"
+      - "benefit reduction"
+      - "benefit cut"
+      - "premium increase"
+      - "premium"
+      - "cost trend"
+      - "utilization"
+      - "medical cost"
+      - "operating loss"
+      - "earnings"
+      - "revenue"
+      - "profit"
+      - "guidance"
+      - "supplemental benefit"
+      - "PMPM"
+
+  competitive_strategy:
+    label: "Competitive / Operational Strategy"
+    description: "Partnerships, vendor changes, care delivery, network strategy"
+    weight: 0.9
+    keywords:
+      - "partnership"
+      - "acquisition"
+      - "merger"
+      - "joint venture"
+      - "vendor"
+      - "platform"
+      - "value-based"
+      - "VBC"
+      - "ACO"
+      - "care delivery"
+      - "network"
+      - "provider"
+      - "telehealth"
+      - "home health"
+      - "primary care"
+      - "pharmacy"
+      - "PBM"
+      - "vertical integration"
+
+# Named entities (payers) to watch for - boosts relevance when detected
+watched_entities:
+  - "UnitedHealthcare"
+  - "UnitedHealth"
+  - "UHC"
+  - "Humana"
+  - "CVS Health"
+  - "Aetna"
+  - "Cigna"
+  - "Elevance"
+  - "Anthem"
+  - "Centene"
+  - "WellCare"
+  - "Molina"
+  - "Kaiser"
+  - "SCAN"
+  - "Devoted Health"
+  - "Clover Health"
+  - "Alignment Healthcare"
+  - "Oscar Health"
+  - "Blue Cross"
+  - "Blue Shield"
+  - "BCBS"
+  - "CareSource"
+  - "Bright Health"
+
+# Scoring configuration
+scoring:
+  keyword_match_base: 0.15
+  entity_match_boost: 0.20
+  source_priority_weight: 0.10
+  multi_category_boost: 0.10
+  title_keyword_multiplier: 1.5

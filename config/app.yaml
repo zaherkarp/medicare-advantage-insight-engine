@@ -1,0 +1,33 @@
+# MA Signal Monitor - Application Configuration
+# Overrides for settings not in .env or for advanced tuning.
+
+app:
+  name: "MA Signal Monitor"
+  version: "0.1.0"
+
+# Delivery settings
+delivery:
+  # Maximum retries for webhook delivery
+  max_retries: 3
+  # Backoff base in seconds (exponential: base * 2^attempt)
+  retry_backoff_base: 2
+  # Timeout per request in seconds
+  timeout: 30
+  # Batch size: how many alerts per webhook message (0 = all in one)
+  batch_size: 1
+
+# Processing settings
+processing:
+  # Minimum relevance score to generate an alert (0.0 - 1.0)
+  min_relevance_score: 0.3
+  # Maximum age of items to process (in days, 0 = no limit)
+  max_item_age_days: 7
+  # Maximum summary length in characters
+  max_summary_length: 500
+
+# Storage settings
+storage:
+  # How long to keep seen items in days (for dedupe)
+  seen_item_retention_days: 90
+  # How long to keep delivery logs in days
+  delivery_log_retention_days: 30

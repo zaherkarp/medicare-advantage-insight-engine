@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ma-signal-monitor"
+version = "0.1.0"
+description = "Medicare Advantage news insight monitor with webhook-based alerting"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "requests>=2.31.0",
+    "feedparser>=6.0.10",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "responses>=0.23.0",
+]
+
+[project.scripts]
+ma-signal-monitor = "ma_signal_monitor.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+
+[tool.setuptools.packages.find]
+where = ["src"]
