@@ -1,0 +1,63 @@
+name: Scheduled Monitor Run
+
+on:
+  schedule:
+    # Run every 6 hours at minutes 15
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: "Log level"
+        required: false
+        default: "INFO"
+        type: choice
+        options:
+          - DEBUG
+          - INFO
+          - WARNING
+
+permissions:
+  contents: read
+
+env:
+  WEBHOOK_MODE: ${{ vars.WEBHOOK_MODE || 'ntfy' }}
+  WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+  MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
+  LOG_LEVEL: ${{ inputs.log_level || 'INFO' }}
+
+jobs:
+  monitor:
+    name: Run Signal Monitor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-3.11-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-3.11-
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install feedparser --no-deps
+          pip install .
+
+      - name: Run monitor pipeline
+        run: ma-signal-monitor
+
+      - name: Upload run database
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-state-${{ github.run_id }}
+          path: data/state.db
+          retention-days: 7

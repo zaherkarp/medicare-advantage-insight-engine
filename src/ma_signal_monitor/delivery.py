@@ -1,6 +1,7 @@
 """Webhook delivery with retry logic and format abstraction.
 
-Supports three modes:
+Supports four modes:
+- "ntfy": Posts to ntfy.sh with markdown, priority, and click actions
 - "generic": Posts plain JSON to any webhook endpoint
 - "teams": Posts Teams-formatted Adaptive Card payload
 - "test": Same as generic, but logs extra debug info
@@ -15,6 +16,7 @@ import requests
 from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.models import Alert, DeliveryResult
 from ma_signal_monitor.renderers.generic_webhook import render_generic
+from ma_signal_monitor.renderers.ntfy import render_ntfy
 from ma_signal_monitor.renderers.teams import render_teams
 
 logger = logging.getLogger("ma_signal_monitor.delivery")
@@ -30,6 +32,8 @@ def _render_payload(alert: Alert, mode: str) -> dict:
     Returns:
         Dictionary payload for JSON serialization.
     """
+    if mode == "ntfy":
+        return render_ntfy(alert)
     if mode == "teams":
         return render_teams(alert)
     # "generic" and "test" both use the generic renderer
