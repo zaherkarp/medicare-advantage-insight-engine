@@ -1,8 +1,9 @@
-"""Tests for alert renderers (generic webhook and Teams)."""
+"""Tests for alert renderers (generic webhook, ntfy, and Teams)."""
 
 import json
 
 from ma_signal_monitor.renderers.generic_webhook import render_generic
+from ma_signal_monitor.renderers.ntfy import render_ntfy
 from ma_signal_monitor.renderers.teams import render_teams
 
 
@@ -51,6 +52,78 @@ class TestGenericWebhookRenderer:
         payload = render_generic(sample_alert)
         assert payload["source"] == "MA Signal Monitor"
         assert payload["alert_type"] == "medicare_advantage_signal"
+
+
+class TestNtfyRenderer:
+    """Test the ntfy.sh renderer."""
+
+    def test_renders_valid_json(self, sample_alert):
+        """Output is JSON-serializable."""
+        payload = render_ntfy(sample_alert)
+        json_str = json.dumps(payload)
+        assert json_str
+
+    def test_has_required_fields(self, sample_alert):
+        """Payload has title, message, priority, and tags."""
+        payload = render_ntfy(sample_alert)
+        assert "title" in payload
+        assert "message" in payload
+        assert "priority" in payload
+        assert "tags" in payload
+        assert payload["markdown"] is True
+
+    def test_title_contains_signal_prefix(self, sample_alert):
+        """Title starts with MA Signal prefix."""
+        payload = render_ntfy(sample_alert)
+        assert payload["title"].startswith("MA Signal:")
+
+    def test_priority_maps_from_confidence(self, sample_alert):
+        """Confidence level maps to ntfy priority."""
+        payload = render_ntfy(sample_alert)
+        assert payload["priority"] in (2, 3, 5)
+
+    def test_high_confidence_gets_max_priority(self, sample_alert):
+        """High-confidence alerts get urgent priority."""
+        sample_alert.internal.confidence = "high"
+        payload = render_ntfy(sample_alert)
+        assert payload["priority"] == 5
+
+    def test_click_url_set_from_source(self, sample_alert):
+        """Click action links to the source URL."""
+        payload = render_ntfy(sample_alert)
+        assert payload["click"] == sample_alert.internal.source_url
+
+    def test_has_view_action(self, sample_alert):
+        """Payload includes a view action button."""
+        payload = render_ntfy(sample_alert)
+        assert len(payload["actions"]) == 1
+        assert payload["actions"][0]["action"] == "view"
+        assert payload["actions"][0]["url"] == sample_alert.internal.source_url
+
+    def test_no_click_when_no_source_url(self, sample_alert):
+        """No click or actions when source URL is empty."""
+        sample_alert.internal.source_url = ""
+        payload = render_ntfy(sample_alert)
+        assert "click" not in payload
+        assert "actions" not in payload
+
+    def test_message_contains_key_sections(self, sample_alert):
+        """Message body includes summary, why-it-matters, and draft."""
+        payload = render_ntfy(sample_alert)
+        msg = payload["message"]
+        assert "**Summary:**" in msg
+        assert "**Why it matters:**" in msg
+        assert "**Draft insight:**" in msg
+
+    def test_topic_included_when_provided(self, sample_alert):
+        """Topic field is set when explicitly provided."""
+        payload = render_ntfy(sample_alert, topic="my-alerts")
+        assert payload["topic"] == "my-alerts"
+
+    def test_topic_absent_when_not_provided(self, sample_alert):
+        """Topic field is absent when not provided."""
+        payload = render_ntfy(sample_alert)
+        assert "topic" not in payload
 
 
 class TestTeamsRenderer:

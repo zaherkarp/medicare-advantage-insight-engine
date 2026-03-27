@@ -48,7 +48,7 @@ class AppConfig:
 
     # From .env
     webhook_url: str = ""
-    webhook_mode: str = "test"  # "generic", "teams", "test"
+    webhook_mode: str = "test"  # "ntfy", "generic", "teams", "test"
     log_level: str = "INFO"
     db_path: str = "data/state.db"
     config_dir: str = "config"
@@ -209,9 +209,9 @@ def _validate_config(config: AppConfig) -> None:
             "For testing, use a Webhook.site URL."
         )
 
-    if config.webhook_mode not in ("generic", "teams", "test"):
+    if config.webhook_mode not in ("ntfy", "generic", "teams", "test"):
         raise ValueError(
-            f"WEBHOOK_MODE must be 'generic', 'teams', or 'test', got: {config.webhook_mode}"
+            f"WEBHOOK_MODE must be 'ntfy', 'generic', 'teams', or 'test', got: {config.webhook_mode}"
         )
 
     enabled_sources = [s for s in config.sources if s.enabled]

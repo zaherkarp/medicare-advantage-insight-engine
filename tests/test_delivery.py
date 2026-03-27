@@ -95,6 +95,21 @@ class TestDelivery:
         assert all(r.success for r in results)
 
     @responses.activate
+    def test_ntfy_mode_uses_ntfy_format(self, sample_alert, sample_config):
+        """Ntfy mode sends ntfy.sh-compatible payload."""
+        sample_config.webhook_mode = "ntfy"
+        responses.add(responses.POST, sample_config.webhook_url, json={}, status=200)
+
+        deliver_alert(sample_alert, sample_config)
+
+        body = responses.calls[0].request.body
+        import json
+        payload = json.loads(body)
+        assert "title" in payload
+        assert "message" in payload
+        assert payload["markdown"] is True
+
+    @responses.activate
     def test_teams_mode_uses_teams_format(self, sample_alert, sample_config):
         """Teams mode sends Adaptive Card format."""
         sample_config.webhook_mode = "teams"
