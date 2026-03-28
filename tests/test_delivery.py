@@ -2,7 +2,6 @@
 
 import responses
 
-from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.delivery import deliver_alert, deliver_alerts
 
 
@@ -45,7 +44,9 @@ class TestDelivery:
 
         responses.add(responses.POST, sample_config.webhook_url, status=500)
         responses.add(responses.POST, sample_config.webhook_url, status=500)
-        responses.add(responses.POST, sample_config.webhook_url, json={"ok": True}, status=200)
+        responses.add(
+            responses.POST, sample_config.webhook_url, json={"ok": True}, status=200
+        )
 
         result = deliver_alert(sample_alert, sample_config)
         assert result.success is True
@@ -73,12 +74,15 @@ class TestDelivery:
         sample_config.delivery_retry_backoff_base = 0
 
         responses.add(
-            responses.POST, sample_config.webhook_url,
+            responses.POST,
+            sample_config.webhook_url,
             body=req_lib.ConnectionError("Connection refused"),
         )
         responses.add(
-            responses.POST, sample_config.webhook_url,
-            json={"ok": True}, status=200,
+            responses.POST,
+            sample_config.webhook_url,
+            json={"ok": True},
+            status=200,
         )
 
         result = deliver_alert(sample_alert, sample_config)
@@ -87,8 +91,12 @@ class TestDelivery:
     @responses.activate
     def test_deliver_multiple_alerts(self, sample_alert, sample_config):
         """Batch delivery handles multiple alerts."""
-        responses.add(responses.POST, sample_config.webhook_url, json={"ok": True}, status=200)
-        responses.add(responses.POST, sample_config.webhook_url, json={"ok": True}, status=200)
+        responses.add(
+            responses.POST, sample_config.webhook_url, json={"ok": True}, status=200
+        )
+        responses.add(
+            responses.POST, sample_config.webhook_url, json={"ok": True}, status=200
+        )
 
         results = deliver_alerts([sample_alert, sample_alert], sample_config)
         assert len(results) == 2
@@ -104,6 +112,7 @@ class TestDelivery:
 
         body = responses.calls[0].request.body
         import json
+
         payload = json.loads(body)
         assert "title" in payload
         assert "message" in payload
@@ -119,6 +128,7 @@ class TestDelivery:
 
         body = responses.calls[0].request.body
         import json
+
         payload = json.loads(body)
         assert payload["type"] == "message"
         assert "attachments" in payload

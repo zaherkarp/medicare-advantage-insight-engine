@@ -1,17 +1,23 @@
 """Tests for configuration loading and validation."""
 
 import os
-from pathlib import Path
 
 import pytest
 import yaml
 
-from ma_signal_monitor.config import AppConfig, load_config
+from ma_signal_monitor.config import load_config
 
 # Env vars that load_config may set via dotenv
 _ENV_KEYS = [
-    "WEBHOOK_URL", "WEBHOOK_MODE", "LOG_LEVEL", "DB_PATH", "CONFIG_DIR",
-    "MAX_ITEMS_PER_SOURCE", "MIN_RELEVANCE_SCORE", "REQUEST_TIMEOUT", "USER_AGENT",
+    "WEBHOOK_URL",
+    "WEBHOOK_MODE",
+    "LOG_LEVEL",
+    "DB_PATH",
+    "CONFIG_DIR",
+    "MAX_ITEMS_PER_SOURCE",
+    "MIN_RELEVANCE_SCORE",
+    "REQUEST_TIMEOUT",
+    "USER_AGENT",
 ]
 
 
@@ -72,7 +78,11 @@ class TestConfigLoading:
         """FileNotFoundError when taxonomy.yaml is missing."""
         config_dir = tmp_path / "config"
         config_dir.mkdir()
-        sources = {"sources": [{"name": "X", "type": "rss", "url": "https://x.com", "enabled": True}]}
+        sources = {
+            "sources": [
+                {"name": "X", "type": "rss", "url": "https://x.com", "enabled": True}
+            ]
+        }
         with open(config_dir / "sources.yaml", "w") as f:
             yaml.dump(sources, f)
         (tmp_path / ".env").write_text("WEBHOOK_URL=https://test.example.com\n")
@@ -103,7 +113,11 @@ class TestConfigValidation:
     def test_no_enabled_sources_raises(self, project_root_with_config):
         """ValueError when all sources are disabled."""
         config_dir = project_root_with_config / "config"
-        sources = {"sources": [{"name": "X", "type": "rss", "url": "https://x.com", "enabled": False}]}
+        sources = {
+            "sources": [
+                {"name": "X", "type": "rss", "url": "https://x.com", "enabled": False}
+            ]
+        }
         with open(config_dir / "sources.yaml", "w") as f:
             yaml.dump(sources, f)
         with pytest.raises(ValueError, match="No enabled sources"):

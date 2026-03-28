@@ -39,7 +39,9 @@ def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
     for source in enabled_sources:
         fetcher = _FETCHERS.get(source.type)
         if not fetcher:
-            logger.warning("Unknown source type '%s' for '%s', skipping", source.type, source.name)
+            logger.warning(
+                "Unknown source type '%s' for '%s', skipping", source.type, source.name
+            )
             continue
 
         try:
@@ -54,11 +56,15 @@ def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
             logger.error("Error fetching '%s': %s", source.name, e)
             # Continue with other sources — one bad feed shouldn't stop the run
 
-    logger.info("Fetched %d total items from %d sources", len(all_items), len(enabled_sources))
+    logger.info(
+        "Fetched %d total items from %d sources", len(all_items), len(enabled_sources)
+    )
     return all_items
 
 
-def run(config: AppConfig | None = None, project_root: str | Path | None = None) -> dict:
+def run(
+    config: AppConfig | None = None, project_root: str | Path | None = None
+) -> dict:
     """Execute the full monitoring pipeline.
 
     Args:
@@ -122,7 +128,9 @@ def run(config: AppConfig | None = None, project_root: str | Path | None = None)
 
         # 4. Score
         scored = score_items(new_items, config)
-        relevant = [s for s in scored if s.relevance_score >= config.min_relevance_score]
+        relevant = [
+            s for s in scored if s.relevance_score >= config.min_relevance_score
+        ]
         summary["items_relevant"] = len(relevant)
 
         # 5. Draft alerts

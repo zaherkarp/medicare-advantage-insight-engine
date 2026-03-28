@@ -10,7 +10,7 @@ Implements a transparent, explainable scoring model based on:
 import logging
 import re
 
-from ma_signal_monitor.config import AppConfig, CategoryConfig, ScoringConfig
+from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.models import NormalizedItem, ScoredItem, ScoringReason
 
 logger = logging.getLogger("ma_signal_monitor.scoring")
@@ -51,17 +51,21 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
                 # Boost if keyword appears in title
                 if _keyword_in_text(keyword, title_lower):
                     contribution *= sc.title_keyword_multiplier
-                    reasons.append(ScoringReason(
-                        factor="title_keyword",
-                        detail=f"'{keyword}' in title [{category.label}]",
-                        contribution=contribution,
-                    ))
+                    reasons.append(
+                        ScoringReason(
+                            factor="title_keyword",
+                            detail=f"'{keyword}' in title [{category.label}]",
+                            contribution=contribution,
+                        )
+                    )
                 else:
-                    reasons.append(ScoringReason(
-                        factor="body_keyword",
-                        detail=f"'{keyword}' in summary [{category.label}]",
-                        contribution=contribution,
-                    ))
+                    reasons.append(
+                        ScoringReason(
+                            factor="body_keyword",
+                            detail=f"'{keyword}' in summary [{category.label}]",
+                            contribution=contribution,
+                        )
+                    )
                 raw_score += contribution
                 category_matched = True
                 # Only count first keyword match per category to avoid
@@ -74,22 +78,26 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     # 2. Source priority boost
     priority_contribution = (item.source_priority / 5.0) * sc.source_priority_weight
     raw_score += priority_contribution
-    reasons.append(ScoringReason(
-        factor="source_priority",
-        detail=f"Source '{item.source_name}' priority {item.source_priority}/5",
-        contribution=priority_contribution,
-    ))
+    reasons.append(
+        ScoringReason(
+            factor="source_priority",
+            detail=f"Source '{item.source_name}' priority {item.source_priority}/5",
+            contribution=priority_contribution,
+        )
+    )
 
     # 3. Named entity detection
     for entity in config.watched_entities:
         if _keyword_in_text(entity, text_combined):
             raw_score += sc.entity_match_boost
             matched_entities.append(entity)
-            reasons.append(ScoringReason(
-                factor="entity_match",
-                detail=f"Named entity '{entity}' detected",
-                contribution=sc.entity_match_boost,
-            ))
+            reasons.append(
+                ScoringReason(
+                    factor="entity_match",
+                    detail=f"Named entity '{entity}' detected",
+                    contribution=sc.entity_match_boost,
+                )
+            )
             # Cap at 2 entity boosts to avoid runaway scores
             if len(matched_entities) >= 2:
                 break
@@ -98,11 +106,13 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     if len(matched_categories) > 1:
         multi_boost = sc.multi_category_boost * (len(matched_categories) - 1)
         raw_score += multi_boost
-        reasons.append(ScoringReason(
-            factor="multi_category",
-            detail=f"Matches {len(matched_categories)} categories",
-            contribution=multi_boost,
-        ))
+        reasons.append(
+            ScoringReason(
+                factor="multi_category",
+                detail=f"Matches {len(matched_categories)} categories",
+                contribution=multi_boost,
+            )
+        )
 
     # Clamp to [0.0, 1.0]
     final_score = min(1.0, max(0.0, raw_score))
@@ -134,6 +144,8 @@ def score_items(items: list[NormalizedItem], config: AppConfig) -> list[ScoredIt
     )
     logger.info(
         "Scored %d items: %d above threshold (%.2f)",
-        len(scored), relevant_count, config.min_relevance_score,
+        len(scored),
+        relevant_count,
+        config.min_relevance_score,
     )
     return scored

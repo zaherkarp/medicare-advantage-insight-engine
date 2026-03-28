@@ -5,7 +5,9 @@ import sys
 from pathlib import Path
 
 
-def setup_logging(log_level: str = "INFO", log_dir: str | None = None) -> logging.Logger:
+def setup_logging(
+    log_level: str = "INFO", log_dir: str | None = None
+) -> logging.Logger:
     """Configure and return the application logger.
 
     Args:

@@ -77,9 +77,7 @@ def _clean_text(text: str) -> str:
     return text
 
 
-def normalize_item(
-    raw: RawFeedItem, max_summary_length: int = 500
-) -> NormalizedItem:
+def normalize_item(raw: RawFeedItem, max_summary_length: int = 500) -> NormalizedItem:
     """Normalize a single raw feed item.
 
     Args:
@@ -122,7 +120,9 @@ def normalize_items(
         except Exception as e:
             logger.warning(
                 "Failed to normalize item '%s' from %s: %s",
-                raw.title[:50], raw.source_name, e,
+                raw.title[:50],
+                raw.source_name,
+                e,
             )
     logger.info("Normalized %d / %d items", len(normalized), len(raw_items))
     return normalized

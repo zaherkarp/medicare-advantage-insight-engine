@@ -1,7 +1,5 @@
 """Tests for feed item normalization."""
 
-from datetime import datetime
-
 from ma_signal_monitor.models import RawFeedItem
 from ma_signal_monitor.normalize import normalize_item, normalize_items
 
@@ -22,9 +20,14 @@ class TestNormalizeItem:
     def test_date_parsing_rfc2822(self):
         """RFC 2822 dates are parsed correctly."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="Mon, 01 Jan 2024 12:00:00 +0000",
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="Mon, 01 Jan 2024 12:00:00 +0000",
             summary="Test summary",
         )
         item = normalize_item(raw)
@@ -34,9 +37,14 @@ class TestNormalizeItem:
     def test_date_parsing_iso(self):
         """ISO format dates are parsed correctly."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="2024-01-15T10:30:00Z",
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="2024-01-15T10:30:00Z",
             summary="Test summary",
         )
         item = normalize_item(raw)
@@ -46,9 +54,14 @@ class TestNormalizeItem:
     def test_unparseable_date_returns_none(self):
         """Unparseable dates result in None, not an error."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="not a date",
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="not a date",
             summary="Test summary",
         )
         item = normalize_item(raw)
@@ -57,9 +70,15 @@ class TestNormalizeItem:
     def test_empty_date_returns_none(self):
         """Empty date string results in None."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="", summary="Test",
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="",
+            summary="Test",
         )
         item = normalize_item(raw)
         assert item.published_date is None
@@ -67,9 +86,15 @@ class TestNormalizeItem:
     def test_summary_truncation(self):
         """Long summaries are truncated."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="", summary="x" * 1000,
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="",
+            summary="x" * 1000,
         )
         item = normalize_item(raw, max_summary_length=100)
         assert len(item.summary) <= 100
@@ -78,9 +103,15 @@ class TestNormalizeItem:
     def test_whitespace_cleaning(self):
         """Excess whitespace is collapsed."""
         raw = RawFeedItem(
-            source_name="Test", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="  Too   many   spaces  ",
-            link="https://x.com/1", published="", summary="  Also  spaced  ",
+            source_name="Test",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="  Too   many   spaces  ",
+            link="https://x.com/1",
+            published="",
+            summary="  Also  spaced  ",
         )
         item = normalize_item(raw)
         assert item.title == "Too many spaces"
@@ -88,9 +119,15 @@ class TestNormalizeItem:
     def test_stable_item_id_for_same_link(self):
         """Same source+link produces the same item_id."""
         raw = RawFeedItem(
-            source_name="Feed A", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Title 1",
-            link="https://x.com/article/1", published="", summary="",
+            source_name="Feed A",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Title 1",
+            link="https://x.com/article/1",
+            published="",
+            summary="",
         )
         id1 = normalize_item(raw).item_id
         raw.title = "Different title, same link"
@@ -100,14 +137,26 @@ class TestNormalizeItem:
     def test_different_links_different_ids(self):
         """Different links produce different item_ids."""
         raw1 = RawFeedItem(
-            source_name="Feed A", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/1", published="", summary="",
+            source_name="Feed A",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/1",
+            published="",
+            summary="",
         )
         raw2 = RawFeedItem(
-            source_name="Feed A", source_type="rss", source_url="https://x.com",
-            source_priority=3, source_tags=[], title="Test",
-            link="https://x.com/2", published="", summary="",
+            source_name="Feed A",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title="Test",
+            link="https://x.com/2",
+            published="",
+            summary="",
         )
         assert normalize_item(raw1).item_id != normalize_item(raw2).item_id
 

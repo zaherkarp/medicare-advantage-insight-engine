@@ -1,14 +1,17 @@
 """Shared fixtures for MA Signal Monitor tests."""
 
-import os
-import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 import yaml
 
-from ma_signal_monitor.config import AppConfig, CategoryConfig, ScoringConfig, SourceConfig
+from ma_signal_monitor.config import (
+    AppConfig,
+    CategoryConfig,
+    ScoringConfig,
+    SourceConfig,
+)
 from ma_signal_monitor.models import (
     Alert,
     InternalAlert,
@@ -128,28 +131,54 @@ def sample_config() -> AppConfig:
                 label="Membership Movement",
                 description="Enrollment changes",
                 weight=1.0,
-                keywords=["enrollment", "membership", "market share", "county expansion", "service area"],
+                keywords=[
+                    "enrollment",
+                    "membership",
+                    "market share",
+                    "county expansion",
+                    "service area",
+                ],
             ),
             CategoryConfig(
                 key="policy_regulatory",
                 label="Policy / Regulatory Changes",
                 description="CMS rules and policy",
                 weight=1.2,
-                keywords=["CMS", "proposed rule", "final rule", "star rating", "Stars", "risk adjustment"],
+                keywords=[
+                    "CMS",
+                    "proposed rule",
+                    "final rule",
+                    "star rating",
+                    "Stars",
+                    "risk adjustment",
+                ],
             ),
             CategoryConfig(
                 key="financial_pressure",
                 label="Financial / Operating Pressure",
                 description="Margin and cost signals",
                 weight=1.0,
-                keywords=["margin", "medical loss ratio", "MLR", "premium", "cost trend", "utilization"],
+                keywords=[
+                    "margin",
+                    "medical loss ratio",
+                    "MLR",
+                    "premium",
+                    "cost trend",
+                    "utilization",
+                ],
             ),
             CategoryConfig(
                 key="competitive_strategy",
                 label="Competitive / Operational Strategy",
                 description="Strategic moves",
                 weight=0.9,
-                keywords=["partnership", "acquisition", "value-based", "network", "care delivery"],
+                keywords=[
+                    "partnership",
+                    "acquisition",
+                    "value-based",
+                    "network",
+                    "care delivery",
+                ],
             ),
         ],
         watched_entities=["UnitedHealthcare", "Humana", "Aetna", "CMS"],
@@ -197,7 +226,10 @@ def sample_alert(sample_normalized_items, sample_config) -> Alert:
         ),
         public_draft=PublicInsightDraft(
             opening_hook="New developments around UnitedHealthcare...",
-            analytic_angles=["Enrollment shifts signal repositioning", "Watch for follow-on"],
+            analytic_angles=[
+                "Enrollment shifts signal repositioning",
+                "Watch for follow-on",
+            ],
             uncertainty_caution="This is an early signal. Confirm against primary sources.",
             suggested_hashtags=["#MedicareAdvantage", "#Enrollment"],
             draft_paragraph="[DRAFT] Recent reporting signals movement in membership...",
