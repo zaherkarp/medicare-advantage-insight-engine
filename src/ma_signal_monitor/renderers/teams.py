@@ -33,9 +33,9 @@ def render_teams(alert: Alert) -> dict:
     draft = alert.public_draft
 
     # Confidence indicator
-    confidence_emoji = {
-        "high": "🟢", "medium": "🟡", "low": "🔴"
-    }.get(internal.confidence, "⚪")
+    confidence_emoji = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(
+        internal.confidence, "⚪"
+    )
 
     # Build Adaptive Card body
     card_body = [
@@ -54,22 +54,26 @@ def render_teams(alert: Alert) -> dict:
                 {
                     "type": "Column",
                     "width": "auto",
-                    "items": [{
-                        "type": "TextBlock",
-                        "text": f"**Source:** {internal.source}",
-                        "wrap": True,
-                        "size": "Small",
-                    }],
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"**Source:** {internal.source}",
+                            "wrap": True,
+                            "size": "Small",
+                        }
+                    ],
                 },
                 {
                     "type": "Column",
                     "width": "auto",
-                    "items": [{
-                        "type": "TextBlock",
-                        "text": f"**Score:** {internal.relevance_score:.2f} {confidence_emoji}",
-                        "wrap": True,
-                        "size": "Small",
-                    }],
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"**Score:** {internal.relevance_score:.2f} {confidence_emoji}",
+                            "wrap": True,
+                            "size": "Small",
+                        }
+                    ],
                 },
             ],
         },
@@ -109,9 +113,8 @@ def render_teams(alert: Alert) -> dict:
         },
         {
             "type": "TextBlock",
-            "text": "**Suggested checks:**\n" + "\n".join(
-                f"- {check}" for check in internal.suggested_checks[:3]
-            ),
+            "text": "**Suggested checks:**\n"
+            + "\n".join(f"- {check}" for check in internal.suggested_checks[:3]),
             "wrap": True,
             "size": "Small",
         },
@@ -134,9 +137,8 @@ def render_teams(alert: Alert) -> dict:
         },
         {
             "type": "TextBlock",
-            "text": "**Angles:**\n" + "\n".join(
-                f"- {angle}" for angle in draft.analytic_angles[:4]
-            ),
+            "text": "**Angles:**\n"
+            + "\n".join(f"- {angle}" for angle in draft.analytic_angles[:4]),
             "wrap": True,
             "size": "Small",
         },
@@ -158,11 +160,13 @@ def render_teams(alert: Alert) -> dict:
     # Add source link action if available
     actions = []
     if internal.source_url:
-        actions.append({
-            "type": "Action.OpenUrl",
-            "title": "View Source",
-            "url": internal.source_url,
-        })
+        actions.append(
+            {
+                "type": "Action.OpenUrl",
+                "title": "View Source",
+                "url": internal.source_url,
+            }
+        )
 
     # Adaptive Card wrapped in Teams message format
     return {

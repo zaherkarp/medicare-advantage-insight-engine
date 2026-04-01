@@ -52,7 +52,11 @@ _HASHTAG_MAP: dict[str, list[str]] = {
     "demographic_shifts": ["#MedicareAdvantage", "#Demographics", "#DualEligible"],
     "policy_regulatory": ["#MedicareAdvantage", "#CMS", "#HealthPolicy"],
     "financial_pressure": ["#MedicareAdvantage", "#HealthcareFinance", "#MLR"],
-    "competitive_strategy": ["#MedicareAdvantage", "#HealthcareStrategy", "#ValueBasedCare"],
+    "competitive_strategy": [
+        "#MedicareAdvantage",
+        "#HealthcareStrategy",
+        "#ValueBasedCare",
+    ],
 }
 
 
@@ -191,15 +195,20 @@ def draft_alert(scored: ScoredItem, config: AppConfig) -> Alert:
         relevance_score=scored.relevance_score,
         summary=scored.item.summary,
         why_it_matters=_generate_why_it_matters(scored, category_key),
-        suggested_checks=_SUGGESTED_CHECKS.get(category_key, [
-            "Review source article for additional context",
-            "Check for related filings or announcements",
-        ]),
+        suggested_checks=_SUGGESTED_CHECKS.get(
+            category_key,
+            [
+                "Review source article for additional context",
+                "Check for related filings or announcements",
+            ],
+        ),
         confidence=_confidence_from_score(scored.relevance_score),
         source_url=scored.item.link,
         scoring_reasons=[
             f"{r.factor}: {r.detail} (+{r.contribution:.3f})"
-            for r in sorted(scored.reasons, key=lambda r: r.contribution, reverse=True)[:5]
+            for r in sorted(scored.reasons, key=lambda r: r.contribution, reverse=True)[
+                :5
+            ]
         ],
     )
 
@@ -218,9 +227,7 @@ def draft_alert(scored: ScoredItem, config: AppConfig) -> Alert:
     return Alert(internal=internal, public_draft=public_draft, scored_item=scored)
 
 
-def draft_alerts(
-    scored_items: list[ScoredItem], config: AppConfig
-) -> list[Alert]:
+def draft_alerts(scored_items: list[ScoredItem], config: AppConfig) -> list[Alert]:
     """Generate alerts for all scored items above the relevance threshold.
 
     Args:
@@ -238,8 +245,11 @@ def draft_alerts(
             except Exception as e:
                 logger.warning(
                     "Failed to draft alert for '%s': %s",
-                    scored.item.title[:50], e,
+                    scored.item.title[:50],
+                    e,
                 )
 
-    logger.info("Drafted %d alerts from %d scored items", len(alerts), len(scored_items))
+    logger.info(
+        "Drafted %d alerts from %d scored items", len(alerts), len(scored_items)
+    )
     return alerts

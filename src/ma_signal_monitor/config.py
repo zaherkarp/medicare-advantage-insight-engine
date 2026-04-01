@@ -107,7 +107,9 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         max_items_per_source=int(os.getenv("MAX_ITEMS_PER_SOURCE", "50")),
         min_relevance_score=float(os.getenv("MIN_RELEVANCE_SCORE", "0.3")),
         request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
-        user_agent=os.getenv("USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"),
+        user_agent=os.getenv(
+            "USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"
+        ),
     )
 
     config_dir = root / config.config_dir
@@ -142,14 +144,16 @@ def _load_sources(path: Path) -> list[SourceConfig]:
 
     sources = []
     for item in data.get("sources", []):
-        sources.append(SourceConfig(
-            name=item["name"],
-            type=item["type"],
-            url=item["url"],
-            priority=item.get("priority", 3),
-            enabled=item.get("enabled", True),
-            tags=item.get("tags", []),
-        ))
+        sources.append(
+            SourceConfig(
+                name=item["name"],
+                type=item["type"],
+                url=item["url"],
+                priority=item.get("priority", 3),
+                enabled=item.get("enabled", True),
+                tags=item.get("tags", []),
+            )
+        )
     return sources
 
 
@@ -160,13 +164,15 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
 
     categories = []
     for key, cat_data in data.get("categories", {}).items():
-        categories.append(CategoryConfig(
-            key=key,
-            label=cat_data["label"],
-            description=cat_data["description"],
-            weight=cat_data.get("weight", 1.0),
-            keywords=cat_data.get("keywords", []),
-        ))
+        categories.append(
+            CategoryConfig(
+                key=key,
+                label=cat_data["label"],
+                description=cat_data["description"],
+                weight=cat_data.get("weight", 1.0),
+                keywords=cat_data.get("keywords", []),
+            )
+        )
     config.categories = categories
     config.watched_entities = data.get("watched_entities", [])
 
@@ -186,19 +192,33 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
         data = yaml.safe_load(f)
 
     delivery = data.get("delivery", {})
-    config.delivery_max_retries = delivery.get("max_retries", config.delivery_max_retries)
-    config.delivery_retry_backoff_base = delivery.get("retry_backoff_base", config.delivery_retry_backoff_base)
+    config.delivery_max_retries = delivery.get(
+        "max_retries", config.delivery_max_retries
+    )
+    config.delivery_retry_backoff_base = delivery.get(
+        "retry_backoff_base", config.delivery_retry_backoff_base
+    )
     config.delivery_timeout = delivery.get("timeout", config.delivery_timeout)
     config.delivery_batch_size = delivery.get("batch_size", config.delivery_batch_size)
 
     processing = data.get("processing", {})
-    config.min_relevance_score = processing.get("min_relevance_score", config.min_relevance_score)
-    config.max_item_age_days = processing.get("max_item_age_days", config.max_item_age_days)
-    config.max_summary_length = processing.get("max_summary_length", config.max_summary_length)
+    config.min_relevance_score = processing.get(
+        "min_relevance_score", config.min_relevance_score
+    )
+    config.max_item_age_days = processing.get(
+        "max_item_age_days", config.max_item_age_days
+    )
+    config.max_summary_length = processing.get(
+        "max_summary_length", config.max_summary_length
+    )
 
     storage = data.get("storage", {})
-    config.seen_item_retention_days = storage.get("seen_item_retention_days", config.seen_item_retention_days)
-    config.delivery_log_retention_days = storage.get("delivery_log_retention_days", config.delivery_log_retention_days)
+    config.seen_item_retention_days = storage.get(
+        "seen_item_retention_days", config.seen_item_retention_days
+    )
+    config.delivery_log_retention_days = storage.get(
+        "delivery_log_retention_days", config.delivery_log_retention_days
+    )
 
 
 def _validate_config(config: AppConfig) -> None:

@@ -29,7 +29,7 @@ def main():
 
     try:
         summary = run(project_root=args.project_root)
-        print(f"\nRun summary:")
+        print("\nRun summary:")
         for key, value in summary.items():
             print(f"  {key}: {value}")
     except (FileNotFoundError, ValueError) as e:

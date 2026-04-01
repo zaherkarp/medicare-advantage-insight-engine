@@ -1,7 +1,5 @@
 """Tests for state storage and persistence."""
 
-from datetime import datetime
-
 from ma_signal_monitor.models import DeliveryResult
 
 
@@ -48,7 +46,9 @@ class TestStateStore:
         temp_db.end_run(run_id, items_fetched=10, items_new=5, alerts_sent=3)
 
         conn = temp_db._get_conn()
-        row = conn.execute("SELECT * FROM run_metadata WHERE id = ?", (run_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM run_metadata WHERE id = ?", (run_id,)
+        ).fetchone()
         assert row["items_fetched"] == 10
         assert row["items_new"] == 5
         assert row["alerts_sent"] == 3

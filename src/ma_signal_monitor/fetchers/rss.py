@@ -75,7 +75,8 @@ def fetch_rss(
     if feed.bozo and not feed.entries:
         logger.warning(
             "Feed %s has parsing issues and no entries: %s",
-            source.name, feed.bozo_exception,
+            source.name,
+            feed.bozo_exception,
         )
         return items
 
@@ -101,21 +102,27 @@ def fetch_rss(
             summary = entry.content[0].get("value", "")
 
         summary = _strip_html(summary)
-        raw_content = entry.get("content", [{}])[0].get("value", "") if entry.get("content") else ""
+        raw_content = (
+            entry.get("content", [{}])[0].get("value", "")
+            if entry.get("content")
+            else ""
+        )
 
-        items.append(RawFeedItem(
-            source_name=source.name,
-            source_type=source.type,
-            source_url=source.url,
-            source_priority=source.priority,
-            source_tags=source.tags,
-            title=title,
-            link=link,
-            published=published,
-            summary=summary,
-            author=entry.get("author", ""),
-            raw_content=_strip_html(raw_content),
-        ))
+        items.append(
+            RawFeedItem(
+                source_name=source.name,
+                source_type=source.type,
+                source_url=source.url,
+                source_priority=source.priority,
+                source_tags=source.tags,
+                title=title,
+                link=link,
+                published=published,
+                summary=summary,
+                author=entry.get("author", ""),
+                raw_content=_strip_html(raw_content),
+            )
+        )
 
     logger.info("Fetched %d items from %s", len(items), source.name)
     return items

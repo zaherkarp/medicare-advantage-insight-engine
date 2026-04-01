@@ -11,9 +11,9 @@ from ma_signal_monitor.models import Alert
 
 
 _CONFIDENCE_TO_PRIORITY = {
-    "high": 5,     # max/urgent
-    "medium": 3,   # default
-    "low": 2,      # low
+    "high": 5,  # max/urgent
+    "medium": 3,  # default
+    "low": 2,  # low
 }
 
 _CONFIDENCE_TAG = {
