@@ -32,7 +32,9 @@ def filter_new_items(
 
     logger.info(
         "Dedup: %d new items, %d duplicates filtered from %d total",
-        len(new_items), duplicate_count, len(items),
+        len(new_items),
+        duplicate_count,
+        len(items),
     )
     return new_items
 

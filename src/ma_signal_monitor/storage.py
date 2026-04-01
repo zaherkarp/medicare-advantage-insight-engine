@@ -1,6 +1,5 @@
 """SQLite-based persistence for state, deduplication, and delivery logs."""
 
-import json
 import logging
 import sqlite3
 from datetime import datetime, timedelta
@@ -99,7 +98,14 @@ class StateStore:
             """INSERT OR IGNORE INTO seen_items
                (item_id, source_name, title, link, first_seen_at, relevance_score)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (item_id, source_name, title, link, datetime.utcnow().isoformat(), relevance_score),
+            (
+                item_id,
+                source_name,
+                title,
+                link,
+                datetime.utcnow().isoformat(),
+                relevance_score,
+            ),
         )
         conn.commit()
 
@@ -177,13 +183,17 @@ class StateStore:
         """Remove old seen items and delivery logs. Returns (seen_deleted, logs_deleted)."""
         conn = self._get_conn()
 
-        seen_cutoff = (datetime.utcnow() - timedelta(days=seen_retention_days)).isoformat()
+        seen_cutoff = (
+            datetime.utcnow() - timedelta(days=seen_retention_days)
+        ).isoformat()
         cursor = conn.execute(
             "DELETE FROM seen_items WHERE first_seen_at < ?", (seen_cutoff,)
         )
         seen_deleted = cursor.rowcount
 
-        log_cutoff = (datetime.utcnow() - timedelta(days=log_retention_days)).isoformat()
+        log_cutoff = (
+            datetime.utcnow() - timedelta(days=log_retention_days)
+        ).isoformat()
         cursor = conn.execute(
             "DELETE FROM delivery_log WHERE timestamp < ?", (log_cutoff,)
         )
@@ -192,6 +202,7 @@ class StateStore:
         conn.commit()
         logger.info(
             "Cleanup: removed %d old seen items, %d old delivery logs",
-            seen_deleted, logs_deleted,
+            seen_deleted,
+            logs_deleted,
         )
         return seen_deleted, logs_deleted

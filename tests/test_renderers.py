@@ -27,10 +27,19 @@ class TestGenericWebhookRenderer:
         payload = render_generic(sample_alert)
         alert = payload["section_a_internal_alert"]
         required_fields = [
-            "signal_type", "source", "title", "publication_date",
-            "entities", "trigger_category", "relevance_score",
-            "summary", "why_it_matters", "suggested_checks",
-            "confidence", "source_url", "scoring_reasons",
+            "signal_type",
+            "source",
+            "title",
+            "publication_date",
+            "entities",
+            "trigger_category",
+            "relevance_score",
+            "summary",
+            "why_it_matters",
+            "suggested_checks",
+            "confidence",
+            "source_url",
+            "scoring_reasons",
         ]
         for field in required_fields:
             assert field in alert, f"Missing field: {field}"
@@ -40,8 +49,10 @@ class TestGenericWebhookRenderer:
         payload = render_generic(sample_alert)
         draft = payload["section_b_public_insight_draft"]
         required_fields = [
-            "opening_hook", "analytic_angles",
-            "uncertainty_caution", "suggested_hashtags",
+            "opening_hook",
+            "analytic_angles",
+            "uncertainty_caution",
+            "suggested_hashtags",
             "draft_paragraph",
         ]
         for field in required_fields:

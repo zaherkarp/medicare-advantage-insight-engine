@@ -35,9 +35,7 @@ def classify_item(scored: ScoredItem, config: AppConfig) -> str:
         return scored.matched_categories[0]
 
     # Pick the category with highest weight
-    cat_weights = {
-        cat.key: cat.weight for cat in config.categories
-    }
+    cat_weights = {cat.key: cat.weight for cat in config.categories}
     best = max(
         scored.matched_categories,
         key=lambda k: cat_weights.get(k, 0.0),

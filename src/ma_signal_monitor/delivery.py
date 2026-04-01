@@ -63,7 +63,8 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
     if mode == "test":
         logger.info(
             "TEST MODE delivery to %s\nPayload preview:\n%s",
-            url, json.dumps(payload, indent=2)[:500],
+            url,
+            json.dumps(payload, indent=2)[:500],
         )
 
     last_error = None
@@ -82,7 +83,9 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
             if response.status_code in (200, 201, 202):
                 logger.info(
                     "Delivered alert '%s' to %s (status %d)",
-                    alert.internal.title[:60], url, response.status_code,
+                    alert.internal.title[:60],
+                    url,
+                    response.status_code,
                 )
                 return DeliveryResult(
                     alert_title=alert.internal.title,
@@ -97,7 +100,8 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
                 )
                 logger.error(
                     "Non-retryable delivery failure for '%s': %s",
-                    alert.internal.title[:60], error_msg,
+                    alert.internal.title[:60],
+                    error_msg,
                 )
                 return DeliveryResult(
                     alert_title=alert.internal.title,
@@ -117,17 +121,22 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
             last_error = f"Request error: {e}"
 
         if attempt < max_retries:
-            wait = backoff_base * (2 ** attempt)
+            wait = backoff_base * (2**attempt)
             logger.warning(
                 "Delivery attempt %d/%d failed for '%s': %s. Retrying in %ds...",
-                attempt + 1, max_retries + 1,
-                alert.internal.title[:60], last_error, wait,
+                attempt + 1,
+                max_retries + 1,
+                alert.internal.title[:60],
+                last_error,
+                wait,
             )
             time.sleep(wait)
 
     logger.error(
         "Delivery failed after %d attempts for '%s': %s",
-        max_retries + 1, alert.internal.title[:60], last_error,
+        max_retries + 1,
+        alert.internal.title[:60],
+        last_error,
     )
     return DeliveryResult(
         alert_title=alert.internal.title,
@@ -155,6 +164,7 @@ def deliver_alerts(alerts: list[Alert], config: AppConfig) -> list[DeliveryResul
     success_count = sum(1 for r in results if r.success)
     logger.info(
         "Delivery complete: %d/%d alerts delivered successfully",
-        success_count, len(results),
+        success_count,
+        len(results),
     )
     return results

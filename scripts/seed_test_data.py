@@ -35,7 +35,9 @@ SAMPLE_ITEMS = [
         source_tags=["test"],
         title="UnitedHealthcare expands Medicare Advantage service area to 15 new counties",
         link="https://example.com/article/uhc-expansion",
-        published=(datetime.utcnow() - timedelta(hours=6)).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+        published=(datetime.utcnow() - timedelta(hours=6)).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000"
+        ),
         summary=(
             "UnitedHealthcare announced plans to expand its Medicare Advantage service area "
             "to include 15 additional counties across three states, signaling continued "
@@ -50,7 +52,9 @@ SAMPLE_ITEMS = [
         source_tags=["test", "cms"],
         title="CMS proposes new Star Ratings methodology changes for 2027",
         link="https://example.com/article/cms-stars-2027",
-        published=(datetime.utcnow() - timedelta(hours=12)).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+        published=(datetime.utcnow() - timedelta(hours=12)).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000"
+        ),
         summary=(
             "The Centers for Medicare & Medicaid Services released a proposed rule "
             "outlining significant changes to the Medicare Advantage Star Ratings "
@@ -66,7 +70,9 @@ SAMPLE_ITEMS = [
         source_tags=["test", "financial"],
         title="Humana reports rising medical loss ratio amid cost pressure",
         link="https://example.com/article/humana-mlr",
-        published=(datetime.utcnow() - timedelta(hours=24)).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+        published=(datetime.utcnow() - timedelta(hours=24)).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000"
+        ),
         summary=(
             "Humana's latest quarterly results show a rising medical loss ratio driven "
             "by increased utilization in its Medicare Advantage plans. The company noted "
@@ -82,7 +88,9 @@ SAMPLE_ITEMS = [
         source_tags=["test"],
         title="Local hospital adds new cafeteria menu options",
         link="https://example.com/article/cafeteria",
-        published=(datetime.utcnow() - timedelta(hours=2)).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+        published=(datetime.utcnow() - timedelta(hours=2)).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000"
+        ),
         summary=(
             "Springfield General Hospital announced new cafeteria menu options "
             "for staff and visitors, including expanded vegetarian selections."
@@ -96,7 +104,9 @@ SAMPLE_ITEMS = [
         source_tags=["test", "strategy"],
         title="Aetna partners with Oak Street Health to expand value-based primary care for Medicare Advantage members",
         link="https://example.com/article/aetna-oak-street",
-        published=(datetime.utcnow() - timedelta(hours=8)).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+        published=(datetime.utcnow() - timedelta(hours=8)).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000"
+        ),
         summary=(
             "CVS Health's Aetna Medicare division announced a new partnership with "
             "Oak Street Health to expand access to value-based primary care for "
@@ -140,7 +150,7 @@ def main():
 
     # Score
     scored = score_items(normalized, config)
-    print(f"\nScoring results:")
+    print("\nScoring results:")
     for s in scored:
         marker = ">>>" if s.relevance_score >= config.min_relevance_score else "   "
         print(f"  {marker} [{s.relevance_score:.3f}] {s.item.title[:70]}")
