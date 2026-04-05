@@ -60,6 +60,20 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
 
     payload = _render_payload(alert, mode)
 
+    if mode == "test" and not url:
+        logger.info(
+            "TEST MODE (dry-run, no webhook URL configured)\n"
+            "Alert: %s\nPayload preview:\n%s",
+            alert.internal.title[:60],
+            json.dumps(payload, indent=2)[:500],
+        )
+        return DeliveryResult(
+            alert_title=alert.internal.title,
+            success=True,
+            status_code=0,
+            error=None,
+        )
+
     if mode == "test":
         logger.info(
             "TEST MODE delivery to %s\nPayload preview:\n%s",
