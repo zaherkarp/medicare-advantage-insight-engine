@@ -1,6 +1,6 @@
 # MA Signal Monitor
 
-A free, local Medicare Advantage news insight monitor that fetches public sources, scores items for analytic relevance, and posts structured alerts to a webhook endpoint (Teams-compatible or generic).
+A free, local Medicare Advantage news insight monitor that fetches public sources, scores items for analytic relevance, and posts structured alerts to a webhook endpoint (ntfy.sh push notifications, Teams Adaptive Cards, or generic JSON).
 
 ## What It Does
 
@@ -14,7 +14,7 @@ On each run, the monitor:
 6. **Drafts** two-section alerts:
    - **Section A**: Internal analytic alert with signal type, entities, relevance score, and suggested follow-up checks
    - **Section B**: Draft public insight angle with opening hook, analytic angles, and a clearly-marked draft paragraph
-7. **Delivers** alerts to a webhook endpoint (generic JSON, Teams Adaptive Card, or test mode)
+7. **Delivers** alerts to a webhook endpoint (ntfy.sh push notifications, Teams Adaptive Card, generic JSON, or test mode)
 8. **Persists** state, delivery logs, and run metadata locally
 
 ## Architecture Overview
@@ -27,7 +27,7 @@ RSS Feeds ──→ Fetcher ──→ Normalizer ──→ Deduplicator ──�
                                               └──────── Drafter ─────────┘
                                                            │
                                                       Renderer
-                                                    (Generic/Teams)
+                                                  (ntfy/Generic/Teams)
                                                            │
                                                     Webhook Delivery
 ```
@@ -60,16 +60,23 @@ cp .env.example .env
 # Edit .env — at minimum set WEBHOOK_URL
 ```
 
-### 3. Test with Webhook.site
+### 3. Test with ntfy.sh (Recommended)
 
-1. Go to [webhook.site](https://webhook.site) and copy your unique URL
-2. Set `WEBHOOK_URL=https://webhook.site/<your-uuid>` in `.env`
-3. Set `WEBHOOK_MODE=test`
-4. Run the seed script:
+[ntfy.sh](https://ntfy.sh) is a free push notification service — no signup, no API keys.
+
+1. Open `https://ntfy.sh/ma-signal-monitor` in your browser (or subscribe in the ntfy mobile app)
+2. The default `.env` is already configured for ntfy.sh:
+   ```ini
+   WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
+   WEBHOOK_MODE=ntfy
+   ```
+3. Run the seed script:
    ```bash
    python scripts/seed_test_data.py --deliver
    ```
-5. Check webhook.site for the delivered payload
+4. Check the ntfy.sh topic page — you should see formatted alerts with priority levels and click-through links
+
+> **Tip**: Use a unique, hard-to-guess topic name (e.g., `https://ntfy.sh/my-ma-monitor-abc123`) for privacy, since ntfy.sh topics are public by default.
 
 ### 4. Run Against Live Feeds
 
@@ -92,8 +99,8 @@ pytest --cov=ma_signal_monitor
 
 | Variable | Default | Description |
 |---|---|---|
-| `WEBHOOK_URL` | *(required)* | Webhook endpoint URL |
-| `WEBHOOK_MODE` | `test` | `generic`, `teams`, or `test` |
+| `WEBHOOK_URL` | *(required)* | Webhook endpoint URL (e.g., `https://ntfy.sh/your-topic`) |
+| `WEBHOOK_MODE` | `ntfy` | `ntfy`, `generic`, `teams`, or `test` |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `MIN_RELEVANCE_SCORE` | `0.3` | Threshold for alert generation (0.0-1.0) |
 
@@ -128,15 +135,16 @@ crontab -e
 
 See `src/ma_signal_monitor/scheduler_notes.py` for detailed examples.
 
-## Webhook Testing
+## Webhook Delivery Modes
 
-The delivery system supports three modes:
+The delivery system supports four modes:
 
-- **`test`**: Generic JSON with extra debug logging. Use with webhook.site or RequestBin.
-- **`generic`**: Clean JSON payload for any webhook consumer.
+- **`ntfy`** *(recommended)*: Push notifications via [ntfy.sh](https://ntfy.sh) — free, no signup, supports mobile push, markdown, priority levels, and click-through actions.
 - **`teams`**: Adaptive Card format for Microsoft Teams incoming webhooks.
+- **`generic`**: Clean JSON payload for any webhook consumer.
+- **`test`**: Generic JSON with extra debug logging. Use with webhook.site or RequestBin.
 
-**Recommendation**: Always test with `test` mode and a webhook inspector before switching to `teams`.
+**Recommendation**: Start with `ntfy` mode for the fastest setup. Use `test` mode with a webhook inspector if you need to debug payloads before switching to `teams`.
 
 ## Teams Compatibility Notes
 
@@ -195,6 +203,7 @@ The delivery system supports three modes:
 │   │   ├── sec.py          # SEC EDGAR (stub)
 │   │   └── cms.py          # CMS files (stub)
 │   └── renderers/
+│       ├── ntfy.py             # ntfy.sh push notification renderer
 │       ├── generic_webhook.py  # Generic JSON renderer
 │       └── teams.py            # Teams Adaptive Card renderer
 ├── tests/                  # pytest test suite

@@ -4,7 +4,7 @@
 
 - Python 3.11 or later
 - pip (included with Python) or [uv](https://github.com/astral-sh/uv)
-- A webhook endpoint for testing (e.g., [webhook.site](https://webhook.site))
+- A webhook endpoint — [ntfy.sh](https://ntfy.sh) is recommended (free, no signup required)
 
 ## Step 1: Python Environment
 
@@ -38,10 +38,11 @@ Edit `.env`:
 
 ```ini
 # Required: your webhook endpoint
-WEBHOOK_URL=https://webhook.site/your-uuid-here
+# For ntfy.sh (recommended): use any topic name you like
+WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
 
-# Start with test mode
-WEBHOOK_MODE=test
+# Delivery mode: ntfy (recommended), generic, teams, or test
+WEBHOOK_MODE=ntfy
 
 # Optional tuning
 LOG_LEVEL=INFO
@@ -66,19 +67,35 @@ sources:
 
 Edit `config/taxonomy.yaml` to adjust keywords, weights, or watched entities.
 
-## Step 3: Test with Webhook.site
+## Step 3: Test with ntfy.sh (Recommended)
 
-1. Go to [webhook.site](https://webhook.site)
-2. Copy the unique URL shown (e.g., `https://webhook.site/abc-123-...`)
-3. Paste it into `.env` as `WEBHOOK_URL`
-4. Run the seed test:
+[ntfy.sh](https://ntfy.sh) provides free push notifications with no signup required.
+
+1. Open `https://ntfy.sh/ma-signal-monitor` in your browser, or install the ntfy app ([iOS](https://apps.apple.com/app/ntfy/id1625396347) / [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)) and subscribe to topic `ma-signal-monitor`
+2. Your `.env` should already have:
+   ```ini
+   WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
+   WEBHOOK_MODE=ntfy
+   ```
+3. Run the seed test:
 
 ```bash
 python scripts/seed_test_data.py --deliver
 ```
 
-5. Check webhook.site — you should see JSON payloads arrive
-6. Review the payload structure: Section A (internal alert) and Section B (public draft)
+4. Check the ntfy.sh topic — you should see formatted alerts with markdown, priority levels, and click-through links to source articles
+5. Review the alert structure: Section A (internal analytic alert) and Section B (draft public insight)
+
+> **Privacy tip**: ntfy.sh topics are public by default. Use a unique, hard-to-guess topic name (e.g., `https://ntfy.sh/my-ma-monitor-abc123`) for production use.
+
+### Alternative: Test with Webhook.site
+
+If you prefer to inspect raw JSON payloads:
+
+1. Go to [webhook.site](https://webhook.site) and copy your unique URL
+2. Set `WEBHOOK_URL=https://webhook.site/<your-uuid>` and `WEBHOOK_MODE=test` in `.env`
+3. Run: `python scripts/seed_test_data.py --deliver`
+4. Inspect the JSON payload structure on webhook.site
 
 ## Step 4: Run Against Live Feeds
 
@@ -89,6 +106,8 @@ python scripts/run_once.py
 Check your webhook endpoint for any alerts. If no alerts appear, the feeds may not have had items matching the relevance threshold — try lowering `MIN_RELEVANCE_SCORE` in `.env` to `0.1` temporarily.
 
 ## Step 5: Switch to Teams (Optional)
+
+If you prefer Microsoft Teams over ntfy.sh:
 
 1. In your Teams channel, add an "Incoming Webhook" connector
 2. Copy the webhook URL
