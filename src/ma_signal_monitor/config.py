@@ -223,15 +223,15 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
 
 def _validate_config(config: AppConfig) -> None:
     """Validate configuration, raising ValueError on problems."""
-    if not config.webhook_url:
-        raise ValueError(
-            "WEBHOOK_URL is not set. Set it in .env or as an environment variable. "
-            "For testing, use a Webhook.site URL."
-        )
-
     if config.webhook_mode not in ("ntfy", "generic", "teams", "test"):
         raise ValueError(
             f"WEBHOOK_MODE must be 'ntfy', 'generic', 'teams', or 'test', got: {config.webhook_mode}"
+        )
+
+    if config.webhook_mode != "test" and not config.webhook_url:
+        raise ValueError(
+            "WEBHOOK_URL is not set. Set it in .env or as an environment variable. "
+            "For testing, use WEBHOOK_MODE=test for dry-run mode."
         )
 
     enabled_sources = [s for s in config.sources if s.enabled]

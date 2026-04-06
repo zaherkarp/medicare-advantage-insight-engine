@@ -118,6 +118,14 @@ class TestDelivery:
         assert "message" in payload
         assert payload["markdown"] is True
 
+    def test_test_mode_dry_run_no_url(self, sample_alert, sample_config):
+        """Test mode with no URL returns success without HTTP call."""
+        sample_config.webhook_mode = "test"
+        sample_config.webhook_url = ""
+        result = deliver_alert(sample_alert, sample_config)
+        assert result.success is True
+        assert result.status_code == 0
+
     @responses.activate
     def test_teams_mode_uses_teams_format(self, sample_alert, sample_config):
         """Teams mode sends Adaptive Card format."""
