@@ -58,10 +58,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # feedparser's sgmllib3k dep has a build issue with modern setuptools;
-          # install feedparser without deps first, then the rest
+          # feedparser's sgmllib3k dep fails to build with modern setuptools;
+          # install feedparser (--no-deps) then remaining deps separately
           pip install feedparser --no-deps
-          pip install -e ".[dev]"
+          pip install requests python-dotenv pyyaml
+          pip install pytest pytest-cov responses
+          pip install -e . --no-deps
 
       - name: Run tests with coverage
         run: python -m pytest --cov=ma_signal_monitor --cov-report=term-missing --cov-report=xml
