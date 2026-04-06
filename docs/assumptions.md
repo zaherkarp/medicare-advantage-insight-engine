@@ -19,7 +19,8 @@
 - **Category weights reflect relative analytic importance.** Policy/regulatory is weighted slightly higher (1.2) because regulatory signals tend to have outsized market impact. This is adjustable.
 
 ### Delivery
-- **Teams Incoming Webhook connector is the target.** The Teams renderer produces Adaptive Card v1.4 payloads for the Incoming Webhook connector, not for Power Automate Workflow webhooks (which use a different format).
+- **ntfy.sh is the recommended default delivery mode.** It's free, requires no signup or API keys, supports mobile push notifications, markdown rendering, priority levels, and click-through actions. Topics are public by default — users should choose a unique topic name for privacy.
+- **Teams Incoming Webhook connector is supported as an alternative.** The Teams renderer produces Adaptive Card v1.4 payloads for the Incoming Webhook connector, not for Power Automate Workflow webhooks (which use a different format).
 - **Adaptive Card v1.4 is well-supported.** This is the current recommended version for Teams connectors as of 2024. If Microsoft deprecates this version, the renderer will need updates.
 - **Payload size stays under 28KB.** Teams has a payload size limit. The alert format is designed to be concise, but extremely long article summaries could approach the limit.
 

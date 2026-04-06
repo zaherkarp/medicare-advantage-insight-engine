@@ -1,9 +1,26 @@
 # Troubleshooting
 
+## ntfy.sh Issues
+
+### Notifications not appearing
+- Verify you're subscribed to the correct topic: open `https://ntfy.sh/<your-topic>` in your browser
+- Check that `WEBHOOK_MODE=ntfy` in your `.env`
+- Check that `WEBHOOK_URL` matches the topic you subscribed to
+- Run `python scripts/seed_test_data.py --deliver` and look for `status 200` in the output
+
+### Notifications visible to others
+ntfy.sh topics are **public by default**. Anyone who knows your topic name can read your alerts. Use a unique, hard-to-guess topic name (e.g., `ma-monitor-a8f3k2x9`) for production use. For private topics, consider [self-hosting ntfy](https://docs.ntfy.sh/install/) or using a different delivery mode.
+
+### Markdown not rendering
+Ensure `WEBHOOK_MODE=ntfy` (not `generic` or `test`). The ntfy renderer sets `"markdown": true` in the payload. Markdown rendering is supported in the ntfy web UI and mobile apps.
+
+### Priority levels not working
+The ntfy renderer maps alert confidence to priority: high → 5 (urgent), medium → 3 (default), low → 2. Verify in the ntfy web UI that the priority badge appears on each notification.
+
 ## Webhook Endpoint Errors
 
 ### "WEBHOOK_URL is not set"
-Set `WEBHOOK_URL` in your `.env` file. For testing, use a webhook.site URL.
+Set `WEBHOOK_URL` in your `.env` file. For ntfy.sh: `https://ntfy.sh/your-topic-name`. For testing, use a webhook.site URL.
 
 ### HTTP 400/403 from webhook endpoint
 - **400 Bad Request**: The payload format may not match what the endpoint expects. If using Teams, ensure `WEBHOOK_MODE=teams`. Try sending to webhook.site first with `WEBHOOK_MODE=test` to inspect the payload.

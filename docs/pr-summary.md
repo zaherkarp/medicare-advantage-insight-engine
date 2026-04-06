@@ -11,9 +11,9 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 - **Transparent scoring model** with keyword matching, entity detection, source priority weighting, and explainable reasons
 - **Five-category trigger taxonomy** configurable via YAML (membership, demographics, policy, financial, competitive)
 - **Two-section alert format**: Internal analytic alert + Draft public insight angle
-- **Webhook delivery** with three modes (generic JSON, Teams Adaptive Card, test), retry with exponential backoff
+- **Webhook delivery** with four modes (ntfy.sh push notifications, generic JSON, Teams Adaptive Card, test), retry with exponential backoff
 - **SQLite persistence** for deduplication, delivery logs, and run metadata
-- **59 automated tests** with pytest covering config, normalization, dedup, scoring, renderers, delivery, and storage
+- **73 automated tests** with pytest covering config, normalization, dedup, scoring, renderers (ntfy, generic, Teams), delivery, and storage
 - **Comprehensive documentation**: README, architecture, setup, operations, QA checklist, assumptions, troubleshooting
 
 ## Scope
@@ -21,7 +21,7 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 ### Included (Phase 1)
 - RSS feed ingestion (6 default sources including CMS Newsroom, Federal Register, Healthcare Dive)
 - Full processing pipeline
-- Generic and Teams webhook rendering
+- ntfy.sh, Generic, and Teams webhook rendering
 - SQLite state management
 - Test suite and documentation
 - Seed data script for safe testing
@@ -42,18 +42,19 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 | Keyword scoring | Transparent, explainable, no external dependencies |
 | Dataclasses | Sufficient for data flow; avoids Pydantic dependency |
 | Adaptive Cards v1.4 | Current Teams standard |
-| Delivery abstraction | Teams compatibility is fragile; abstraction allows easy swaps |
+| ntfy.sh as default | Free, no signup, mobile push, markdown — lowest friction |
+| Delivery abstraction | Endpoint compatibility varies; abstraction allows easy swaps |
 | Per-source error isolation | One bad feed shouldn't stop the run |
 
 ## Testing Performed
 
-### Automated (59 tests, all passing)
-- Config loading and validation (10 tests)
+### Automated (73 tests, all passing)
+- Config loading and validation (11 tests)
 - Item normalization and date parsing (11 tests)
 - Deduplication behavior (5 tests)
 - Relevance scoring model (9 tests)
-- Generic and Teams renderers (10 tests)
-- Webhook delivery with retry (7 tests)
+- ntfy.sh, Generic, and Teams renderers (17 tests)
+- Webhook delivery with retry (9 tests)
 - SQLite state persistence (7 tests)
 
 ### Manual
@@ -67,7 +68,7 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 
 **All automated tests pass.** Manual QA passed for sample data runs, deduplication, configuration changes, error handling, payload structure, and state persistence. See `docs/qa-results.md` for full details.
 
-**Partially verified**: Live RSS fetching (network-dependent), Teams rendering (requires live endpoint), actual webhook delivery (requires endpoint setup).
+**Partially verified**: Live RSS fetching (network-dependent), Teams rendering (requires live endpoint). **Fully verified**: ntfy.sh delivery (4/4 test alerts delivered successfully with HTTP 200).
 
 ## Risks / Limitations
 
@@ -89,6 +90,6 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 
 ## Questions for Reviewer
 
-1. **Teams webhook type**: Are you using "Incoming Webhook" connectors or "Workflow" (Power Automate) webhooks? The implementation targets Incoming Webhooks.
+1. **Delivery mode**: The default is ntfy.sh (free, no signup). If using Teams instead, are you using "Incoming Webhook" connectors or "Workflow" (Power Automate) webhooks? The Teams renderer targets Incoming Webhooks.
 2. **Source additions**: Are there specific feeds or payer IR pages you'd like added to the default sources?
 3. **Alert volume preference**: The default threshold (0.3) with current sources should produce 0-10 alerts per day. Is that about right, or should we tune for more/fewer?

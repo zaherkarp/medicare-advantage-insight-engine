@@ -2,15 +2,15 @@
 
 ## Automated Tests
 
-**59 tests, all passing.**
+**73 tests, all passing.**
 
 ```
-tests/test_config.py      — 10 tests (config loading, validation)
+tests/test_config.py      — 11 tests (config loading, validation)
 tests/test_normalize.py   — 11 tests (date parsing, truncation, ID stability, whitespace)
 tests/test_dedupe.py      —  5 tests (new/seen filtering, idempotency)
 tests/test_scoring.py     —  9 tests (keyword, entity, priority, multi-category, clamping)
-tests/test_renderers.py   — 10 tests (generic JSON + Teams Adaptive Card structure)
-tests/test_delivery.py    —  7 tests (success, 4xx/5xx, retries, connection errors, Teams format)
+tests/test_renderers.py   — 17 tests (ntfy.sh, generic JSON, and Teams Adaptive Card structure)
+tests/test_delivery.py    —  9 tests (success, 4xx/5xx, retries, connection errors, ntfy/Teams format)
 tests/test_storage.py     —  7 tests (seen items, delivery log, run metadata, cleanup, persistence)
 ```
 
@@ -41,9 +41,11 @@ tests/test_storage.py     —  7 tests (seen items, delivery log, run metadata, 
 - **PASS**: Pipeline continues when one source fails (tested via invalid URL in sources)
 
 ### Payload structure
+- **PASS**: ntfy.sh payload has title, message, priority, markdown, tags, click URL, and view action
+- **PASS**: ntfy.sh delivery returns HTTP 200 for all 4 test alerts
 - **PASS**: Generic webhook payload is valid JSON with both Section A and Section B
 - **PASS**: Teams payload is valid Adaptive Card v1.4 structure
-- **PASS**: All required fields populated in both formats
+- **PASS**: All required fields populated in all formats
 - **PASS**: Payload size well under Teams 28KB limit (typical: 2-4KB)
 
 ### State persistence
@@ -66,7 +68,8 @@ tests/test_storage.py     —  7 tests (seen items, delivery log, run metadata, 
 - **STRUCTURAL ONLY**: The Adaptive Card payload structure is verified against the schema, but rendering in an actual Teams client was not tested (requires a Teams tenant with an active Incoming Webhook). Use webhook.site to inspect the payload before switching to Teams.
 
 ### Webhook delivery to real endpoint
-- **MOCKED IN TESTS**: Delivery tests use the `responses` library to mock HTTP. Actual delivery to webhook.site is validated via `seed_test_data.py --deliver` (requires setting WEBHOOK_URL).
+- **VERIFIED (ntfy.sh)**: Delivery to `https://ntfy.sh/ma-signal-monitor` confirmed working — 4/4 test alerts delivered with HTTP 200, markdown rendering, priority levels, and click-through actions.
+- **MOCKED IN UNIT TESTS**: Delivery tests use the `responses` library to mock HTTP for automated testing.
 
 ## Known Issues
 

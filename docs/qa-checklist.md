@@ -58,10 +58,13 @@
 
 ## Webhook Delivery
 
+- [ ] ntfy.sh alerts arrive with markdown formatting and priority levels
+- [ ] ntfy.sh alerts have click-through links to source articles
 - [ ] Payload arrives at webhook.site in test mode
 - [ ] Payload is valid JSON
 - [ ] Generic payload contains both Section A and Section B
 - [ ] Teams payload has valid Adaptive Card structure
+- [ ] ntfy payload has required fields (title, message, priority, markdown)
 - [ ] Delivery logs are recorded in SQLite
 - [ ] Failed delivery records the error
 - [ ] Retry occurs on server errors (5xx)

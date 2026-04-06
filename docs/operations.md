@@ -38,6 +38,17 @@ The SQLite database contains:
 | `delivery_log` | Webhook delivery attempts |
 | `run_metadata` | Start/end times and counts per run |
 
+## Delivery Modes
+
+The monitor supports four delivery modes via `WEBHOOK_MODE` in `.env`:
+
+| Mode | Endpoint | Use Case |
+|---|---|---|
+| `ntfy` *(recommended)* | `https://ntfy.sh/your-topic` | Free push notifications — mobile + web, no signup |
+| `teams` | Teams incoming webhook URL | Microsoft Teams Adaptive Cards |
+| `generic` | Any HTTP endpoint | Raw JSON for custom integrations |
+| `test` | Any HTTP endpoint or webhook.site | Debug logging + payload inspection |
+
 ## Retry Behavior
 
 Webhook delivery retries on transient failures:

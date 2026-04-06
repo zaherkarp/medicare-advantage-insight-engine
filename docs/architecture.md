@@ -25,7 +25,7 @@
                                                                │
                                                           ┌────▼─────┐
                                                           │ Renderer │
-                                                          │(generic/ │
+                                                          │(ntfy/gen/│
                                                           │  teams)  │
                                                           └────┬─────┘
                                                                │
@@ -86,10 +86,18 @@ The score is clamped to [0.0, 1.0] and returned with a list of `ScoringReason` o
 Delivery is abstracted behind a mode selector:
 
 - `delivery.py` dispatches to the appropriate renderer based on `WEBHOOK_MODE`
+- `renderers/ntfy.py` produces ntfy.sh-compatible JSON with markdown formatting, priority levels, emoji tags, and click-through actions (recommended — free, no signup)
 - `renderers/generic_webhook.py` produces clean JSON (for webhook inspectors and generic consumers)
 - `renderers/teams.py` produces a Teams Adaptive Card (v1.4) wrapped in the Teams message format
 
-**Why the abstraction**: Teams compatibility is fragile and may change. By keeping rendering separate from delivery, we can swap formats without touching the delivery retry logic, and test with generic webhooks before switching to Teams.
+**Why the abstraction**: Endpoint compatibility varies (Teams is particularly fragile). By keeping rendering separate from delivery, we can swap formats without touching the delivery retry logic, and test with generic webhooks before switching to Teams.
+
+**ntfy.sh payload features**:
+- Markdown-formatted message body with both alert sections
+- Priority mapping: high confidence → priority 5 (urgent), medium → 3 (default), low → 2
+- Emoji tags for visual indicators (rotating_light, warning, chart_with_upwards_trend)
+- Click-through URL to original source article
+- "View Source" action button
 
 **Retry logic**: Exponential backoff for transient (5xx/connection) errors. 4xx errors fail immediately without retry.
 
@@ -108,9 +116,11 @@ SQLite (`storage.py`) provides three tables:
 | Choice | Rationale |
 |---|---|
 | SQLite for state | Zero-config, durable, portable, no server |
+| ntfy.sh as default delivery | Free, no signup, mobile push, markdown — lowest friction for setup |
 | Keyword scoring (not ML) | Transparent, explainable, no dependencies, effective for domain vocabulary |
 | feedparser + requests | Mature, well-tested, minimal footprint |
 | Adaptive Cards (not MessageCard) | Adaptive Cards are the current Teams standard; MessageCard is legacy |
 | Dataclasses (not Pydantic) | Sufficient for this use case; avoids extra dependency |
+| Delivery abstraction | Endpoint compatibility varies; abstraction allows easy format swaps |
 | Sequential fetching | Simpler to reason about, debug, and log; parallelism is a future enhancement |
 | Per-source error isolation | One bad feed shouldn't block the entire run |
