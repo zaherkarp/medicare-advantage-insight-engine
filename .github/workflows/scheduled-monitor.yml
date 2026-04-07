@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  WEBHOOK_MODE: ${{ vars.WEBHOOK_MODE || 'ntfy' }}
+  WEBHOOK_MODE: ${{ vars.WEBHOOK_MODE || 'test' }}
   WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
   MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
   LOG_LEVEL: ${{ inputs.log_level || 'INFO' }}
