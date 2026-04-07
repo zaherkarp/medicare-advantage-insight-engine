@@ -93,14 +93,14 @@ class TestConfigLoading:
 class TestConfigValidation:
     """Test configuration validation rules."""
 
-    def test_missing_webhook_url_raises(self, project_root_with_config):
-        """ValueError when WEBHOOK_URL is not set in non-test mode."""
+    def test_missing_webhook_url_falls_back_to_test(self, project_root_with_config):
+        """Falls back to test mode when WEBHOOK_URL is not set in non-test mode."""
         env_path = project_root_with_config / ".env"
         env_path.write_text("WEBHOOK_MODE=ntfy\n")
         # Clear any cached env vars
         os.environ.pop("WEBHOOK_URL", None)
-        with pytest.raises(ValueError, match="WEBHOOK_URL"):
-            load_config(project_root_with_config)
+        config = load_config(project_root_with_config)
+        assert config.webhook_mode == "test"
 
     def test_missing_webhook_url_ok_in_test_mode(self, project_root_with_config):
         """No error when WEBHOOK_URL is missing in test mode."""
