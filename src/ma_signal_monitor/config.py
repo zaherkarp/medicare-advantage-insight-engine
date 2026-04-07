@@ -229,10 +229,14 @@ def _validate_config(config: AppConfig) -> None:
         )
 
     if config.webhook_mode != "test" and not config.webhook_url:
-        raise ValueError(
-            "WEBHOOK_URL is not set. Set it in .env or as an environment variable. "
-            "For testing, use WEBHOOK_MODE=test for dry-run mode."
+        import logging
+
+        logging.getLogger("ma_signal_monitor.config").warning(
+            "WEBHOOK_URL is not set but WEBHOOK_MODE='%s'. "
+            "Falling back to WEBHOOK_MODE='test' (dry-run).",
+            config.webhook_mode,
         )
+        config.webhook_mode = "test"
 
     enabled_sources = [s for s in config.sources if s.enabled]
     if not enabled_sources:
