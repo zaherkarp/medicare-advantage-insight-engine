@@ -122,9 +122,34 @@ class TestNtfyRenderer:
         """Message body includes summary, why-it-matters, and draft."""
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
-        assert "**Summary:**" in msg
-        assert "**Why it matters:**" in msg
-        assert "**Draft insight:**" in msg
+        assert sample_alert.internal.summary in msg
+        assert "**Why it matters**" in msg
+        assert "**Insight angle**" in msg
+
+    def test_message_has_compact_metadata(self, sample_alert):
+        """Message leads with category and compact metadata, not labeled fields."""
+        payload = render_ntfy(sample_alert)
+        msg = payload["message"]
+        # Category and confidence on the first line
+        assert f"**{sample_alert.internal.trigger_category}**" in msg
+        # Source, date, entities on a compact line (no bold labels)
+        assert sample_alert.internal.source in msg
+        assert "**Category:**" not in msg
+        assert "**Score:**" not in msg
+
+    def test_message_next_steps(self, sample_alert):
+        """Suggested checks appear under 'Next steps' heading."""
+        payload = render_ntfy(sample_alert)
+        msg = payload["message"]
+        assert "**Next steps**" in msg
+        for check in sample_alert.internal.suggested_checks:
+            assert check in msg
+
+    def test_category_tag_included(self, sample_alert):
+        """Tags include a category-specific emoji tag."""
+        payload = render_ntfy(sample_alert)
+        # "Membership Movement" maps to "busts_in_silhouette"
+        assert "busts_in_silhouette" in payload["tags"]
 
     def test_topic_included_when_provided(self, sample_alert):
         """Topic field is set when explicitly provided."""
