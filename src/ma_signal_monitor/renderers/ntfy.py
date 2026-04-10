@@ -57,7 +57,9 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
 
     priority = _CONFIDENCE_TO_PRIORITY.get(internal.confidence, 3)
     confidence_tag = _CONFIDENCE_TAG.get(internal.confidence, "bell")
-    category_tag = _CATEGORY_TAG.get(internal.trigger_category.lower(), "chart_with_upwards_trend")
+    category_tag = _CATEGORY_TAG.get(
+        internal.trigger_category.lower(), "chart_with_upwards_trend"
+    )
     tags = [confidence_tag, category_tag]
 
     # -- Build human-readable markdown body --
