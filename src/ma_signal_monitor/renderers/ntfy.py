@@ -22,6 +22,25 @@ _CONFIDENCE_TAG = {
     "low": "information_source",
 }
 
+_CATEGORY_TAG = {
+    "membership_movement": "busts_in_silhouette",
+    "membership movement": "busts_in_silhouette",
+    "policy_regulatory": "classical_building",
+    "policy / regulatory changes": "classical_building",
+    "financial_pressure": "money_with_wings",
+    "financial / operating pressure": "money_with_wings",
+    "competitive_strategy": "handshake",
+    "competitive / operational strategy": "handshake",
+    "demographic_shifts": "bar_chart",
+    "demographic shifts": "bar_chart",
+}
+
+_CONFIDENCE_LABEL = {
+    "high": "High confidence",
+    "medium": "Medium confidence",
+    "low": "Early signal",
+}
+
 
 def render_ntfy(alert: Alert, topic: str = "") -> dict:
     """Render an alert as an ntfy.sh JSON payload.
@@ -37,36 +56,45 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
     draft = alert.public_draft
 
     priority = _CONFIDENCE_TO_PRIORITY.get(internal.confidence, 3)
-    tags = [
-        _CONFIDENCE_TAG.get(internal.confidence, "bell"),
-        "chart_with_upwards_trend",
-    ]
+    confidence_tag = _CONFIDENCE_TAG.get(internal.confidence, "bell")
+    category_tag = _CATEGORY_TAG.get(internal.trigger_category.lower(), "chart_with_upwards_trend")
+    tags = [confidence_tag, category_tag]
 
-    # Build markdown body
-    lines = [
-        f"**Category:** {internal.trigger_category}",
-        f"**Source:** {internal.source}",
-        f"**Score:** {internal.relevance_score:.2f} ({internal.confidence} confidence)",
-        f"**Date:** {internal.publication_date or 'N/A'}",
-    ]
+    # -- Build human-readable markdown body --
 
+    # Line 1: category + confidence badge
+    confidence_label = _CONFIDENCE_LABEL.get(internal.confidence, internal.confidence)
+    lines = [f"**{internal.trigger_category}** · {confidence_label}"]
+
+    # Line 2: source, date, entities — compact metadata
+    meta_parts = [internal.source]
+    if internal.publication_date:
+        meta_parts.append(internal.publication_date)
     if internal.entities:
-        lines.append(f"**Entities:** {', '.join(internal.entities)}")
+        meta_parts.append(", ".join(internal.entities))
+    lines.append(" · ".join(meta_parts))
 
+    # Summary as the lead paragraph (no label — it speaks for itself)
     lines.append("")
-    lines.append(f"**Summary:** {internal.summary}")
-    lines.append("")
-    lines.append(f"**Why it matters:** {internal.why_it_matters}")
+    lines.append(internal.summary)
 
+    # Why it matters
+    lines.append("")
+    lines.append(f"**Why it matters**\n{internal.why_it_matters}")
+
+    # Suggested next steps
     if internal.suggested_checks:
         lines.append("")
-        lines.append("**Suggested checks:**")
+        lines.append("**Next steps**")
         for check in internal.suggested_checks[:3]:
             lines.append(f"- {check}")
 
+    # Draft insight section
     lines.append("")
     lines.append("---")
-    lines.append(f"**Draft insight:** {draft.opening_hook}")
+    lines.append("")
+    lines.append("**Insight angle**")
+    lines.append(f"_{draft.opening_hook}_")
     lines.append("")
     lines.append(draft.draft_paragraph)
 
