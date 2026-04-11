@@ -62,41 +62,42 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
     )
     tags = [confidence_tag, category_tag]
 
-    # -- Build human-readable markdown body --
+    # -- Build plain-text body (ntfy markdown is web-only) --
 
-    # Line 1: category + confidence badge
+    # Header: category + confidence
     confidence_label = _CONFIDENCE_LABEL.get(internal.confidence, internal.confidence)
-    lines = [f"**{internal.trigger_category}** · {confidence_label}"]
+    lines = [f"\U0001f4cb {internal.trigger_category} \u00b7 {confidence_label}"]
 
-    # Line 2: source, date, entities — compact metadata
+    # Compact metadata line
     meta_parts = [internal.source]
     if internal.publication_date:
         meta_parts.append(internal.publication_date)
     if internal.entities:
         meta_parts.append(", ".join(internal.entities))
-    lines.append(" · ".join(meta_parts))
+    lines.append(" \u00b7 ".join(meta_parts))
 
-    # Summary as the lead paragraph (no label — it speaks for itself)
+    # Summary as the lead paragraph
     lines.append("")
     lines.append(internal.summary)
 
     # Why it matters
     lines.append("")
-    lines.append(f"**Why it matters**\n{internal.why_it_matters}")
+    lines.append("\u26a1 Why it matters:")
+    lines.append(internal.why_it_matters)
 
     # Suggested next steps
     if internal.suggested_checks:
         lines.append("")
-        lines.append("**Next steps**")
+        lines.append("\U0001f4cc Next steps:")
         for check in internal.suggested_checks[:3]:
-            lines.append(f"- {check}")
+            lines.append(f"  \u2192 {check}")
 
     # Draft insight section
     lines.append("")
-    lines.append("---")
+    lines.append("\u2500" * 20)
     lines.append("")
-    lines.append("**Insight angle**")
-    lines.append(f"_{draft.opening_hook}_")
+    lines.append("\U0001f4a1 Insight angle:")
+    lines.append(f"\u201c{draft.opening_hook}\u201d")
     lines.append("")
     lines.append(draft.draft_paragraph)
 
@@ -109,7 +110,6 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
         "message": "\n".join(lines),
         "priority": priority,
         "tags": tags,
-        "markdown": True,
     }
 
     if topic:

@@ -116,7 +116,7 @@ class TestDelivery:
         payload = json.loads(body)
         assert "title" in payload
         assert "message" in payload
-        assert payload["markdown"] is True
+        assert "markdown" not in payload
 
     def test_test_mode_dry_run_no_url(self, sample_alert, sample_config):
         """Test mode with no URL returns success without HTTP call."""

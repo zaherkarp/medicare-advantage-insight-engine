@@ -81,7 +81,7 @@ class TestNtfyRenderer:
         assert "message" in payload
         assert "priority" in payload
         assert "tags" in payload
-        assert payload["markdown"] is True
+        assert "markdown" not in payload
 
     def test_title_contains_signal_prefix(self, sample_alert):
         """Title starts with MA Signal prefix."""
@@ -123,25 +123,30 @@ class TestNtfyRenderer:
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
         assert sample_alert.internal.summary in msg
-        assert "**Why it matters**" in msg
-        assert "**Insight angle**" in msg
+        assert "Why it matters:" in msg
+        assert "Insight angle:" in msg
+
+    def test_message_is_plain_text(self, sample_alert):
+        """Message uses plain text, not markdown syntax."""
+        payload = render_ntfy(sample_alert)
+        msg = payload["message"]
+        assert "**" not in msg
+        assert "markdown" not in payload
 
     def test_message_has_compact_metadata(self, sample_alert):
         """Message leads with category and compact metadata, not labeled fields."""
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
-        # Category and confidence on the first line
-        assert f"**{sample_alert.internal.trigger_category}**" in msg
-        # Source, date, entities on a compact line (no bold labels)
+        # Category on the first line
+        assert sample_alert.internal.trigger_category in msg
+        # Source on a compact metadata line
         assert sample_alert.internal.source in msg
-        assert "**Category:**" not in msg
-        assert "**Score:**" not in msg
 
     def test_message_next_steps(self, sample_alert):
         """Suggested checks appear under 'Next steps' heading."""
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
-        assert "**Next steps**" in msg
+        assert "Next steps:" in msg
         for check in sample_alert.internal.suggested_checks:
             assert check in msg
 
