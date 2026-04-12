@@ -123,8 +123,8 @@ class TestNtfyRenderer:
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
         assert sample_alert.internal.summary in msg
-        assert "Why it matters:" in msg
-        assert "Insight angle:" in msg
+        assert "Why it matters" in msg
+        assert "Insight angle" in msg
 
     def test_message_is_plain_text(self, sample_alert):
         """Message uses plain text, not markdown syntax."""
@@ -133,20 +133,20 @@ class TestNtfyRenderer:
         assert "**" not in msg
         assert "markdown" not in payload
 
-    def test_message_has_compact_metadata(self, sample_alert):
-        """Message leads with category and compact metadata, not labeled fields."""
+    def test_message_has_parseable_metadata(self, sample_alert):
+        """Message leads with Key: Value metadata lines."""
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
-        # Category on the first line
-        assert sample_alert.internal.trigger_category in msg
-        # Source on a compact metadata line
-        assert sample_alert.internal.source in msg
+        assert f"Category: {sample_alert.internal.trigger_category}" in msg
+        assert f"Source: {sample_alert.internal.source}" in msg
+        assert "Confidence: " in msg
+        assert f"Entities: {', '.join(sample_alert.internal.entities)}" in msg
 
     def test_message_next_steps(self, sample_alert):
         """Suggested checks appear under 'Next steps' heading."""
         payload = render_ntfy(sample_alert)
         msg = payload["message"]
-        assert "Next steps:" in msg
+        assert "Next steps" in msg
         for check in sample_alert.internal.suggested_checks:
             assert check in msg
 

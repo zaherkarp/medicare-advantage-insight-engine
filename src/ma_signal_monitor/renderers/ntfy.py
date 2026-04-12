@@ -63,18 +63,21 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
     tags = [confidence_tag, category_tag]
 
     # -- Build plain-text body (ntfy markdown is web-only) --
+    # Top block uses "Key: Value" lines for parseability.
+    # Lower sections use emoji anchors for human scannability.
 
-    # Header: category + confidence
     confidence_label = _CONFIDENCE_LABEL.get(internal.confidence, internal.confidence)
-    lines = [f"\U0001f4cb {internal.trigger_category} \u00b7 {confidence_label}"]
 
-    # Compact metadata line
-    meta_parts = [internal.source]
+    # Structured metadata block (parseable with grep / regex)
+    lines = [
+        f"Category: {internal.trigger_category}",
+        f"Confidence: {confidence_label}",
+        f"Source: {internal.source}",
+    ]
     if internal.publication_date:
-        meta_parts.append(internal.publication_date)
+        lines.append(f"Date: {internal.publication_date}")
     if internal.entities:
-        meta_parts.append(", ".join(internal.entities))
-    lines.append(" \u00b7 ".join(meta_parts))
+        lines.append(f"Entities: {', '.join(internal.entities)}")
 
     # Summary as the lead paragraph
     lines.append("")
@@ -82,13 +85,13 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
 
     # Why it matters
     lines.append("")
-    lines.append("\u26a1 Why it matters:")
+    lines.append("\u26a1 Why it matters")
     lines.append(internal.why_it_matters)
 
     # Suggested next steps
     if internal.suggested_checks:
         lines.append("")
-        lines.append("\U0001f4cc Next steps:")
+        lines.append("\U0001f4cc Next steps")
         for check in internal.suggested_checks[:3]:
             lines.append(f"  \u2192 {check}")
 
@@ -96,7 +99,7 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
     lines.append("")
     lines.append("\u2500" * 20)
     lines.append("")
-    lines.append("\U0001f4a1 Insight angle:")
+    lines.append("\U0001f4a1 Insight angle")
     lines.append(f"\u201c{draft.opening_hook}\u201d")
     lines.append("")
     lines.append(draft.draft_paragraph)
