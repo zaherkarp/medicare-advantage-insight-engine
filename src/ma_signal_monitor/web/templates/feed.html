@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>{{ heading }}</h1>
+    <p class="subtitle">{{ subtitle }}</p>
+    <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }}</p>
+  </section>
+
+  {% if not stories %}
+    <p class="empty">No signals yet. The archive fills as new items are
+      ingested — check back after the next run.</p>
+  {% endif %}
+
+  <ul class="story-list">
+    {% for s in stories %}
+      <li class="story-card">
+        <div class="story-meta">
+          <span class="badge badge-cat">{{ category_label(s.primary_category) }}</span>
+          <span class="source">{{ s.source_name }}</span>
+          {% if s.display_date %}<span class="date">{{ s.display_date }}</span>{% endif %}
+          <span class="score">score {{ '%.2f'|format(s.relevance_score) }}</span>
+        </div>
+        <h2 class="story-title"><a href="/story/{{ s.item_id }}">{{ s.title }}</a></h2>
+        {% if s.summary %}<p class="story-summary">{{ s.summary }}</p>{% endif %}
+        <div class="tag-row">
+          {% for e in s.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
+          {% for st in s.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if total_pages > 1 %}
+    <nav class="pagination">
+      {% if page > 1 %}
+        <a href="{{ base_path }}?page={{ page - 1 }}">← Newer</a>
+      {% else %}<span class="disabled">← Newer</span>{% endif %}
+      <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_path }}?page={{ page + 1 }}">Older →</a>
+      {% else %}<span class="disabled">Older →</span>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

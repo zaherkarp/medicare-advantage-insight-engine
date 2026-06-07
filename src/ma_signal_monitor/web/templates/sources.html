@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Sources — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>Sources Directory</h1>
+    <p class="subtitle">Every feed monitored for Medicare Advantage signals.</p>
+    <p class="muted">{{ enabled_count }} active of {{ source_count }} configured ·
+      default cadence: {{ default_cadence }}</p>
+  </section>
+
+  {% for group, items in groups.items() %}
+    <section class="source-group">
+      <h2>{{ group }}</h2>
+      <table class="source-table">
+        <thead>
+          <tr>
+            <th>Source</th><th>Coverage</th><th>Cadence</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in items %}
+            <tr>
+              <td>
+                <a class="source-name" href="{{ s.homepage }}" target="_blank" rel="noopener">{{ s.name }}</a>
+                {% if s.description %}<div class="source-desc">{{ s.description }}</div>{% endif %}
+                <div class="tag-row">
+                  {% for t in s.tags %}<span class="badge badge-tag">{{ t }}</span>{% endfor %}
+                </div>
+              </td>
+              <td>
+                {% if s.state and s.state != 'national' %}
+                  <a href="/states/{{ s.state }}">{{ state_name(s.state) }}</a>
+                {% else %}National{% endif %}
+                {% if s.geography %}<div class="muted">{{ s.geography }}</div>{% endif %}
+              </td>
+              <td>{{ s.cadence }}</td>
+              <td>{% if s.enabled %}<span class="badge badge-on">active</span>
+                  {% else %}<span class="badge badge-off">disabled</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+{% endblock %}

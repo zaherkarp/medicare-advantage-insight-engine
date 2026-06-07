@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ story.title }} — MA Signal Monitor{% endblock %}
+{% block content %}
+  <article class="story-detail">
+    <div class="story-meta">
+      <span class="badge badge-cat">{{ category_label(story.primary_category) }}</span>
+      <span class="source">{{ story.source_name }}</span>
+      {% if story.display_date %}<span class="date">{{ story.display_date }}</span>{% endif %}
+      <span class="score">relevance {{ '%.2f'|format(story.relevance_score) }}</span>
+    </div>
+
+    <h1>{{ story.title }}</h1>
+
+    {% if story.summary %}<p class="lead">{{ story.summary }}</p>{% endif %}
+
+    <p><a class="source-link" href="{{ story.link }}" target="_blank" rel="noopener">
+      Read the original source →</a></p>
+
+    <div class="tag-row">
+      {% for e in story.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
+      {% for st in story.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
+    </div>
+
+    {% if story.public_draft %}
+      {% set d = story.public_draft %}
+      <section class="draft">
+        <h2>Draft Insight Angle</h2>
+        <p class="draft-note">Auto-generated draft — review and edit before any
+          external use.</p>
+        {% if d.opening_hook %}<p class="hook">{{ d.opening_hook }}</p>{% endif %}
+        {% if d.analytic_angles %}
+          <h3>Analytic angles</h3>
+          <ul>{% for a in d.analytic_angles %}<li>{{ a }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if d.draft_paragraph %}
+          <h3>Draft paragraph</h3>
+          <p class="draft-paragraph">{{ d.draft_paragraph }}</p>
+        {% endif %}
+        {% if d.uncertainty_caution %}
+          <p class="caution">{{ d.uncertainty_caution }}</p>
+        {% endif %}
+        {% if d.suggested_hashtags %}
+          <p class="hashtags">{% for h in d.suggested_hashtags %}<span>{{ h }}</span> {% endfor %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <p class="back"><a href="/">← Back to feed</a></p>
+  </article>
+{% endblock %}

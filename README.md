@@ -15,7 +15,11 @@ On each run, the monitor:
    - **Section A**: Internal analytic alert with signal type, entities, relevance score, and suggested follow-up checks
    - **Section B**: Draft public insight angle with opening hook, analytic angles, and a clearly-marked draft paragraph
 7. **Delivers** alerts to a webhook endpoint (ntfy.sh push notifications, Teams Adaptive Card, generic JSON, or test mode)
-8. **Persists** state, delivery logs, and run metadata locally
+8. **Persists** every scored item into a browsable **story archive**, plus state, delivery logs, and run metadata locally
+
+A bundled **web frontend** then renders that archive as a browsable, paginated
+site with topic verticals, a public Sources directory, and a State Intelligence
+section. See [Web Frontend & Self-Hosting](#web-frontend--self-hosting).
 
 ## Architecture Overview
 
@@ -93,6 +97,42 @@ pytest
 pytest --cov=ma_signal_monitor
 ```
 
+## Web Frontend & Self-Hosting
+
+The pipeline persists every scored item into a `stories` table, and a FastAPI +
+Jinja web app renders it as a browsable site. Pages:
+
+| Route | Purpose |
+|---|---|
+| `/` | Paginated, reverse-chronological signal feed |
+| `/topics/{category}` | One of the five trigger verticals (e.g. `policy_regulatory`) |
+| `/sources` | Public Sources directory with coverage + ingestion cadence |
+| `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
+| `/story/{id}` | Story detail with the draft insight angle |
+| `/health` | JSON health/counts (story count, source count) |
+
+### Run the web app locally
+
+```bash
+pip install -e ".[web]"          # FastAPI, Uvicorn, Jinja2, APScheduler
+ma-signal-monitor                # populate data/state.db at least once
+uvicorn ma_signal_monitor.web.app:app_factory --factory --port 8000
+# open http://localhost:8000
+```
+
+### Docker (self-host)
+
+One container serves the site **and** runs ingestion on an interval (APScheduler,
+`INGEST_INTERVAL_HOURS`, default 6) against a shared SQLite volume:
+
+```bash
+docker compose up --build
+# site on http://localhost:8000 ; archive persists in ./data
+```
+
+The archive fills going forward from newly-seen items — there is no historical
+backfill, since prior runs never stored full content.
+
 ## Configuration
 
 ### `.env` — Environment settings
@@ -164,16 +204,17 @@ The delivery system supports four modes:
 - **No authentication**: RSS fetching does not support authenticated feeds.
 - **Single-threaded**: Sources are fetched sequentially, not in parallel.
 
-## Future Enhancements
+## Roadmap
 
-- SEC EDGAR filing ingestion (Phase 2)
-- CMS public data file monitoring (Phase 2)
-- Semantic/NLP scoring (e.g., via local model)
-- Parallel source fetching
-- Web dashboard for alert review
-- Configurable alert templates
-- Slack webhook renderer
-- Historical trend analysis
+Phase 1 (done): browsable story archive + web frontend (feed, topic verticals,
+Sources directory, State Intelligence), Docker self-host.
+
+- **Phase 2** — Daily Briefing email digest (batched top signals over SMTP)
+- **Phase 3** — Full-text search over the archive (SQLite FTS5)
+- **Phase 4** — Expanded sources (activate SEC EDGAR / CMS file fetchers, add
+  state-level / legal / research feeds) and richer observability
+- Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,
+  historical trend analysis
 
 ## Project Structure
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MA Signal Monitor{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">MA&nbsp;Signal&nbsp;Monitor</a>
+      <nav class="nav">
+        <a href="/">Feed</a>
+        <div class="dropdown">
+          <span class="nav-label">Topics ▾</span>
+          <div class="dropdown-menu">
+            {% for cat in categories %}
+              <a href="/topics/{{ cat.key }}">{{ cat.label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        <a href="/sources">Sources</a>
+        <a href="/states">State Intelligence</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Medicare Advantage news-signal monitor. Curated for analytic relevance —
+         not legal, compliance, or investment advice. Drafts are unedited and
+         require review before any external use.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,11 +1,13 @@
-"""SQLite-based persistence for state, deduplication, and delivery logs."""
+"""SQLite-based persistence for state, deduplication, delivery logs, and the
+browsable story archive that backs the web product."""
 
+import json
 import logging
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ma_signal_monitor.models import DeliveryResult
+from ma_signal_monitor.models import DeliveryResult, ScoredItem
 
 logger = logging.getLogger("ma_signal_monitor.storage")
 
@@ -40,23 +42,51 @@ CREATE TABLE IF NOT EXISTS run_metadata (
     notes TEXT
 );
 
+-- Browsable archive of scored stories. Populated mid-pipeline (one row per
+-- item the first run it is seen). This is what the web frontend reads.
+CREATE TABLE IF NOT EXISTS stories (
+    item_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    link TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    source_priority INTEGER,
+    summary TEXT,
+    published_date TEXT,
+    fetched_at TEXT NOT NULL,
+    relevance_score REAL,
+    primary_category TEXT,
+    categories TEXT,
+    entities TEXT,
+    states TEXT,
+    public_draft TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_seen_items_first_seen ON seen_items(first_seen_at);
 CREATE INDEX IF NOT EXISTS idx_delivery_log_timestamp ON delivery_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_stories_published ON stories(published_date);
+CREATE INDEX IF NOT EXISTS idx_stories_category ON stories(primary_category);
+CREATE INDEX IF NOT EXISTS idx_stories_score ON stories(relevance_score);
+CREATE INDEX IF NOT EXISTS idx_stories_fetched ON stories(fetched_at);
 """
 
 
 class StateStore:
     """SQLite-backed state store for the application."""
 
-    def __init__(self, db_path: str | Path):
+    def __init__(self, db_path: str | Path, read_only: bool = False):
         self.db_path = Path(db_path)
+        self.read_only = read_only
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
-        self._init_db()
+        if not read_only:
+            self._init_db()
 
     def _init_db(self) -> None:
         """Initialize the database schema."""
         conn = self._get_conn()
+        # WAL lets the web reader and the scheduled writer share the file
+        # without blocking each other.
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA_SQL)
         conn.commit()
         logger.debug("Database initialized at %s", self.db_path)
@@ -64,7 +94,9 @@ class StateStore:
     def _get_conn(self) -> sqlite3.Connection:
         """Get or create the database connection."""
         if self._conn is None:
-            self._conn = sqlite3.connect(str(self.db_path))
+            # check_same_thread=False so a single store can serve the web app
+            # across request threads; SQLite serializes writes internally.
+            self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
         return self._conn
 
@@ -114,6 +146,113 @@ class StateStore:
         conn = self._get_conn()
         row = conn.execute("SELECT COUNT(*) FROM seen_items").fetchone()
         return row[0]
+
+    # --- Story Archive (web frontend) ---
+
+    def upsert_story(
+        self,
+        scored: ScoredItem,
+        primary_category: str,
+        public_draft: dict | None = None,
+        states: list[str] | None = None,
+    ) -> None:
+        """Persist a scored item into the browsable story archive.
+
+        Reuses the fields already computed on the ScoredItem. List/dict fields
+        are stored as JSON. Idempotent via INSERT OR REPLACE on item_id.
+        """
+        conn = self._get_conn()
+        item = scored.item
+        conn.execute(
+            """INSERT OR REPLACE INTO stories
+               (item_id, title, link, source_name, source_priority, summary,
+                published_date, fetched_at, relevance_score, primary_category,
+                categories, entities, states, public_draft)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                item.item_id,
+                item.title,
+                item.link,
+                item.source_name,
+                item.source_priority,
+                item.summary,
+                item.published_date.isoformat() if item.published_date else None,
+                item.fetched_at.isoformat(),
+                scored.relevance_score,
+                primary_category,
+                json.dumps(scored.matched_categories),
+                json.dumps(scored.matched_entities),
+                json.dumps(states or []),
+                json.dumps(public_draft) if public_draft else None,
+            ),
+        )
+        conn.commit()
+
+    @staticmethod
+    def _story_filters(category: str | None, state: str | None) -> tuple[str, list]:
+        """Build a shared WHERE clause for story queries."""
+        clauses: list[str] = []
+        params: list = []
+        if category:
+            clauses.append("primary_category = ?")
+            params.append(category)
+        if state:
+            # states is a JSON array of USPS codes; match the quoted token.
+            clauses.append("states LIKE ?")
+            params.append(f'%"{state}"%')
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        return where, params
+
+    def get_stories(
+        self,
+        category: str | None = None,
+        state: str | None = None,
+        limit: int = 25,
+        offset: int = 0,
+    ) -> list[sqlite3.Row]:
+        """Return stories in reverse-chronological order, optionally filtered.
+
+        Dateless items (no published_date) fall back to fetched_at so they
+        still sort sensibly.
+        """
+        conn = self._get_conn()
+        where, params = self._story_filters(category, state)
+        rows = conn.execute(
+            f"""SELECT * FROM stories{where}
+                ORDER BY COALESCE(published_date, fetched_at) DESC
+                LIMIT ? OFFSET ?""",
+            (*params, limit, offset),
+        ).fetchall()
+        return rows
+
+    def count_stories(
+        self, category: str | None = None, state: str | None = None
+    ) -> int:
+        """Count stories matching the given filters (for pagination)."""
+        conn = self._get_conn()
+        where, params = self._story_filters(category, state)
+        row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
+        return row[0]
+
+    def get_story(self, item_id: str) -> sqlite3.Row | None:
+        """Return a single story by id, or None."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM stories WHERE item_id = ?", (item_id,)
+        ).fetchone()
+
+    def get_state_counts(self) -> dict[str, int]:
+        """Return a {state_code: story_count} map across the archive.
+
+        Each story's `states` JSON array may contain several codes; every code
+        is counted. Used by the State Intelligence overview.
+        """
+        conn = self._get_conn()
+        counts: dict[str, int] = {}
+        for row in conn.execute("SELECT states FROM stories WHERE states IS NOT NULL"):
+            for code in json.loads(row[0] or "[]"):
+                counts[code] = counts.get(code, 0) + 1
+        return counts
 
     # --- Delivery Logging ---
 
@@ -178,9 +317,17 @@ class StateStore:
     # --- Cleanup ---
 
     def cleanup_old_records(
-        self, seen_retention_days: int = 90, log_retention_days: int = 30
-    ) -> tuple[int, int]:
-        """Remove old seen items and delivery logs. Returns (seen_deleted, logs_deleted)."""
+        self,
+        seen_retention_days: int = 90,
+        log_retention_days: int = 30,
+        story_retention_days: int = 365,
+    ) -> tuple[int, int, int]:
+        """Remove old records. Returns (seen_deleted, logs_deleted, stories_deleted).
+
+        The story archive is kept far longer than dedup rows (default 1 year)
+        since it backs the browsable site. Pass story_retention_days=0 to keep
+        the archive forever.
+        """
         conn = self._get_conn()
 
         seen_cutoff = (
@@ -199,10 +346,21 @@ class StateStore:
         )
         logs_deleted = cursor.rowcount
 
+        stories_deleted = 0
+        if story_retention_days > 0:
+            story_cutoff = (
+                datetime.utcnow() - timedelta(days=story_retention_days)
+            ).isoformat()
+            cursor = conn.execute(
+                "DELETE FROM stories WHERE fetched_at < ?", (story_cutoff,)
+            )
+            stories_deleted = cursor.rowcount
+
         conn.commit()
         logger.info(
-            "Cleanup: removed %d old seen items, %d old delivery logs",
+            "Cleanup: removed %d old seen items, %d old delivery logs, %d old stories",
             seen_deleted,
             logs_deleted,
+            stories_deleted,
         )
-        return seen_deleted, logs_deleted
+        return seen_deleted, logs_deleted, stories_deleted

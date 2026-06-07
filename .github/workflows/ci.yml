@@ -66,6 +66,8 @@ jobs:
           pip install feedparser --no-deps
           pip install requests python-dotenv pyyaml
           pip install pytest pytest-cov responses
+          # Web frontend deps (the [web] extra) needed by the web/test suite.
+          pip install fastapi "uvicorn[standard]" jinja2 apscheduler httpx
           pip install -e . --no-deps
 
       - name: Run tests with coverage

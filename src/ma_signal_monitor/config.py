@@ -10,7 +10,11 @@ from dotenv import load_dotenv
 
 @dataclass
 class SourceConfig:
-    """A single feed source configuration."""
+    """A single feed source configuration.
+
+    The trailing fields are surfaced on the public Sources directory and the
+    State Intelligence section; all are optional for backward compatibility.
+    """
 
     name: str
     type: str
@@ -18,6 +22,11 @@ class SourceConfig:
     priority: int = 3
     enabled: bool = True
     tags: list[str] = field(default_factory=list)
+    state: str = "national"  # USPS code or "national"
+    geography: str = ""  # free-text region label, e.g. "Southeast"
+    cadence: str = ""  # human ingestion cadence; "" -> use global default
+    description: str = ""  # one-line "what this source covers"
+    homepage: str = ""  # public landing page (distinct from the feed url)
 
 
 @dataclass
@@ -76,6 +85,11 @@ class AppConfig:
     # Storage settings
     seen_item_retention_days: int = 90
     delivery_log_retention_days: int = 30
+    story_retention_days: int = 365
+
+    # Web / scheduling settings
+    ingest_interval_hours: int = 6  # used by the in-process scheduler & cadence label
+    web_page_size: int = 25  # stories per page in the web feed
 
 
 def load_config(project_root: str | Path | None = None) -> AppConfig:
@@ -110,6 +124,8 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         user_agent=os.getenv(
             "USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"
         ),
+        ingest_interval_hours=int(os.getenv("INGEST_INTERVAL_HOURS", "6")),
+        web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
     )
 
     config_dir = root / config.config_dir
@@ -152,6 +168,11 @@ def _load_sources(path: Path) -> list[SourceConfig]:
                 priority=item.get("priority", 3),
                 enabled=item.get("enabled", True),
                 tags=item.get("tags", []),
+                state=item.get("state", "national"),
+                geography=item.get("geography", ""),
+                cadence=item.get("cadence", ""),
+                description=item.get("description", ""),
+                homepage=item.get("homepage", ""),
             )
         )
     return sources
@@ -218,6 +239,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     )
     config.delivery_log_retention_days = storage.get(
         "delivery_log_retention_days", config.delivery_log_retention_days
+    )
+    config.story_retention_days = storage.get(
+        "story_retention_days", config.story_retention_days
     )
 
 

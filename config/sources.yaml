@@ -1,6 +1,14 @@
 # MA Signal Monitor - Source Configuration
 # Each source has a name, type, URL, priority (1-5, higher = more important),
 # and an enabled flag.
+#
+# Optional fields surfaced on the public Sources directory and State
+# Intelligence pages:
+#   state        USPS code or "national" (geography this source covers)
+#   geography    free-text region label (e.g. "Southeast")
+#   cadence      human ingestion cadence; blank uses the global default
+#   description  one-line "what this source covers"
+#   homepage     public landing page (distinct from the raw feed url)
 
 sources:
   # --- CMS / Government ---
@@ -10,6 +18,9 @@ sources:
     priority: 5
     enabled: true
     tags: ["cms", "policy", "regulatory"]
+    state: "national"
+    homepage: "https://www.cms.gov/newsroom"
+    description: "Official CMS press releases, fact sheets, and policy announcements."
 
   - name: "Federal Register - CMS Rules"
     type: rss
@@ -17,6 +28,9 @@ sources:
     priority: 5
     enabled: true
     tags: ["regulatory", "cms", "rules"]
+    state: "national"
+    homepage: "https://www.federalregister.gov/agencies/centers-for-medicare-medicaid-services"
+    description: "Proposed and final CMS rules as published in the Federal Register."
 
   # --- Industry News ---
   - name: "Healthcare Dive"
@@ -25,6 +39,9 @@ sources:
     priority: 3
     enabled: true
     tags: ["industry", "general"]
+    state: "national"
+    homepage: "https://www.healthcaredive.com/"
+    description: "Daily healthcare business and policy news for industry professionals."
 
   - name: "Modern Healthcare"
     type: rss
@@ -32,6 +49,9 @@ sources:
     priority: 3
     enabled: true
     tags: ["industry", "general"]
+    state: "national"
+    homepage: "https://www.modernhealthcare.com/"
+    description: "Business news covering payers, providers, and health policy."
 
   - name: "Fierce Healthcare"
     type: rss
@@ -39,6 +59,9 @@ sources:
     priority: 3
     enabled: true
     tags: ["industry", "general"]
+    state: "national"
+    homepage: "https://www.fiercehealthcare.com/"
+    description: "Coverage of payers, health tech, and the Medicare Advantage market."
 
   - name: "KFF Health News"
     type: rss
@@ -46,8 +69,11 @@ sources:
     priority: 4
     enabled: true
     tags: ["policy", "analysis"]
+    state: "national"
+    homepage: "https://kffhealthnews.org/"
+    description: "Nonprofit newsroom reporting on health policy and Medicare/Medicaid."
 
-  # --- SEC / Financial (Phase 2 - stubs) ---
+  # --- SEC / Financial (Phase 4 - stubs) ---
   # - name: "SEC EDGAR - UNH"
   #   type: sec
   #   url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766&type=8-K&dateb=&owner=include&count=10&search_text=&action=getcompany"
