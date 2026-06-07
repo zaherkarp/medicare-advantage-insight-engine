@@ -131,3 +131,14 @@ def test_health_endpoint(client):
     body = resp.json()
     assert body["status"] == "ok"
     assert body["stories"] == 2
+    assert body["fts_enabled"] is True
+    assert "categories" in body
+    assert "last_run_end" in body
+
+
+def test_status_page(client):
+    resp = client.get("/status")
+    assert resp.status_code == 200
+    assert "System Status" in resp.text
+    assert "Stories by topic" in resp.text
+    assert "Test Feed" in resp.text  # source listed

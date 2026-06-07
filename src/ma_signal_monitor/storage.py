@@ -503,6 +503,31 @@ class StateStore:
         )
         conn.commit()
 
+    def get_last_run(self) -> sqlite3.Row | None:
+        """Return the most recent completed run's metadata, or None."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM run_metadata WHERE run_end IS NOT NULL "
+            "ORDER BY run_end DESC LIMIT 1"
+        ).fetchone()
+
+    def get_category_counts(self) -> dict[str, int]:
+        """Return {primary_category: story_count} across the archive."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT primary_category AS cat, COUNT(*) AS n FROM stories "
+            "GROUP BY primary_category"
+        ).fetchall()
+        return {(r["cat"] or "uncategorized"): r["n"] for r in rows}
+
+    def get_source_counts(self) -> dict[str, int]:
+        """Return {source_name: story_count} across the archive."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT source_name AS s, COUNT(*) AS n FROM stories GROUP BY source_name"
+        ).fetchall()
+        return {r["s"]: r["n"] for r in rows}
+
     # --- Cleanup ---
 
     def cleanup_old_records(

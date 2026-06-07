@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Status — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>System Status</h1>
+    <p class="subtitle">Pipeline health and archive coverage at a glance.</p>
+  </section>
+
+  <div class="status-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ total_stories }}</div>
+      <div class="stat-label">Stories archived</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ enabled_sources }}/{{ sources|length }}</div>
+      <div class="stat-label">Active sources</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ state_count }}</div>
+      <div class="stat-label">States with signals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ 'on' if fts_enabled else 'off' }}</div>
+      <div class="stat-label">Full-text search</div>
+    </div>
+  </div>
+
+  <section class="status-section">
+    <h2>Last ingestion run</h2>
+    {% if last_run %}
+      <table class="status-table">
+        <tr><th>Finished</th><td>{{ last_run['run_end'].replace('T', ' ')[:19] }} UTC</td></tr>
+        <tr><th>Fetched</th><td>{{ last_run['items_fetched'] }}</td></tr>
+        <tr><th>New</th><td>{{ last_run['items_new'] }}</td></tr>
+        <tr><th>Relevant</th><td>{{ last_run['items_relevant'] }}</td></tr>
+        <tr><th>Alerts sent</th><td>{{ last_run['alerts_sent'] }}</td></tr>
+        <tr><th>Errors</th><td>{{ last_run['errors'] }}</td></tr>
+      </table>
+      <p class="muted">Ingestion runs every {{ ingest_interval_hours }}h.</p>
+    {% else %}
+      <p class="empty">No completed runs yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="status-section">
+    <h2>Stories by topic</h2>
+    <table class="status-table">
+      {% for c in category_stats %}
+        <tr><th>{{ c.label }}</th><td>{{ c.count }}</td></tr>
+      {% endfor %}
+      {% if uncategorized %}<tr><th>Uncategorized</th><td>{{ uncategorized }}</td></tr>{% endif %}
+    </table>
+  </section>
+
+  <section class="status-section">
+    <h2>Stories by source</h2>
+    <table class="status-table">
+      {% for s in sources %}
+        <tr>
+          <th>{{ s.name }} {% if not s.enabled %}<span class="badge badge-off">disabled</span>{% endif %}</th>
+          <td>{{ source_counts.get(s.name, 0) }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section class="status-section">
+    <h2>Daily Briefing</h2>
+    {% if latest_digest %}
+      <p>Latest: <a href="/briefing">{{ latest_digest['digest_date'] }}</a>
+        — {{ latest_digest['story_count'] }} signals
+        {% if latest_digest['sent_at'] %}· emailed{% endif %}.
+        Email delivery is {{ 'enabled' if digest_enabled else 'disabled' }}.</p>
+    {% else %}
+      <p class="empty">No briefing generated yet. Email delivery is
+        {{ 'enabled' if digest_enabled else 'disabled' }}.</p>
+    {% endif %}
+  </section>
+{% endblock %}

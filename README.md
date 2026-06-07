@@ -111,7 +111,8 @@ Jinja web app renders it as a browsable site. Pages:
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
 | `/story/{id}` | Story detail with the draft insight angle |
-| `/health` | JSON health/counts (story count, source count) |
+| `/status` | System status dashboard (last run, coverage by topic/source) |
+| `/health` | JSON health/counts (stories, sources, last run, categories) |
 
 ### Run the web app locally
 
@@ -234,8 +235,9 @@ Phase 2 (done): Daily Briefing digest — web page + archive + optional daily em
 
 Phase 3 (done): full-text search over the archive (SQLite FTS5, LIKE fallback).
 
-- **Phase 4** — Expanded sources (activate SEC EDGAR / CMS file fetchers, add
-  state-level / legal / research feeds) and richer observability
+Phase 4 (done): SEC EDGAR + CMS feed fetchers activated, expanded sources
+(research / state / SEC filings), and a `/status` observability dashboard.
+
 - Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,
   historical trend analysis
 
