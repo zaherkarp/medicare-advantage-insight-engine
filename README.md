@@ -136,6 +136,23 @@ docker compose up --build
 The archive fills going forward from newly-seen items — there is no historical
 backfill, since prior runs never stored full content.
 
+### Static hosting on GitHub Pages (free)
+
+The site can also be published as static HTML to GitHub Pages — no server, no
+infra. A scheduled GitHub Actions workflow (`.github/workflows/deploy-pages.yml`)
+ingests feeds, renders every page to flat HTML, and deploys it:
+
+```bash
+ma-signal-build --base-path /<your-repo>   # build into ./site
+# (or scripts/build_static.py --base-path /<your-repo> --out site)
+```
+
+The archive DB is persisted inside the published site (`/<repo>/data/state.db`)
+and restored on the next run, so it accumulates over time. Full-text search runs
+**client-side** on Pages via a generated `search-index.json`. To enable: in the
+repo's **Settings → Pages**, set the source to **GitHub Actions**. Email digests
+still send from the workflow if you add the `SMTP_*` / `DIGEST_*` secrets.
+
 ### Daily Briefing
 
 The **Daily Briefing** is a curated digest of the day's top signals — the
@@ -237,6 +254,9 @@ Phase 3 (done): full-text search over the archive (SQLite FTS5, LIKE fallback).
 
 Phase 4 (done): SEC EDGAR + CMS feed fetchers activated, expanded sources
 (research / state / SEC filings), and a `/status` observability dashboard.
+
+Phase 5 (done): static-site export + GitHub Pages deploy workflow (free hosting,
+client-side search).
 
 - Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,
   historical trend analysis
