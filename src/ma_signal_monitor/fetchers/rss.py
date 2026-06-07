@@ -39,13 +39,16 @@ def _strip_html(text: str) -> str:
         return text
 
 
-def fetch_rss(
+def fetch_feed(
     source: SourceConfig,
     timeout: int = 30,
     user_agent: str = "MA-Signal-Monitor/1.0",
     max_items: int = 50,
 ) -> list[RawFeedItem]:
-    """Fetch items from an RSS feed source.
+    """Fetch and parse any RSS/Atom feed into RawFeedItems.
+
+    Shared by the RSS, SEC EDGAR, and CMS fetchers — they all consume Atom/RSS
+    feeds and differ only in source configuration (URL, tags, priority).
 
     Args:
         source: The source configuration.
@@ -56,7 +59,7 @@ def fetch_rss(
     Returns:
         List of RawFeedItem objects.
     """
-    logger.info("Fetching RSS: %s (%s)", source.name, source.url)
+    logger.info("Fetching feed: %s (%s)", source.name, source.url)
     items: list[RawFeedItem] = []
 
     try:
@@ -126,3 +129,13 @@ def fetch_rss(
 
     logger.info("Fetched %d items from %s", len(items), source.name)
     return items
+
+
+def fetch_rss(
+    source: SourceConfig,
+    timeout: int = 30,
+    user_agent: str = "MA-Signal-Monitor/1.0",
+    max_items: int = 50,
+) -> list[RawFeedItem]:
+    """Fetch an RSS feed source (thin wrapper over fetch_feed)."""
+    return fetch_feed(source, timeout, user_agent, max_items)

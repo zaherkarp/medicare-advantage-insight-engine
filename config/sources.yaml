@@ -73,10 +73,68 @@ sources:
     homepage: "https://kffhealthnews.org/"
     description: "Nonprofit newsroom reporting on health policy and Medicare/Medicaid."
 
-  # --- SEC / Financial (Phase 4 - stubs) ---
-  # - name: "SEC EDGAR - UNH"
-  #   type: sec
-  #   url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766&type=8-K&dateb=&owner=include&count=10&search_text=&action=getcompany"
-  #   priority: 4
-  #   enabled: false
-  #   tags: ["financial", "sec"]
+  # --- Research / Policy ---
+  - name: "Georgetown CCF"
+    type: rss
+    url: "https://ccf.georgetown.edu/feed/"
+    priority: 4
+    enabled: true
+    tags: ["research", "policy"]
+    state: "national"
+    homepage: "https://ccf.georgetown.edu/"
+    description: "Georgetown Center for Children and Families — Medicaid/CHIP research."
+
+  # --- State Intelligence ---
+  - name: "California Healthline"
+    type: rss
+    url: "https://californiahealthline.org/feed/"
+    priority: 3
+    enabled: true
+    tags: ["state", "policy"]
+    state: "CA"
+    geography: "California"
+    homepage: "https://californiahealthline.org/"
+    description: "Daily California health policy and industry coverage."
+
+  - name: "Colorado Newsline"
+    type: rss
+    url: "https://coloradonewsline.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "CO"
+    geography: "Colorado"
+    homepage: "https://coloradonewsline.com/"
+    description: "Colorado policy newsroom (incl. health and human services)."
+
+  # --- SEC / Financial (EDGAR Atom feeds for watched MA payers) ---
+  # SEC requests a descriptive User-Agent with contact info; set USER_AGENT.
+  - name: "SEC EDGAR - UnitedHealth Group"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766"
+    description: "UnitedHealth Group 8-K material-event filings."
+
+  - name: "SEC EDGAR - Humana"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000049071&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000049071"
+    description: "Humana 8-K material-event filings."
+
+  - name: "SEC EDGAR - CVS Health"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000064803&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000064803"
+    description: "CVS Health (Aetna) 8-K material-event filings."

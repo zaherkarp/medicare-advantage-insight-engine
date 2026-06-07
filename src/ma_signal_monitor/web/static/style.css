@@ -162,6 +162,23 @@ a.badge:hover { text-decoration: none; opacity: 0.85; }
 .archive-list { list-style: none; padding: 0; }
 .archive-list li { padding: 7px 0; border-bottom: 1px solid var(--border); }
 
+/* Status dashboard */
+.status-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin: 20px 0 8px;
+}
+.stat-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px; text-align: center; box-shadow: var(--shadow);
+}
+.stat-num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.status-section { margin-top: 26px; }
+.status-section h2 { font-size: 1.1rem; border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+.status-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.status-table th { text-align: left; font-weight: 600; color: #41506a; padding: 7px 10px; border-bottom: 1px solid var(--border); width: 60%; }
+.status-table td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+
 /* Footer */
 .site-footer { border-top: 1px solid var(--border); background: var(--card); padding: 22px 0; }
 .site-footer p { color: var(--muted); font-size: 0.8rem; margin: 0; }

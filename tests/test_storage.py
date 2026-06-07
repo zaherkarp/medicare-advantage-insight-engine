@@ -202,6 +202,35 @@ class TestStateStore:
         assert counts["TX"] == 2
         assert counts["CA"] == 1
 
+    def test_category_and_source_counts(self, temp_db):
+        """Aggregate counts for the status dashboard."""
+        temp_db.upsert_story(
+            _make_scored("a", "A", published=None),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("b", "B", published=None),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("c", "C", published=None),
+            primary_category="financial_pressure",
+        )
+        cats = temp_db.get_category_counts()
+        assert cats["policy_regulatory"] == 2
+        assert cats["financial_pressure"] == 1
+        # All three share source_name "Test Feed" (from _make_scored).
+        assert temp_db.get_source_counts()["Test Feed"] == 3
+
+    def test_get_last_run(self, temp_db):
+        """get_last_run returns the most recent completed run."""
+        assert temp_db.get_last_run() is None
+        rid = temp_db.start_run()
+        temp_db.end_run(rid, items_fetched=5, items_new=3)
+        last = temp_db.get_last_run()
+        assert last is not None
+        assert last["items_fetched"] == 5
+
     def test_db_persists_across_reconnect(self, tmp_path):
         """Data persists after closing and reopening the store."""
         from ma_signal_monitor.storage import StateStore

@@ -265,9 +265,44 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
     def health(request: Request) -> dict:
         store = request.app.state.store
         config = request.app.state.config
+        last = store.get_last_run()
         return {
             "status": "ok",
             "stories": store.count_stories(),
             "sources": len(config.sources),
             "enabled_sources": sum(1 for s in config.sources if s.enabled),
+            "fts_enabled": store.fts_enabled,
+            "last_run_end": last["run_end"] if last else None,
+            "last_run_errors": last["errors"] if last else None,
+            "categories": store.get_category_counts(),
         }
+
+    @app.get("/status", response_class=HTMLResponse)
+    def status(request: Request) -> HTMLResponse:
+        store = request.app.state.store
+        config = request.app.state.config
+        last = store.get_last_run()
+        cat_counts = store.get_category_counts()
+        category_stats = [
+            {"label": c.label, "count": cat_counts.get(c.key, 0)}
+            for c in config.categories
+        ]
+        latest_digest = store.get_latest_digest()
+        return templates.TemplateResponse(
+            request,
+            "status.html",
+            {
+                "total_stories": store.count_stories(),
+                "category_stats": category_stats,
+                "uncategorized": cat_counts.get("uncategorized", 0),
+                "source_counts": store.get_source_counts(),
+                "sources": config.sources,
+                "enabled_sources": sum(1 for s in config.sources if s.enabled),
+                "state_count": len(store.get_state_counts()),
+                "last_run": last,
+                "latest_digest": latest_digest,
+                "fts_enabled": store.fts_enabled,
+                "ingest_interval_hours": config.ingest_interval_hours,
+                "digest_enabled": config.digest_enabled,
+            },
+        )
