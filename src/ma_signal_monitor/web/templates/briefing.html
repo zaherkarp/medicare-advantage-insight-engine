@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Daily Briefing — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>Daily Briefing</h1>
+    <p class="subtitle">A curated digest of the day's top Medicare Advantage signals.</p>
+  </section>
+
+  {% if not digest %}
+    <p class="empty">No briefing has been generated yet. Briefings are produced
+      daily once the archive has signals — run <code>ma-signal-digest</code> or
+      wait for the scheduled run.</p>
+  {% else %}
+    <div class="briefing-meta muted">
+      Generated {{ digest['generated_at'].replace('T', ' ')[:16] }} UTC ·
+      {{ digest['story_count'] }} signal{{ '' if digest['story_count'] == 1 else 's' }}
+      {% if digest['sent_at'] %}· emailed{% endif %}
+    </div>
+    <iframe class="briefing-frame" title="{{ digest['subject'] }}"
+            srcdoc="{{ digest['html'] }}"
+            onload="this.style.height=(this.contentWindow.document.body.scrollHeight+24)+'px';"></iframe>
+  {% endif %}
+
+  {% if archive %}
+    <section class="briefing-archive">
+      <h2>Past briefings</h2>
+      <ul class="archive-list">
+        {% for d in archive %}
+          <li>
+            <a href="/briefing/{{ d['digest_date'] }}">{{ d['digest_date'] }}</a>
+            <span class="muted">— {{ d['story_count'] }} signal{{ '' if d['story_count'] == 1 else 's' }}{% if d['sent_at'] %} · emailed{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endblock %}

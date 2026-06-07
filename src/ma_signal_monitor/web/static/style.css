@@ -132,6 +132,17 @@ a.badge:hover { text-decoration: none; opacity: 0.85; }
 .hashtags span { color: var(--accent); margin-right: 6px; font-size: 0.9rem; }
 .back { margin-top: 24px; }
 
+/* Daily Briefing */
+.briefing-meta { margin: 4px 0 14px; }
+.briefing-frame {
+  width: 100%; border: 1px solid var(--border); border-radius: 10px;
+  background: #f4f6f9; min-height: 400px;
+}
+.briefing-archive { margin-top: 30px; }
+.briefing-archive h2 { font-size: 1.1rem; border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+.archive-list { list-style: none; padding: 0; }
+.archive-list li { padding: 7px 0; border-bottom: 1px solid var(--border); }
+
 /* Footer */
 .site-footer { border-top: 1px solid var(--border); background: var(--card); padding: 22px 0; }
 .site-footer p { color: var(--muted); font-size: 0.8rem; margin: 0; }

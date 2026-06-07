@@ -15,6 +15,18 @@ services:
       WEBHOOK_URL: "${WEBHOOK_URL:-}"
       MIN_RELEVANCE_SCORE: "${MIN_RELEVANCE_SCORE:-0.3}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      # Daily Briefing email digest (optional; the briefing always renders at
+      # /briefing regardless). Set DIGEST_ENABLED=true and the SMTP_* vars to
+      # email it on a daily schedule.
+      DIGEST_ENABLED: "${DIGEST_ENABLED:-false}"
+      DIGEST_HOUR: "${DIGEST_HOUR:-13}"
+      DIGEST_TO: "${DIGEST_TO:-}"
+      DIGEST_FROM: "${DIGEST_FROM:-}"
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
     volumes:
       # Persist the story archive (and WAL files) across restarts.
       - ./data:/app/data

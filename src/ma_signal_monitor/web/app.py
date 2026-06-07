@@ -86,6 +86,14 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         finally:
             lock.release()
 
+    def _daily_digest() -> None:
+        from ma_signal_monitor.digest import generate_digest
+
+        try:
+            generate_digest(config, app.state.store, send=True)
+        except Exception as e:
+            logger.exception("Daily digest generation failed: %s", e)
+
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(
         _ingest,
@@ -93,6 +101,14 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         hours=config.ingest_interval_hours,
         id="ingest",
     )
+    if config.digest_enabled:
+        scheduler.add_job(
+            _daily_digest,
+            "cron",
+            hour=config.digest_hour,
+            minute=0,
+            id="daily_digest",
+        )
 
     @app.on_event("startup")
     def _start() -> None:
@@ -100,7 +116,13 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         if app.state.store.count_stories() == 0:
             threading.Thread(target=_ingest, daemon=True).start()
         scheduler.start()
-        logger.info("Scheduler started (every %dh)", config.ingest_interval_hours)
+        logger.info(
+            "Scheduler started (ingest every %dh%s)",
+            config.ingest_interval_hours,
+            f", digest daily at {config.digest_hour:02d}:00 UTC"
+            if config.digest_enabled
+            else "",
+        )
 
     @app.on_event("shutdown")
     def _stop() -> None:

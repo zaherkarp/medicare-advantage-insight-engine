@@ -91,6 +91,24 @@ class AppConfig:
     ingest_interval_hours: int = 6  # used by the in-process scheduler & cadence label
     web_page_size: int = 25  # stories per page in the web feed
 
+    # Daily Briefing digest settings
+    digest_enabled: bool = False  # send the digest email on a daily schedule
+    digest_hour: int = 13  # UTC hour to send the daily digest
+    digest_lookback_hours: int = 24  # window of stories to include
+    digest_max_items: int = 12  # max stories per digest
+    digest_min_score: float = 0.3  # minimum relevance score to include
+    digest_subject_prefix: str = "MA Daily Briefing"
+
+    # SMTP delivery (stdlib smtplib; optional — digest also renders to the web)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    digest_from: str = ""  # sender address; defaults to smtp_user if blank
+    digest_to: str = ""  # comma-separated recipient list
+    public_base_url: str = ""  # e.g. https://ma.example.com, for links in emails
+
 
 def load_config(project_root: str | Path | None = None) -> AppConfig:
     """Load configuration from .env and YAML files.
@@ -126,6 +144,23 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         ),
         ingest_interval_hours=int(os.getenv("INGEST_INTERVAL_HOURS", "6")),
         web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
+        digest_enabled=os.getenv("DIGEST_ENABLED", "false").lower()
+        in ("1", "true", "yes"),
+        digest_hour=int(os.getenv("DIGEST_HOUR", "13")),
+        digest_lookback_hours=int(os.getenv("DIGEST_LOOKBACK_HOURS", "24")),
+        digest_max_items=int(os.getenv("DIGEST_MAX_ITEMS", "12")),
+        digest_min_score=float(
+            os.getenv("DIGEST_MIN_SCORE", os.getenv("MIN_RELEVANCE_SCORE", "0.3"))
+        ),
+        digest_subject_prefix=os.getenv("DIGEST_SUBJECT_PREFIX", "MA Daily Briefing"),
+        smtp_host=os.getenv("SMTP_HOST", ""),
+        smtp_port=int(os.getenv("SMTP_PORT", "587")),
+        smtp_user=os.getenv("SMTP_USER", ""),
+        smtp_password=os.getenv("SMTP_PASSWORD", ""),
+        smtp_use_tls=os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes"),
+        digest_from=os.getenv("DIGEST_FROM", ""),
+        digest_to=os.getenv("DIGEST_TO", ""),
+        public_base_url=os.getenv("PUBLIC_BASE_URL", "").rstrip("/"),
     )
 
     config_dir = root / config.config_dir
