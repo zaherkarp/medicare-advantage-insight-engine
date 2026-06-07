@@ -2,8 +2,8 @@ name: Deploy Static Site
 
 on:
   schedule:
-    # Ingest + rebuild + deploy every 6 hours (at minute 25).
-    - cron: "25 */6 * * *"
+    # Ingest + rebuild + deploy every 4 hours (at minute 25).
+    - cron: "25 */4 * * *"
   workflow_dispatch:
   push:
     branches: [main]
