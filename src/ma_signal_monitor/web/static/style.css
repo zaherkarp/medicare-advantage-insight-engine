@@ -47,6 +47,25 @@ a:hover { text-decoration: underline; }
 .dropdown-menu a { display: block; padding: 8px 16px; color: var(--ink); }
 .dropdown-menu a:hover { background: var(--accent-soft); text-decoration: none; }
 
+/* Search */
+.nav-search { margin: 0; }
+.nav-search input {
+  border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px;
+  font-size: 0.85rem; width: 130px; background: var(--bg);
+}
+.nav-search input:focus { outline: none; border-color: var(--accent); width: 170px; }
+.search-form { display: flex; gap: 8px; margin: 10px 0; }
+.search-form input {
+  flex: 1; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; font-size: 1rem;
+}
+.search-form input:focus { outline: none; border-color: var(--accent); }
+.search-form button {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 0 18px; font-size: 0.95rem; cursor: pointer;
+}
+.search-form button:hover { background: #094a8c; }
+
 /* Page heads */
 main { padding: 28px 20px 60px; min-height: 60vh; }
 .page-head h1 { margin: 0 0 4px; font-size: 1.7rem; }

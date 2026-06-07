@@ -107,6 +107,7 @@ Jinja web app renders it as a browsable site. Pages:
 | `/` | Paginated, reverse-chronological signal feed |
 | `/topics/{category}` | One of the five trigger verticals (e.g. `policy_regulatory`) |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
+| `/search?q=` | Full-text search across the archive (SQLite FTS5) |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
 | `/story/{id}` | Story detail with the draft insight angle |
@@ -231,7 +232,8 @@ Sources directory, State Intelligence), Docker self-host.
 
 Phase 2 (done): Daily Briefing digest — web page + archive + optional daily email.
 
-- **Phase 3** — Full-text search over the archive (SQLite FTS5)
+Phase 3 (done): full-text search over the archive (SQLite FTS5, LIKE fallback).
+
 - **Phase 4** — Expanded sources (activate SEC EDGAR / CMS file fetchers, add
   state-level / legal / research feeds) and richer observability
 - Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,

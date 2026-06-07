@@ -7,6 +7,7 @@ app is easy to construct in tests with a seeded database.
 import json
 import math
 import sqlite3
+from urllib.parse import quote_plus
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -113,6 +114,39 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             subtitle="Signals classified into this topic vertical.",
             base_path=f"/topics/{category_key}",
             category=category_key,
+        )
+
+    @app.get("/search", response_class=HTMLResponse)
+    def search(request: Request) -> HTMLResponse:
+        store = request.app.state.store
+        config = request.app.state.config
+        query = (request.query_params.get("q") or "").strip()
+        page = _page_param(request)
+        page_size = config.web_page_size
+
+        stories: list[dict] = []
+        total = 0
+        total_pages = 1
+        if query:
+            total = store.count_search(query)
+            total_pages = max(1, math.ceil(total / page_size)) if total else 1
+            page = min(page, total_pages)
+            rows = store.search_stories(
+                query, limit=page_size, offset=(page - 1) * page_size
+            )
+            stories = [_story_view(r) for r in rows]
+
+        return templates.TemplateResponse(
+            request,
+            "search.html",
+            {
+                "query": query,
+                "stories": stories,
+                "total": total,
+                "page": page,
+                "total_pages": total_pages,
+                "base_path": f"/search?q={quote_plus(query)}&",
+            },
         )
 
     @app.get("/sources", response_class=HTMLResponse)

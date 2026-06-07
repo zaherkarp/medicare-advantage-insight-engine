@@ -87,10 +87,13 @@ class StateStore:
     def __init__(self, db_path: str | Path, read_only: bool = False):
         self.db_path = Path(db_path)
         self.read_only = read_only
+        self.fts_enabled = False
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
         if not read_only:
             self._init_db()
+        else:
+            self._init_fts()
 
     def _init_db(self) -> None:
         """Initialize the database schema."""
@@ -100,7 +103,44 @@ class StateStore:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA_SQL)
         conn.commit()
+        self._init_fts()
         logger.debug("Database initialized at %s", self.db_path)
+
+    def _init_fts(self) -> None:
+        """Set up the FTS5 full-text index, falling back gracefully.
+
+        FTS5 is enabled in most SQLite builds, but not guaranteed — if the
+        virtual table can't be created, search degrades to a LIKE scan.
+        """
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS stories_fts "
+                "USING fts5(item_id UNINDEXED, title, summary)"
+            )
+            conn.commit()
+            self.fts_enabled = True
+            if not self.read_only:
+                self._backfill_fts()
+        except sqlite3.OperationalError as e:
+            self.fts_enabled = False
+            logger.warning("FTS5 unavailable; search will use LIKE fallback: %s", e)
+
+    def _backfill_fts(self) -> None:
+        """Populate the FTS index from existing stories if it's empty.
+
+        Handles databases created before the index existed (Phase 1/2 archives).
+        """
+        conn = self._get_conn()
+        fts_count = conn.execute("SELECT COUNT(*) FROM stories_fts").fetchone()[0]
+        story_count = conn.execute("SELECT COUNT(*) FROM stories").fetchone()[0]
+        if fts_count == 0 and story_count > 0:
+            conn.execute(
+                "INSERT INTO stories_fts (item_id, title, summary) "
+                "SELECT item_id, title, summary FROM stories"
+            )
+            conn.commit()
+            logger.info("Backfilled FTS index with %d stories", story_count)
 
     def _get_conn(self) -> sqlite3.Connection:
         """Get or create the database connection."""
@@ -197,7 +237,68 @@ class StateStore:
                 json.dumps(public_draft) if public_draft else None,
             ),
         )
+        if self.fts_enabled:
+            # Keep the FTS row in sync (delete-then-insert mirrors the upsert).
+            conn.execute("DELETE FROM stories_fts WHERE item_id = ?", (item.item_id,))
+            conn.execute(
+                "INSERT INTO stories_fts (item_id, title, summary) VALUES (?, ?, ?)",
+                (item.item_id, item.title, item.summary or ""),
+            )
         conn.commit()
+
+    @staticmethod
+    def _fts_query(query: str) -> str:
+        """Build a safe FTS5 MATCH expression (AND of quoted prefix terms)."""
+        import re
+
+        terms = re.findall(r"\w+", query)
+        # Quote each term and add a prefix wildcard for partial matches.
+        return " AND ".join(f'"{t}"*' for t in terms)
+
+    def search_stories(
+        self, query: str, limit: int = 25, offset: int = 0
+    ) -> list[sqlite3.Row]:
+        """Full-text search over story titles and summaries.
+
+        Uses FTS5 (ranked by relevance) when available, else a LIKE scan.
+        """
+        conn = self._get_conn()
+        if self.fts_enabled:
+            match = self._fts_query(query)
+            if not match:
+                return []
+            return conn.execute(
+                """SELECT s.* FROM stories_fts f
+                   JOIN stories s ON s.item_id = f.item_id
+                   WHERE stories_fts MATCH ?
+                   ORDER BY rank LIMIT ? OFFSET ?""",
+                (match, limit, offset),
+            ).fetchall()
+        like = f"%{query.strip()}%"
+        return conn.execute(
+            """SELECT * FROM stories
+               WHERE title LIKE ? OR summary LIKE ?
+               ORDER BY COALESCE(published_date, fetched_at) DESC
+               LIMIT ? OFFSET ?""",
+            (like, like, limit, offset),
+        ).fetchall()
+
+    def count_search(self, query: str) -> int:
+        """Count full-text search matches (for pagination)."""
+        conn = self._get_conn()
+        if self.fts_enabled:
+            match = self._fts_query(query)
+            if not match:
+                return 0
+            return conn.execute(
+                "SELECT COUNT(*) FROM stories_fts WHERE stories_fts MATCH ?",
+                (match,),
+            ).fetchone()[0]
+        like = f"%{query.strip()}%"
+        return conn.execute(
+            "SELECT COUNT(*) FROM stories WHERE title LIKE ? OR summary LIKE ?",
+            (like, like),
+        ).fetchone()[0]
 
     @staticmethod
     def _story_filters(category: str | None, state: str | None) -> tuple[str, list]:
@@ -443,6 +544,12 @@ class StateStore:
                 "DELETE FROM stories WHERE fetched_at < ?", (story_cutoff,)
             )
             stories_deleted = cursor.rowcount
+            if self.fts_enabled and stories_deleted:
+                # Drop orphaned FTS rows for the deleted stories.
+                conn.execute(
+                    "DELETE FROM stories_fts WHERE item_id NOT IN "
+                    "(SELECT item_id FROM stories)"
+                )
 
         conn.commit()
         logger.info(
