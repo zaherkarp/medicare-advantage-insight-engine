@@ -194,6 +194,27 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             state=code,
         )
 
+    def _render_briefing(request: Request, digest_row) -> HTMLResponse:
+        store = request.app.state.store
+        return templates.TemplateResponse(
+            request,
+            "briefing.html",
+            {"digest": digest_row, "archive": store.list_digests(limit=30)},
+        )
+
+    @app.get("/briefing", response_class=HTMLResponse)
+    def briefing(request: Request) -> HTMLResponse:
+        store = request.app.state.store
+        return _render_briefing(request, store.get_latest_digest())
+
+    @app.get("/briefing/{digest_date}", response_class=HTMLResponse)
+    def briefing_by_date(request: Request, digest_date: str) -> HTMLResponse:
+        store = request.app.state.store
+        row = store.get_digest(digest_date)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Briefing not found")
+        return _render_briefing(request, row)
+
     @app.get("/story/{item_id}", response_class=HTMLResponse)
     def story(request: Request, item_id: str) -> HTMLResponse:
         store = request.app.state.store

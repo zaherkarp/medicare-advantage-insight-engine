@@ -37,6 +37,7 @@ dev = [
 
 [project.scripts]
 ma-signal-monitor = "ma_signal_monitor.main:main"
+ma-signal-digest = "ma_signal_monitor.digest:main"
 
 [tool.setuptools.package-data]
 ma_signal_monitor = ["web/templates/*.html", "web/static/*"]

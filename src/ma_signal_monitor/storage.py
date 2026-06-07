@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS stories (
     public_draft TEXT
 );
 
+-- Generated Daily Briefing digests, archived for the /briefing page and so
+-- email sends are idempotent (one digest per UTC day).
+CREATE TABLE IF NOT EXISTS digests (
+    digest_date TEXT PRIMARY KEY,
+    generated_at TEXT NOT NULL,
+    story_count INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    html TEXT NOT NULL,
+    sent_at TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_seen_items_first_seen ON seen_items(first_seen_at);
 CREATE INDEX IF NOT EXISTS idx_delivery_log_timestamp ON delivery_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_stories_published ON stories(published_date);
@@ -240,6 +251,83 @@ class StateStore:
         return conn.execute(
             "SELECT * FROM stories WHERE item_id = ?", (item_id,)
         ).fetchone()
+
+    def get_recent_top_stories(
+        self,
+        since: datetime,
+        limit: int = 12,
+        min_score: float = 0.0,
+    ) -> list[sqlite3.Row]:
+        """Return the highest-scoring stories since `since` (for the digest).
+
+        Ordered by relevance score, then recency. Uses
+        COALESCE(published_date, fetched_at) so dateless items are still
+        windowed sensibly.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT * FROM stories
+               WHERE COALESCE(published_date, fetched_at) >= ?
+                 AND relevance_score >= ?
+               ORDER BY relevance_score DESC,
+                        COALESCE(published_date, fetched_at) DESC
+               LIMIT ?""",
+            (since.isoformat(), min_score, limit),
+        ).fetchall()
+        return rows
+
+    # --- Daily Briefing digests ---
+
+    def save_digest(
+        self,
+        digest_date: str,
+        generated_at: str,
+        story_count: int,
+        subject: str,
+        html: str,
+        sent_at: str | None = None,
+    ) -> None:
+        """Persist (or replace) a generated digest for a given UTC day."""
+        conn = self._get_conn()
+        conn.execute(
+            """INSERT OR REPLACE INTO digests
+               (digest_date, generated_at, story_count, subject, html, sent_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (digest_date, generated_at, story_count, subject, html, sent_at),
+        )
+        conn.commit()
+
+    def mark_digest_sent(self, digest_date: str, sent_at: str) -> None:
+        """Record that a digest was emailed."""
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE digests SET sent_at = ? WHERE digest_date = ?",
+            (sent_at, digest_date),
+        )
+        conn.commit()
+
+    def get_digest(self, digest_date: str) -> sqlite3.Row | None:
+        """Return a digest by its UTC date string, or None."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM digests WHERE digest_date = ?", (digest_date,)
+        ).fetchone()
+
+    def get_latest_digest(self) -> sqlite3.Row | None:
+        """Return the most recently dated digest, or None."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM digests ORDER BY digest_date DESC LIMIT 1"
+        ).fetchone()
+
+    def list_digests(self, limit: int = 30) -> list[sqlite3.Row]:
+        """Return recent digests (date + metadata only) for the archive list."""
+        conn = self._get_conn()
+        return conn.execute(
+            """SELECT digest_date, generated_at, story_count, subject, sent_at
+               FROM digests ORDER BY digest_date DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
 
     def get_state_counts(self) -> dict[str, int]:
         """Return a {state_code: story_count} map across the archive.

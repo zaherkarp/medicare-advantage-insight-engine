@@ -106,6 +106,7 @@ Jinja web app renders it as a browsable site. Pages:
 |---|---|
 | `/` | Paginated, reverse-chronological signal feed |
 | `/topics/{category}` | One of the five trigger verticals (e.g. `policy_regulatory`) |
+| `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
 | `/story/{id}` | Story detail with the draft insight angle |
@@ -132,6 +133,25 @@ docker compose up --build
 
 The archive fills going forward from newly-seen items — there is no historical
 backfill, since prior runs never stored full content.
+
+### Daily Briefing
+
+The **Daily Briefing** is a curated digest of the day's top signals — the
+fastest way to get insight in front of people. It's grouped into the five topic
+verticals, scored, and always viewable at `/briefing` (with a dated archive).
+
+Generate one on demand:
+
+```bash
+ma-signal-digest                 # build + save today's briefing (+ email if configured)
+# then open http://localhost:8000/briefing
+```
+
+To **email** it daily, set `DIGEST_ENABLED=true`, `DIGEST_TO`, and the `SMTP_*`
+vars (see `.env.example`). The web container's scheduler then sends it at
+`DIGEST_HOUR` (UTC) each day; email is best-effort, so the briefing is never
+blocked by SMTP being unset. Set `PUBLIC_BASE_URL` so email links resolve back
+to your site.
 
 ## Configuration
 
@@ -209,7 +229,8 @@ The delivery system supports four modes:
 Phase 1 (done): browsable story archive + web frontend (feed, topic verticals,
 Sources directory, State Intelligence), Docker self-host.
 
-- **Phase 2** — Daily Briefing email digest (batched top signals over SMTP)
+Phase 2 (done): Daily Briefing digest — web page + archive + optional daily email.
+
 - **Phase 3** — Full-text search over the archive (SQLite FTS5)
 - **Phase 4** — Expanded sources (activate SEC EDGAR / CMS file fetchers, add
   state-level / legal / research feeds) and richer observability
