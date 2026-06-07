@@ -1,7 +1,25 @@
 """Tests for feed item normalization."""
 
 from ma_signal_monitor.models import RawFeedItem
-from ma_signal_monitor.normalize import normalize_item, normalize_items
+from ma_signal_monitor.normalize import normalize_item, normalize_items, strip_html
+
+
+class TestStripHtml:
+    """Test the shared HTML stripper."""
+
+    def test_strips_anchor_tag_title(self):
+        # Fierce Healthcare wraps titles in an <a> tag.
+        raw = '<a href="/x" hreflang="en">OIG: Feds overpaid MA plans</a>'
+        assert strip_html(raw) == "OIG: Feds overpaid MA plans"
+
+    def test_unescapes_entities_and_collapses_space(self):
+        assert strip_html("CMS &amp; payers   weigh in") == "CMS & payers weigh in"
+
+    def test_plain_text_unchanged(self):
+        assert strip_html("Star Ratings rule") == "Star Ratings rule"
+
+    def test_empty(self):
+        assert strip_html("") == ""
 
 
 class TestNormalizeItem:
@@ -16,6 +34,23 @@ class TestNormalizeItem:
         assert item.source_name == raw.source_name
         assert item.item_id  # Has a generated ID
         assert len(item.item_id) == 16
+
+    def test_title_html_is_stripped(self):
+        """A title wrapped in an anchor tag is reduced to its text."""
+        raw = RawFeedItem(
+            source_name="Fierce Healthcare",
+            source_type="rss",
+            source_url="https://x.com",
+            source_priority=3,
+            source_tags=[],
+            title='<a href="/a" hreflang="en">Feds may have overpaid MA plans</a>',
+            link="https://x.com/1",
+            published="Mon, 01 Jan 2024 12:00:00 +0000",
+            summary="A summary.",
+        )
+        item = normalize_item(raw)
+        assert item.title == "Feds may have overpaid MA plans"
+        assert "<a" not in item.title
 
     def test_date_parsing_rfc2822(self):
         """RFC 2822 dates are parsed correctly."""
