@@ -104,7 +104,37 @@ class StateStore:
         conn.executescript(SCHEMA_SQL)
         conn.commit()
         self._init_fts()
+        self._clean_story_titles()
         logger.debug("Database initialized at %s", self.db_path)
+
+    def _clean_story_titles(self) -> None:
+        """Strip HTML from any already-stored titles (one-time self-heal).
+
+        Pre-fix archives may contain titles with embedded markup (e.g. an
+        ``<a>`` tag from Fierce Healthcare). This cleans them in place and keeps
+        the FTS index in sync. Cheap — usually matches zero rows.
+        """
+        from ma_signal_monitor.normalize import strip_html
+
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT item_id, title FROM stories WHERE title LIKE '%<%'"
+        ).fetchall()
+        if not rows:
+            return
+        for r in rows:
+            clean = strip_html(r["title"])
+            conn.execute(
+                "UPDATE stories SET title = ? WHERE item_id = ?",
+                (clean, r["item_id"]),
+            )
+            if self.fts_enabled:
+                conn.execute(
+                    "UPDATE stories_fts SET title = ? WHERE item_id = ?",
+                    (clean, r["item_id"]),
+                )
+        conn.commit()
+        logger.info("Cleaned HTML from %d existing story titles", len(rows))
 
     def _init_fts(self) -> None:
         """Set up the FTS5 full-text index, falling back gracefully.

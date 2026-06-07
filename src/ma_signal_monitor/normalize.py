@@ -5,10 +5,44 @@ import logging
 import re
 from datetime import datetime
 from email.utils import parsedate_to_datetime
+from html import unescape
+from html.parser import HTMLParser
 
 from ma_signal_monitor.models import NormalizedItem, RawFeedItem
 
 logger = logging.getLogger("ma_signal_monitor.normalize")
+
+
+class _HTMLStripper(HTMLParser):
+    """Collects text content, discarding tags."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self._parts.append(data)
+
+    def text(self) -> str:
+        return " ".join(self._parts)
+
+
+def strip_html(text: str) -> str:
+    """Strip HTML tags/entities and collapse whitespace.
+
+    Some feeds (e.g. Fierce Healthcare) wrap titles in an ``<a>`` tag; without
+    this the markup renders as literal text in the UI.
+    """
+    if not text:
+        return ""
+    stripper = _HTMLStripper()
+    try:
+        stripper.feed(unescape(text))
+        out = stripper.text()
+    except Exception:
+        out = text
+    return re.sub(r"\s+", " ", out).strip()
+
 
 # Common date formats found in RSS feeds
 _DATE_FORMATS = [
@@ -93,7 +127,7 @@ def normalize_item(raw: RawFeedItem, max_summary_length: int = 500) -> Normalize
         source_type=raw.source_type,
         source_priority=raw.source_priority,
         source_tags=raw.source_tags,
-        title=_clean_text(raw.title),
+        title=strip_html(raw.title),
         link=raw.link.strip(),
         published_date=_parse_date(raw.published),
         summary=_truncate(_clean_text(raw.summary), max_summary_length),

@@ -231,6 +231,32 @@ class TestStateStore:
         assert last is not None
         assert last["items_fetched"] == 5
 
+    def test_existing_html_titles_cleaned_on_open(self, tmp_path):
+        """Reopening the store strips HTML from already-stored titles + FTS."""
+        from ma_signal_monitor.storage import StateStore
+
+        db = tmp_path / "heal.db"
+        store = StateStore(db)
+        store.upsert_story(
+            _make_scored(
+                "dirty",
+                '<a href="/x" hreflang="en">Feds overpaid MA plans</a>',
+                published=None,
+            ),
+            primary_category="policy_regulatory",
+        )
+        store.close()
+
+        # Reopening triggers the one-time cleanup.
+        store2 = StateStore(db)
+        try:
+            assert store2.get_story("dirty")["title"] == "Feds overpaid MA plans"
+            # FTS was updated too (searchable by the clean text, tag gone).
+            hits = store2.search_stories("overpaid")
+            assert len(hits) == 1 and "<a" not in hits[0]["title"]
+        finally:
+            store2.close()
+
     def test_db_persists_across_reconnect(self, tmp_path):
         """Data persists after closing and reopening the store."""
         from ma_signal_monitor.storage import StateStore
