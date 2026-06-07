@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}State Intelligence — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>State Intelligence</h1>
+    <p class="subtitle">Medicare Advantage signals by U.S. state, detected from
+      story content and state-tagged sources.</p>
+  </section>
+
+  {% if not states %}
+    <p class="empty">No state-specific signals detected yet.</p>
+  {% endif %}
+
+  <div class="state-grid">
+    {% for st in states %}
+      <a class="state-card" href="/states/{{ st.code }}">
+        <span class="state-name">{{ st.name }}</span>
+        <span class="state-count">{{ st.story_count }}
+          signal{{ '' if st.story_count == 1 else 's' }}</span>
+        {% if st.sources %}
+          <span class="muted">{{ st.sources|length }} dedicated source{{ '' if st.sources|length == 1 else 's' }}</span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% endblock %}

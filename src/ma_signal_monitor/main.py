@@ -8,6 +8,9 @@ import logging
 import sys
 from pathlib import Path
 
+from dataclasses import asdict
+
+from ma_signal_monitor.classify import classify_item
 from ma_signal_monitor.config import AppConfig, load_config
 from ma_signal_monitor.dedupe import filter_new_items, mark_items_seen
 from ma_signal_monitor.delivery import deliver_alerts
@@ -15,6 +18,7 @@ from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.fetchers.cms import fetch_cms
 from ma_signal_monitor.fetchers.rss import fetch_rss
 from ma_signal_monitor.fetchers.sec import fetch_sec
+from ma_signal_monitor.geo import detect_states
 from ma_signal_monitor.logging_setup import setup_logging
 from ma_signal_monitor.models import RawFeedItem
 from ma_signal_monitor.normalize import normalize_items
@@ -60,6 +64,30 @@ def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
         "Fetched %d total items from %d sources", len(all_items), len(enabled_sources)
     )
     return all_items
+
+
+def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> None:
+    """Write all scored items into the browsable story archive.
+
+    Pairs each item with its public draft (only items above the relevance
+    threshold get an alert/draft) and detects referenced U.S. states.
+    """
+    drafts_by_id = {a.scored_item.item.item_id: a.public_draft for a in alerts}
+    persisted = 0
+    for s in scored:
+        try:
+            primary = classify_item(s, config)
+            draft = drafts_by_id.get(s.item.item_id)
+            store.upsert_story(
+                s,
+                primary_category=primary,
+                public_draft=asdict(draft) if draft else None,
+                states=detect_states(s),
+            )
+            persisted += 1
+        except Exception as e:
+            logger.warning("Failed to persist story '%s': %s", s.item.title[:50], e)
+    logger.info("Persisted %d stories to archive", persisted)
 
 
 def run(
@@ -136,6 +164,10 @@ def run(
         # 5. Draft alerts
         alerts = draft_alerts(scored, config)
 
+        # 5b. Persist all scored items to the browsable story archive
+        #     (richer than the alert stream, which is threshold-gated).
+        _persist_stories(scored, alerts, config, store)
+
         # 6. Deliver
         if alerts:
             results = deliver_alerts(alerts, config)
@@ -155,6 +187,7 @@ def run(
         store.cleanup_old_records(
             config.seen_item_retention_days,
             config.delivery_log_retention_days,
+            config.story_retention_days,
         )
 
     except Exception as e:

@@ -1,0 +1,21 @@
+# Self-hosted MA Signal Monitor: one container serving the web frontend and
+# running scheduled ingestion against a shared SQLite volume.
+services:
+  web:
+    build: .
+    image: ma-signal-monitor:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # Ingestion runs in-process on this interval (hours).
+      INGEST_INTERVAL_HOURS: "6"
+      RUN_SCHEDULER: "true"
+      # Delivery is optional for the web product; default to dry-run.
+      WEBHOOK_MODE: "${WEBHOOK_MODE:-test}"
+      WEBHOOK_URL: "${WEBHOOK_URL:-}"
+      MIN_RELEVANCE_SCORE: "${MIN_RELEVANCE_SCORE:-0.3}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    volumes:
+      # Persist the story archive (and WAL files) across restarts.
+      - ./data:/app/data
+    restart: unless-stopped

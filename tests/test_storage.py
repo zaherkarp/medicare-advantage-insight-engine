@@ -1,6 +1,38 @@
 """Tests for state storage and persistence."""
 
-from ma_signal_monitor.models import DeliveryResult
+from datetime import datetime
+
+from ma_signal_monitor.models import DeliveryResult, NormalizedItem, ScoredItem
+
+
+def _make_scored(
+    item_id: str,
+    title: str,
+    *,
+    published: datetime | None,
+    score: float = 0.5,
+    categories: list[str] | None = None,
+    entities: list[str] | None = None,
+    summary: str = "A summary",
+) -> ScoredItem:
+    """Build a ScoredItem for story-archive tests."""
+    item = NormalizedItem(
+        item_id=item_id,
+        source_name="Test Feed",
+        source_type="rss",
+        source_priority=4,
+        source_tags=["test"],
+        title=title,
+        link=f"https://example.com/{item_id}",
+        published_date=published,
+        summary=summary,
+    )
+    return ScoredItem(
+        item=item,
+        relevance_score=score,
+        matched_categories=categories or [],
+        matched_entities=entities or [],
+    )
 
 
 class TestStateStore:
@@ -67,10 +99,108 @@ class TestStateStore:
 
         temp_db.mark_seen("new_item", "Feed", "New", "https://x.com/new")
 
-        seen_deleted, _ = temp_db.cleanup_old_records(seen_retention_days=90)
+        seen_deleted, _, _ = temp_db.cleanup_old_records(seen_retention_days=90)
         assert seen_deleted == 1
         assert not temp_db.is_seen("old_item")
         assert temp_db.is_seen("new_item")
+
+    def test_upsert_story_roundtrip(self, temp_db):
+        """A scored item is persisted with all fields intact."""
+        scored = _make_scored(
+            "s1",
+            "UnitedHealthcare expands in Texas",
+            published=datetime(2024, 1, 5, 9, 0),
+            score=0.72,
+            categories=["membership_movement", "competitive_strategy"],
+            entities=["UnitedHealthcare"],
+        )
+        temp_db.upsert_story(
+            scored,
+            primary_category="membership_movement",
+            public_draft={"opening_hook": "hook"},
+            states=["TX"],
+        )
+        row = temp_db.get_story("s1")
+        assert row is not None
+        assert row["title"] == "UnitedHealthcare expands in Texas"
+        assert row["primary_category"] == "membership_movement"
+        assert row["relevance_score"] == 0.72
+        view = temp_db.get_stories()[0]
+        import json
+
+        assert json.loads(view["entities"]) == ["UnitedHealthcare"]
+        assert json.loads(view["states"]) == ["TX"]
+        assert json.loads(view["public_draft"]) == {"opening_hook": "hook"}
+
+    def test_upsert_story_is_idempotent(self, temp_db):
+        """Re-persisting the same item id replaces, not duplicates."""
+        scored = _make_scored("dup", "Title", published=datetime(2024, 1, 1))
+        temp_db.upsert_story(scored, primary_category="policy_regulatory")
+        scored.relevance_score = 0.9
+        temp_db.upsert_story(scored, primary_category="policy_regulatory")
+        assert temp_db.count_stories() == 1
+        assert temp_db.get_story("dup")["relevance_score"] == 0.9
+
+    def test_get_stories_reverse_chronological(self, temp_db):
+        """Stories are returned newest-first by published date."""
+        temp_db.upsert_story(
+            _make_scored("old", "Old", published=datetime(2024, 1, 1)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("new", "New", published=datetime(2024, 6, 1)),
+            primary_category="policy_regulatory",
+        )
+        order = [r["item_id"] for r in temp_db.get_stories()]
+        assert order == ["new", "old"]
+
+    def test_dateless_story_sorts_by_fetched_at(self, temp_db):
+        """Items without a published date still appear (sorted by fetched_at)."""
+        temp_db.upsert_story(
+            _make_scored("nodate", "No date", published=None),
+            primary_category="policy_regulatory",
+        )
+        rows = temp_db.get_stories()
+        assert len(rows) == 1
+        assert rows[0]["item_id"] == "nodate"
+
+    def test_category_and_pagination_filters(self, temp_db):
+        """Category filter and limit/offset pagination work."""
+        for i in range(5):
+            temp_db.upsert_story(
+                _make_scored(
+                    f"p{i}", f"Policy {i}", published=datetime(2024, 1, i + 1)
+                ),
+                primary_category="policy_regulatory",
+            )
+        temp_db.upsert_story(
+            _make_scored("fin", "Finance", published=datetime(2024, 2, 1)),
+            primary_category="financial_pressure",
+        )
+        assert temp_db.count_stories(category="policy_regulatory") == 5
+        assert temp_db.count_stories(category="financial_pressure") == 1
+        page1 = temp_db.get_stories(category="policy_regulatory", limit=2, offset=0)
+        page2 = temp_db.get_stories(category="policy_regulatory", limit=2, offset=2)
+        assert len(page1) == 2 and len(page2) == 2
+        assert {r["item_id"] for r in page1} != {r["item_id"] for r in page2}
+
+    def test_state_filter_and_counts(self, temp_db):
+        """State filtering and aggregate counts use the JSON states field."""
+        temp_db.upsert_story(
+            _make_scored("tx", "Texas news", published=datetime(2024, 1, 1)),
+            primary_category="membership_movement",
+            states=["TX"],
+        )
+        temp_db.upsert_story(
+            _make_scored("txca", "Texas & California", published=datetime(2024, 1, 2)),
+            primary_category="membership_movement",
+            states=["TX", "CA"],
+        )
+        assert temp_db.count_stories(state="TX") == 2
+        assert temp_db.count_stories(state="CA") == 1
+        counts = temp_db.get_state_counts()
+        assert counts["TX"] == 2
+        assert counts["CA"] == 1
 
     def test_db_persists_across_reconnect(self, tmp_path):
         """Data persists after closing and reopening the store."""
