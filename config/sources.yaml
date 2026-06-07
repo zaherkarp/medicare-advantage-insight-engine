@@ -14,7 +14,7 @@ sources:
   # --- CMS / Government ---
   - name: "CMS Newsroom"
     type: rss
-    url: "https://www.cms.gov/newsroom/rss"
+    url: "https://www.cms.gov/newsroom/rss-feeds"
     priority: 5
     enabled: true
     tags: ["cms", "policy", "regulatory"]
@@ -45,7 +45,7 @@ sources:
 
   - name: "Modern Healthcare"
     type: rss
-    url: "https://www.modernhealthcare.com/section/rss"
+    url: "https://www.modernhealthcare.com/arc/outboundfeeds/rss/"
     priority: 3
     enabled: true
     tags: ["industry", "general"]
@@ -85,16 +85,15 @@ sources:
     description: "Georgetown Center for Children and Families — Medicaid/CHIP research."
 
   # --- State Intelligence ---
-  - name: "California Healthline"
+  - name: "STAT News"
     type: rss
-    url: "https://californiahealthline.org/feed/"
+    url: "https://www.statnews.com/feed/"
     priority: 3
     enabled: true
-    tags: ["state", "policy"]
-    state: "CA"
-    geography: "California"
-    homepage: "https://californiahealthline.org/"
-    description: "Daily California health policy and industry coverage."
+    tags: ["industry", "policy"]
+    state: "national"
+    homepage: "https://www.statnews.com/"
+    description: "Health, medicine, biotech, and health-policy news and analysis."
 
   - name: "Colorado Newsline"
     type: rss
