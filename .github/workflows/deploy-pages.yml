@@ -87,7 +87,12 @@ jobs:
           mkdir -p site/data
           cp data/state.db site/data/state.db
 
-      - uses: actions/configure-pages@v5
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Auto-enable Pages (build type: GitHub Actions) so the workflow is
+          # self-bootstrapping — no manual Settings → Pages toggle needed.
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
