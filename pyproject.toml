@@ -23,6 +23,7 @@ web = [
     "uvicorn[standard]>=0.27.0",
     "jinja2>=3.1.0",
     "apscheduler>=3.10.0",
+    "httpx>=0.27.0",
 ]
 dev = [
     "pytest>=7.4.0",
@@ -38,6 +39,7 @@ dev = [
 [project.scripts]
 ma-signal-monitor = "ma_signal_monitor.main:main"
 ma-signal-digest = "ma_signal_monitor.digest:main"
+ma-signal-build = "ma_signal_monitor.static_export:_cli"
 
 [tool.setuptools.package-data]
 ma_signal_monitor = ["web/templates/*.html", "web/static/*"]
