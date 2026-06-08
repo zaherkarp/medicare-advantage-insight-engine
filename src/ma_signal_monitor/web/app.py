@@ -94,6 +94,14 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         except Exception as e:
             logger.exception("Daily digest generation failed: %s", e)
 
+    def _discovery() -> None:
+        from ma_signal_monitor.discovery.runner import run_discovery
+
+        try:
+            run_discovery(config, app.state.store)
+        except Exception as e:
+            logger.exception("Scheduled discovery failed: %s", e)
+
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(
         _ingest,
@@ -108,6 +116,13 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
             hour=config.digest_hour,
             minute=0,
             id="daily_digest",
+        )
+    if config.discovery_enabled:
+        scheduler.add_job(
+            _discovery,
+            "interval",
+            hours=config.discovery_interval_hours,
+            id="discovery",
         )
 
     @app.on_event("startup")

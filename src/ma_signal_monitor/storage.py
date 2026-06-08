@@ -72,6 +72,38 @@ CREATE TABLE IF NOT EXISTS digests (
     sent_at TEXT
 );
 
+-- Source discovery: outbound domains harvested from story links, accumulated
+-- over runs and ranked by relevance-weighted frequency.
+CREATE TABLE IF NOT EXISTS candidate_domains (
+    domain TEXT PRIMARY KEY,
+    times_seen INTEGER NOT NULL DEFAULT 0,
+    relevance_score REAL NOT NULL DEFAULT 0,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    example_link TEXT,
+    example_story_id TEXT,
+    feeds_checked_at TEXT,
+    status TEXT NOT NULL DEFAULT 'new'
+);
+
+-- Source discovery: feeds autodiscovered on candidate domains, awaiting review
+-- or already promoted into the live source list (merged at config load time).
+CREATE TABLE IF NOT EXISTS candidate_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    feed_url TEXT UNIQUE NOT NULL,
+    domain TEXT NOT NULL,
+    feed_title TEXT,
+    discovery_method TEXT,
+    times_seen INTEGER NOT NULL DEFAULT 0,
+    relevance_score REAL NOT NULL DEFAULT 0,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new'
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidate_domains_rank ON candidate_domains(status, relevance_score);
+CREATE INDEX IF NOT EXISTS idx_candidate_sources_rank ON candidate_sources(status, relevance_score);
+
 CREATE INDEX IF NOT EXISTS idx_seen_items_first_seen ON seen_items(first_seen_at);
 CREATE INDEX IF NOT EXISTS idx_delivery_log_timestamp ON delivery_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_stories_published ON stories(published_date);
@@ -558,6 +590,167 @@ class StateStore:
         ).fetchall()
         return {r["s"]: r["n"] for r in rows}
 
+    # --- Source Discovery ---
+
+    def upsert_candidate_domain(self, stat) -> None:
+        """Accumulate a harvested outbound domain (DomainStat-like object).
+
+        ``times_seen`` and ``relevance_score`` accumulate across runs; the
+        example link/story and first-seen are kept from the earliest sighting.
+        """
+        conn = self._get_conn()
+        now = datetime.utcnow().isoformat()
+        conn.execute(
+            """INSERT INTO candidate_domains
+               (domain, times_seen, relevance_score, first_seen_at, last_seen_at,
+                example_link, example_story_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(domain) DO UPDATE SET
+                   times_seen = times_seen + excluded.times_seen,
+                   relevance_score = relevance_score + excluded.relevance_score,
+                   last_seen_at = excluded.last_seen_at""",
+            (
+                stat.domain,
+                stat.times_seen,
+                stat.relevance_score,
+                now,
+                now,
+                stat.example_link,
+                stat.example_story_id,
+            ),
+        )
+        conn.commit()
+
+    def domains_due_for_discovery(
+        self,
+        limit: int = 20,
+        recheck_days: int = 14,
+        min_times_seen: int = 2,
+    ) -> list[sqlite3.Row]:
+        """Top-ranked 'new' domains that haven't been probed recently."""
+        conn = self._get_conn()
+        cutoff = (datetime.utcnow() - timedelta(days=recheck_days)).isoformat()
+        return conn.execute(
+            """SELECT * FROM candidate_domains
+               WHERE status = 'new'
+                 AND times_seen >= ?
+                 AND (feeds_checked_at IS NULL OR feeds_checked_at < ?)
+               ORDER BY relevance_score DESC
+               LIMIT ?""",
+            (min_times_seen, cutoff, limit),
+        ).fetchall()
+
+    def mark_domain_checked(self, domain: str, checked_at: str | None = None) -> None:
+        """Record that a domain was probed for feeds (throttles re-probing)."""
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE candidate_domains SET feeds_checked_at = ? WHERE domain = ?",
+            (checked_at or datetime.utcnow().isoformat(), domain),
+        )
+        conn.commit()
+
+    def set_domain_status(self, domain: str, status: str) -> None:
+        """Update a candidate domain's review status (e.g. 'ignored')."""
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE candidate_domains SET status = ? WHERE domain = ?",
+            (status, domain),
+        )
+        conn.commit()
+
+    def upsert_candidate_source(
+        self,
+        feed_url: str,
+        domain: str,
+        feed_title: str = "",
+        discovery_method: str = "",
+        times_seen: int = 0,
+        relevance_score: float = 0.0,
+        status: str = "new",
+    ) -> None:
+        """Record a discovered feed. On conflict, refresh stats but only upgrade
+        the status when it is still 'new' (operator decisions are preserved).
+        """
+        conn = self._get_conn()
+        now = datetime.utcnow().isoformat()
+        conn.execute(
+            """INSERT INTO candidate_sources
+               (feed_url, domain, feed_title, discovery_method, times_seen,
+                relevance_score, first_seen_at, last_seen_at, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(feed_url) DO UPDATE SET
+                   feed_title = excluded.feed_title,
+                   times_seen = excluded.times_seen,
+                   relevance_score = excluded.relevance_score,
+                   last_seen_at = excluded.last_seen_at,
+                   status = CASE WHEN candidate_sources.status = 'new'
+                                 THEN excluded.status
+                                 ELSE candidate_sources.status END""",
+            (
+                feed_url,
+                domain,
+                feed_title,
+                discovery_method,
+                times_seen,
+                relevance_score,
+                now,
+                now,
+                status,
+            ),
+        )
+        conn.commit()
+
+    def list_candidate_sources(
+        self,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[sqlite3.Row]:
+        """Candidate feeds ranked by relevance (optionally filtered by status)."""
+        conn = self._get_conn()
+        where = "WHERE status = ?" if status else ""
+        params: list = [status] if status else []
+        return conn.execute(
+            f"""SELECT * FROM candidate_sources {where}
+                ORDER BY relevance_score DESC, last_seen_at DESC
+                LIMIT ? OFFSET ?""",
+            (*params, limit, offset),
+        ).fetchall()
+
+    def count_candidate_sources(self, status: str | None = None) -> int:
+        """Count candidate feeds (for pagination)."""
+        conn = self._get_conn()
+        where = "WHERE status = ?" if status else ""
+        params: list = [status] if status else []
+        return conn.execute(
+            f"SELECT COUNT(*) FROM candidate_sources {where}", params
+        ).fetchone()[0]
+
+    def get_candidate_source(self, candidate_id: int) -> sqlite3.Row | None:
+        """Return a single candidate feed by id, or None."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM candidate_sources WHERE id = ?", (candidate_id,)
+        ).fetchone()
+
+    def set_candidate_status(self, candidate_id: int, status: str) -> None:
+        """Set a candidate feed's status (promoted / rejected / new)."""
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE candidate_sources SET status = ? WHERE id = ?",
+            (status, candidate_id),
+        )
+        conn.commit()
+
+    def get_promoted_sources(self) -> list[sqlite3.Row]:
+        """Candidate feeds that should be merged into the live source list."""
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT feed_url, domain, feed_title FROM candidate_sources "
+            "WHERE status IN ('promoted', 'auto_promoted') "
+            "ORDER BY relevance_score DESC"
+        ).fetchall()
+
     # --- Cleanup ---
 
     def cleanup_old_records(
@@ -565,6 +758,7 @@ class StateStore:
         seen_retention_days: int = 90,
         log_retention_days: int = 30,
         story_retention_days: int = 365,
+        candidate_retention_days: int = 180,
     ) -> tuple[int, int, int]:
         """Remove old records. Returns (seen_deleted, logs_deleted, stories_deleted).
 
@@ -605,6 +799,23 @@ class StateStore:
                     "DELETE FROM stories_fts WHERE item_id NOT IN "
                     "(SELECT item_id FROM stories)"
                 )
+
+        if candidate_retention_days > 0:
+            cand_cutoff = (
+                datetime.utcnow() - timedelta(days=candidate_retention_days)
+            ).isoformat()
+            # Prune dormant candidates that were never acted on; keep promoted
+            # ones (they back live sources) regardless of age.
+            conn.execute(
+                "DELETE FROM candidate_sources "
+                "WHERE status IN ('new', 'rejected') AND last_seen_at < ?",
+                (cand_cutoff,),
+            )
+            conn.execute(
+                "DELETE FROM candidate_domains "
+                "WHERE status IN ('new', 'ignored') AND last_seen_at < ?",
+                (cand_cutoff,),
+            )
 
         conn.commit()
         logger.info(

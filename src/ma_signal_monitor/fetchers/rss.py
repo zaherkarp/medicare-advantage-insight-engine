@@ -96,20 +96,23 @@ def fetch_feed(
         published = entry.get("published", entry.get("updated", ""))
 
         # Get summary from various possible fields
-        summary = ""
+        summary_html = ""
         if "summary" in entry:
-            summary = entry.summary
+            summary_html = entry.summary
         elif "description" in entry:
-            summary = entry.description
+            summary_html = entry.description
         elif "content" in entry and entry.content:
-            summary = entry.content[0].get("value", "")
+            summary_html = entry.content[0].get("value", "")
 
-        summary = _strip_html(summary)
         raw_content = (
             entry.get("content", [{}])[0].get("value", "")
             if entry.get("content")
             else ""
         )
+
+        # Preserve the un-stripped HTML before tags are removed, so source
+        # discovery can harvest embedded <a href> links downstream.
+        content_html = "\n".join(p for p in (summary_html, raw_content) if p)
 
         items.append(
             RawFeedItem(
@@ -121,9 +124,10 @@ def fetch_feed(
                 title=title,
                 link=link,
                 published=published,
-                summary=summary,
+                summary=_strip_html(summary_html),
                 author=entry.get("author", ""),
                 raw_content=_strip_html(raw_content),
+                content_html=content_html,
             )
         )
 

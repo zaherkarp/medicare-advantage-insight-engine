@@ -90,6 +90,40 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
     logger.info("Persisted %d stories to archive", persisted)
 
 
+def _harvest_candidates(scored, raw_items, config: AppConfig, store: StateStore) -> None:
+    """Harvest outbound domains from scored stories into candidate_domains.
+
+    Cheap (pure CPU + DB writes), so it runs every ingest when discovery is
+    enabled. The network-heavy feed autodiscovery runs separately (see
+    ``discovery.runner.run_discovery``). content_html lives on RawFeedItem, so
+    we pair each scored item back to its raw item by (source_name, link).
+    """
+    from ma_signal_monitor.discovery.harvest import (
+        StoryLinks,
+        configured_source_domains,
+        harvest_domains,
+    )
+
+    html_by_key = {(r.source_name, r.link): r.content_html for r in raw_items}
+    stories = [
+        StoryLinks(
+            item_id=s.item.item_id,
+            link=s.item.link,
+            content_html=html_by_key.get((s.item.source_name, s.item.link), ""),
+            relevance_score=s.relevance_score,
+        )
+        for s in scored
+    ]
+    stats = harvest_domains(
+        stories,
+        min_score=config.discovery_min_story_score,
+        exclude_domains=configured_source_domains(config.sources),
+    )
+    for stat in stats.values():
+        store.upsert_candidate_domain(stat)
+    logger.info("Discovery harvest: %d candidate domain(s) updated", len(stats))
+
+
 def run(
     config: AppConfig | None = None, project_root: str | Path | None = None
 ) -> dict:
@@ -168,6 +202,14 @@ def run(
         #     (richer than the alert stream, which is threshold-gated).
         _persist_stories(scored, alerts, config, store)
 
+        # 5c. Harvest outbound domains for source discovery (opt-in). Never let
+        #     a discovery failure break ingestion.
+        if config.discovery_enabled:
+            try:
+                _harvest_candidates(scored, raw_items, config, store)
+            except Exception as e:
+                logger.warning("Candidate harvest failed: %s", e)
+
         # 6. Deliver
         if alerts:
             results = deliver_alerts(alerts, config)
@@ -188,6 +230,7 @@ def run(
             config.seen_item_retention_days,
             config.delivery_log_retention_days,
             config.story_retention_days,
+            config.candidate_retention_days,
         )
 
     except Exception as e:
