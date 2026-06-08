@@ -76,9 +76,7 @@ def test_discovery_failure_does_not_break_ingestion(
         store.close()
 
 
-def test_promoted_candidates_merge_into_sources(
-    project_root_with_config, monkeypatch
-):
+def test_promoted_candidates_merge_into_sources(project_root_with_config, monkeypatch):
     monkeypatch.setenv("DISCOVERY_ENABLED", "true")
     root = project_root_with_config
 
@@ -95,7 +93,9 @@ def test_promoted_candidates_merge_into_sources(
     assert config.discovery_enabled
     urls = [s.url for s in config.sources]
     assert "https://discovered.test/feed" in urls
-    promoted = next(s for s in config.sources if s.url == "https://discovered.test/feed")
+    promoted = next(
+        s for s in config.sources if s.url == "https://discovered.test/feed"
+    )
     assert promoted.name == "Discovered Outlet"
     assert "discovered" in promoted.tags
 

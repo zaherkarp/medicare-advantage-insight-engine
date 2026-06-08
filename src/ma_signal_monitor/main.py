@@ -90,7 +90,9 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
     logger.info("Persisted %d stories to archive", persisted)
 
 
-def _harvest_candidates(scored, raw_items, config: AppConfig, store: StateStore) -> None:
+def _harvest_candidates(
+    scored, raw_items, config: AppConfig, store: StateStore
+) -> None:
     """Harvest outbound domains from scored stories into candidate_domains.
 
     Cheap (pure CPU + DB writes), so it runs every ingest when discovery is

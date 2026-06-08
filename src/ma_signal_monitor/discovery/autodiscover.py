@@ -58,9 +58,11 @@ class _FeedLinkExtractor(HTMLParser):
             return
         a = {k.lower(): (v or "") for k, v in attrs}
         href = a.get("href", "").strip()
-        if href and "alternate" in a.get("rel", "").lower() and a.get(
-            "type", ""
-        ).lower() in _FEED_TYPES:
+        if (
+            href
+            and "alternate" in a.get("rel", "").lower()
+            and a.get("type", "").lower() in _FEED_TYPES
+        ):
             self.feeds.append(href)
 
 

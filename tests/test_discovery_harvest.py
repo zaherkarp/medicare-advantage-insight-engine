@@ -22,8 +22,8 @@ def test_extract_links_resolves_and_filters():
     # Relative href is resolved against the story URL.
     assert "https://news.test/relative/path" in links
     # mailto + fragment-only links are dropped.
-    assert not any(l.startswith("mailto") for l in links)
-    assert not any("#frag" in l for l in links)
+    assert not any(link.startswith("mailto") for link in links)
+    assert not any("#frag" in link for link in links)
 
 
 def test_domain_of_normalizes():
@@ -57,7 +57,9 @@ def test_harvest_aggregates_with_relevance_weighting():
 def test_harvest_respects_min_score_and_exclusions():
     stories = [
         # Below threshold — ignored entirely.
-        StoryLinks("s0", "https://src.test/0", '<a href="https://low.test/p">p</a>', 0.1),
+        StoryLinks(
+            "s0", "https://src.test/0", '<a href="https://low.test/p">p</a>', 0.1
+        ),
         StoryLinks(
             "s1",
             "https://src.test/1",
@@ -89,7 +91,9 @@ def test_harvest_counts_domain_once_per_story():
 
 def test_configured_source_domains():
     sources = [
-        SourceConfig(name="A", type="rss", url="https://a.test/feed", homepage="https://a.test/"),
+        SourceConfig(
+            name="A", type="rss", url="https://a.test/feed", homepage="https://a.test/"
+        ),
         SourceConfig(name="B", type="rss", url="https://www.b.test/rss"),
     ]
     domains = configured_source_domains(sources)

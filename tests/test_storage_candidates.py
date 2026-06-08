@@ -68,7 +68,9 @@ def test_candidate_source_dedupe_and_status_rules(temp_db):
 
 
 def test_get_promoted_sources(temp_db):
-    temp_db.upsert_candidate_source(feed_url="https://a.test/f", domain="a.test", status="new")
+    temp_db.upsert_candidate_source(
+        feed_url="https://a.test/f", domain="a.test", status="new"
+    )
     temp_db.upsert_candidate_source(
         feed_url="https://b.test/f", domain="b.test", status="promoted"
     )

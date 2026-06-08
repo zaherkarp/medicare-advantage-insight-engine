@@ -175,9 +175,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),
-        discovery_min_story_score=float(
-            os.getenv("DISCOVERY_MIN_STORY_SCORE", "0.3")
-        ),
+        discovery_min_story_score=float(os.getenv("DISCOVERY_MIN_STORY_SCORE", "0.3")),
         discovery_max_domains_per_run=int(
             os.getenv("DISCOVERY_MAX_DOMAINS_PER_RUN", "20")
         ),

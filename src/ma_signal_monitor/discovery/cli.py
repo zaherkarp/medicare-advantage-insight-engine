@@ -86,7 +86,9 @@ def candidates_main() -> None:
             if store.get_candidate_source(cid) is None:
                 print(f"No candidate with id {cid}.")
                 sys.exit(1)
-            store.set_candidate_status(cid, "promoted" if cmd == "promote" else "rejected")
+            store.set_candidate_status(
+                cid, "promoted" if cmd == "promote" else "rejected"
+            )
             print(f"Candidate {cid} marked {cmd}d.")
             if cmd == "promote":
                 print("It will be fetched on the next run (DISCOVERY_ENABLED=true).")
