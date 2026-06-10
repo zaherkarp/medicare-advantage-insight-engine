@@ -34,6 +34,7 @@ _CATEGORY_ORDER = [
     "membership_movement",
     "financial_pressure",
     "competitive_strategy",
+    "brokerage_distribution",
     "demographic_shifts",
     "uncategorized",
 ]

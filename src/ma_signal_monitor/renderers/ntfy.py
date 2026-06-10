@@ -33,6 +33,8 @@ _CATEGORY_TAG = {
     "competitive / operational strategy": "handshake",
     "demographic_shifts": "bar_chart",
     "demographic shifts": "bar_chart",
+    "brokerage_distribution": "briefcase",
+    "brokerage / distribution": "briefcase",
 }
 
 _CONFIDENCE_LABEL = {
