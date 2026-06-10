@@ -48,6 +48,8 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = f"story/{path[len('/story/') :]}.html"
     elif path == "/sources":
         tail = "sources.html"
+    elif path == "/candidates":
+        tail = "candidates.html"
     elif path == "/briefing":
         tail = "briefing.html"
     elif path.startswith("/briefing/"):
@@ -103,6 +105,7 @@ _SEARCH_HTML = """<!DOCTYPE html>
     <a href="{base}/index.html">Feed</a>
     <a href="{base}/briefing.html">Daily Briefing</a>
     <a href="{base}/sources.html">Sources</a>
+    <a href="{base}/candidates.html">Candidates</a>
     <a href="{base}/states.html">State Intelligence</a>
     <a href="{base}/status.html">Status</a>
   </nav>
@@ -196,6 +199,7 @@ def build_site(
 
     grab("/", "index.html")
     grab("/sources", "sources.html")
+    grab("/candidates", "candidates.html")
     grab("/states", "states.html")
     grab("/status", "status.html")
     grab("/briefing", "briefing.html")

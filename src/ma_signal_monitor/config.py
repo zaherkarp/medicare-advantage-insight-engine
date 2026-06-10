@@ -86,6 +86,17 @@ class AppConfig:
     seen_item_retention_days: int = 90
     delivery_log_retention_days: int = 30
     story_retention_days: int = 365
+    candidate_retention_days: int = 180  # prune dormant discovery candidates
+
+    # Source discovery settings (opt-in; see docs/discovery.md)
+    discovery_enabled: bool = False
+    discovery_min_story_score: float = 0.3  # only harvest links from stories >= this
+    discovery_max_domains_per_run: int = 20  # top-N domains autodiscovered per job
+    discovery_interval_hours: int = 24  # cadence of the autodiscovery job
+    discovery_recheck_days: int = 14  # don't re-probe a domain more often than this
+    discovery_min_times_seen: int = 2  # ignore one-off domains
+    discovery_autopromote_score: float = 3.0  # auto-promote at/above this score and…
+    discovery_autopromote_min_seen: int = 4  # …this many sightings (hybrid policy)
 
     # Web / scheduling settings
     ingest_interval_hours: int = 6  # used by the in-process scheduler & cadence label
@@ -161,6 +172,22 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         digest_from=os.getenv("DIGEST_FROM", ""),
         digest_to=os.getenv("DIGEST_TO", ""),
         public_base_url=os.getenv("PUBLIC_BASE_URL", "").rstrip("/"),
+        candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
+        discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
+        in ("1", "true", "yes"),
+        discovery_min_story_score=float(os.getenv("DISCOVERY_MIN_STORY_SCORE", "0.3")),
+        discovery_max_domains_per_run=int(
+            os.getenv("DISCOVERY_MAX_DOMAINS_PER_RUN", "20")
+        ),
+        discovery_interval_hours=int(os.getenv("DISCOVERY_INTERVAL_HOURS", "24")),
+        discovery_recheck_days=int(os.getenv("DISCOVERY_RECHECK_DAYS", "14")),
+        discovery_min_times_seen=int(os.getenv("DISCOVERY_MIN_TIMES_SEEN", "2")),
+        discovery_autopromote_score=float(
+            os.getenv("DISCOVERY_AUTOPROMOTE_SCORE", "3.0")
+        ),
+        discovery_autopromote_min_seen=int(
+            os.getenv("DISCOVERY_AUTOPROMOTE_MIN_SEEN", "4")
+        ),
     )
 
     config_dir = root / config.config_dir
@@ -184,8 +211,60 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
     if app_yaml_path.exists():
         _load_app_yaml(app_yaml_path, config)
 
+    # Merge any promoted/auto-promoted discovery feeds from the archive DB.
+    if config.discovery_enabled:
+        _merge_promoted_sources(config, root)
+
     _validate_config(config)
     return config
+
+
+def _merge_promoted_sources(config: AppConfig, root: Path) -> None:
+    """Append promoted discovery feeds (DB overlay) to the YAML source list.
+
+    Reads ``candidate_sources`` directly so config loading stays independent of
+    the storage layer. Guarded so a missing/locked DB degrades to YAML-only and
+    never breaks config loading.
+    """
+    import logging
+    import sqlite3
+
+    db_file = root / config.db_path
+    if not db_file.exists():
+        return
+    try:
+        conn = sqlite3.connect(str(db_file))
+        conn.row_factory = sqlite3.Row
+        try:
+            rows = conn.execute(
+                "SELECT feed_url, domain, feed_title FROM candidate_sources "
+                "WHERE status IN ('promoted', 'auto_promoted')"
+            ).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error as e:
+        logging.getLogger("ma_signal_monitor.config").warning(
+            "Could not merge promoted discovery sources: %s", e
+        )
+        return
+
+    existing = {s.url for s in config.sources}
+    for r in rows:
+        if r["feed_url"] in existing:
+            continue
+        config.sources.append(
+            SourceConfig(
+                name=r["feed_title"] or r["domain"],
+                type="rss",
+                url=r["feed_url"],
+                priority=2,
+                enabled=True,
+                tags=["discovered"],
+                homepage=f"https://{r['domain']}/",
+                description="Auto-discovered source promoted from candidates.",
+            )
+        )
+        existing.add(r["feed_url"])
 
 
 def _load_sources(path: Path) -> list[SourceConfig]:

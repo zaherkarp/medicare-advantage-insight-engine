@@ -172,6 +172,25 @@ vars (see `.env.example`). The web container's scheduler then sends it at
 blocked by SMTP being unset. Set `PUBLIC_BASE_URL` so email links resolve back
 to your site.
 
+### Source Discovery (opt-in)
+
+The monitor can **grow its own source list over time**. With
+`DISCOVERY_ENABLED=true`, each run harvests the outbound links from ingested
+stories, ranks the domains behind them by relevance-weighted frequency,
+autodiscovers RSS/Atom feeds on the promising ones, and surfaces them as
+reviewable candidates. Strong candidates are promoted automatically (hybrid
+policy); the rest queue for review at `/candidates` and in the Daily Briefing.
+
+```bash
+ma-signal-discover                 # run autodiscovery now
+ma-signal-candidates               # list ranked candidate feeds
+ma-signal-candidates promote <id>  # make a candidate a live source
+```
+
+Promoted feeds are merged in via a DB overlay (your curated `sources.yaml` is
+never rewritten). Everything stays local — no paid APIs or external crawlers.
+See [`docs/discovery.md`](docs/discovery.md) for the full design and all knobs.
+
 ## Configuration
 
 ### `.env` — Environment settings

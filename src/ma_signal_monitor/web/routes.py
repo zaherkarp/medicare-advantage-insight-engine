@@ -41,6 +41,21 @@ def _story_view(row: sqlite3.Row) -> dict:
     }
 
 
+def _candidate_view(row: sqlite3.Row) -> dict:
+    """Turn a candidate_sources row into a template-friendly dict."""
+    return {
+        "id": row["id"],
+        "feed_url": row["feed_url"],
+        "domain": row["domain"],
+        "feed_title": row["feed_title"] or row["domain"],
+        "discovery_method": row["discovery_method"] or "",
+        "times_seen": row["times_seen"],
+        "relevance_score": row["relevance_score"] or 0.0,
+        "status": row["status"],
+        "last_seen": (row["last_seen_at"] or "")[:10],
+    }
+
+
 def _page_param(request: Request) -> int:
     """Parse a 1-based ?page= param, clamped to >= 1."""
     try:
@@ -178,6 +193,35 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "default_cadence": default_cadence,
                 "source_count": len(config.sources),
                 "enabled_count": sum(1 for s in config.sources if s.enabled),
+            },
+        )
+
+    @app.get("/candidates", response_class=HTMLResponse)
+    def candidates(request: Request) -> HTMLResponse:
+        store = request.app.state.store
+        config = request.app.state.config
+        page_size = config.web_page_size
+        page = _page_param(request)
+        status = request.query_params.get("status") or None
+
+        total = store.count_candidate_sources(status=status)
+        total_pages = max(1, math.ceil(total / page_size)) if total else 1
+        page = min(page, total_pages)
+        rows = store.list_candidate_sources(
+            status=status, limit=page_size, offset=(page - 1) * page_size
+        )
+        base_path = f"/candidates?status={status}&" if status else "/candidates?"
+        return templates.TemplateResponse(
+            request,
+            "candidates.html",
+            {
+                "candidates": [_candidate_view(r) for r in rows],
+                "status": status,
+                "total": total,
+                "page": page,
+                "total_pages": total_pages,
+                "base_path": base_path,
+                "discovery_enabled": config.discovery_enabled,
             },
         )
 

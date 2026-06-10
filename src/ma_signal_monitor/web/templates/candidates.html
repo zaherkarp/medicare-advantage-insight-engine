@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Candidate Sources — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>Candidate Sources</h1>
+    <p class="subtitle">Feeds discovered from the links in stories we already
+      track, ranked by relevance-weighted frequency.</p>
+    <p class="muted">
+      {{ total }} candidate{{ '' if total == 1 else 's' }}
+      {% if status %}· filtered to <strong>{{ status }}</strong>{% endif %}
+      {% if not discovery_enabled %}· <em>discovery is currently disabled
+        (set <code>DISCOVERY_ENABLED=true</code>)</em>{% endif %}
+    </p>
+    <p class="muted">
+      Filter:
+      <a href="/candidates">all</a> ·
+      <a href="/candidates?status=new">new</a> ·
+      <a href="/candidates?status=auto_promoted">auto-promoted</a> ·
+      <a href="/candidates?status=promoted">promoted</a> ·
+      <a href="/candidates?status=rejected">rejected</a>
+    </p>
+  </section>
+
+  {% if not candidates %}
+    <p class="empty">No candidate sources yet. They accumulate as the engine
+      harvests links from ingested stories — review and promote them with
+      <code>ma-signal-candidates</code>.</p>
+  {% endif %}
+
+  {% if candidates %}
+    <table class="source-table">
+      <thead>
+        <tr>
+          <th>Feed</th><th>Score</th><th>Seen</th><th>Found via</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in candidates %}
+          <tr>
+            <td>
+              <a class="source-name" href="{{ c.feed_url }}" target="_blank" rel="noopener">{{ c.feed_title }}</a>
+              <div class="source-desc">{{ c.domain }} · last seen {{ c.last_seen }}</div>
+            </td>
+            <td>{{ '%.2f'|format(c.relevance_score) }}</td>
+            <td>{{ c.times_seen }}</td>
+            <td>{{ c.discovery_method }}</td>
+            <td>
+              {% if c.status in ('promoted', 'auto_promoted') %}
+                <span class="badge badge-on">{{ c.status }}</span>
+              {% elif c.status == 'rejected' %}
+                <span class="badge badge-off">rejected</span>
+              {% else %}
+                <span class="badge badge-tag">new</span> <span class="muted">#{{ c.id }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted">Promote or reject a candidate by id:
+      <code>ma-signal-candidates promote &lt;id&gt;</code> /
+      <code>ma-signal-candidates reject &lt;id&gt;</code></p>
+  {% endif %}
+
+  {% if total_pages > 1 %}
+    <nav class="pagination">
+      {% if page > 1 %}
+        <a href="{{ base_path }}page={{ page - 1 }}">← Prev</a>
+      {% else %}<span class="disabled">← Prev</span>{% endif %}
+      <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_path }}page={{ page + 1 }}">Next →</a>
+      {% else %}<span class="disabled">Next →</span>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

@@ -35,6 +35,21 @@
         {% endfor %}
       {% endfor %}
 
+      {% if digest.candidates %}
+        <h2 style="font-size:15px;color:#0b5cad;border-bottom:2px solid #e7f0fa;padding-bottom:6px;margin:22px 0 10px;">New candidate sources</h2>
+        <p style="font-size:12px;color:#687385;margin:0 0 10px;">
+          Feeds discovered from the links in tracked stories.
+          {% if base_url %}<a href="{{ base_url }}/candidates" style="color:#0b5cad;">Review all →</a>{% endif %}
+        </p>
+        {% for c in digest.candidates %}
+          <div style="margin:0 0 10px;">
+            <a href="{{ c.feed_url }}" style="font-size:14px;font-weight:600;color:#1a2230;text-decoration:none;">{{ c.feed_title }}</a>
+            {% if c.auto_promoted %}<span style="font-size:11px;color:#1b8a52;"> · auto-promoted</span>{% endif %}
+            <div style="font-size:12px;color:#687385;">{{ c.domain }} · score {{ '%.2f'|format(c.relevance_score) }} · seen {{ c.times_seen }}×</div>
+          </div>
+        {% endfor %}
+      {% endif %}
+
       <hr style="border:none;border-top:1px solid #e2e6ec;margin:24px 0 12px;">
       <p style="font-size:11px;color:#9aa3b0;line-height:1.5;">
         Curated for analytic relevance — not legal, compliance, or investment advice.

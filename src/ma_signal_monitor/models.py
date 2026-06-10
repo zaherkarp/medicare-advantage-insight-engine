@@ -22,6 +22,10 @@ class RawFeedItem:
     summary: str
     author: str = ""
     raw_content: str = ""
+    # Un-stripped HTML of the entry (summary + content). Carries the embedded
+    # <a href> links that source discovery harvests. Intentionally transient:
+    # it is not copied onto NormalizedItem and is never persisted to the DB.
+    content_html: str = ""
 
 
 @dataclass

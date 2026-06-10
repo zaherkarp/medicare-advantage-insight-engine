@@ -57,6 +57,18 @@ class DigestStory:
 
 
 @dataclass
+class CandidateSummary:
+    """A discovered candidate source surfaced in the digest."""
+
+    feed_title: str
+    feed_url: str
+    domain: str
+    relevance_score: float
+    times_seen: int
+    auto_promoted: bool
+
+
+@dataclass
 class Digest:
     """A rendered Daily Briefing for one UTC day."""
 
@@ -66,6 +78,27 @@ class Digest:
     lookback_hours: int
     sections: list[tuple[str, list[DigestStory]]]  # (category_label, stories)
     story_count: int
+    candidates: list[CandidateSummary] = field(default_factory=list)
+
+
+def _build_candidates(store: StateStore, limit: int = 6) -> list[CandidateSummary]:
+    """Top newly-discovered / auto-promoted candidate sources for the digest."""
+    rows = store.list_candidate_sources(status="new", limit=limit)
+    rows = list(rows) + list(
+        store.list_candidate_sources(status="auto_promoted", limit=limit)
+    )
+    rows.sort(key=lambda r: r["relevance_score"] or 0.0, reverse=True)
+    return [
+        CandidateSummary(
+            feed_title=r["feed_title"] or r["domain"],
+            feed_url=r["feed_url"],
+            domain=r["domain"],
+            relevance_score=r["relevance_score"] or 0.0,
+            times_seen=r["times_seen"],
+            auto_promoted=(r["status"] == "auto_promoted"),
+        )
+        for r in rows[:limit]
+    ]
 
 
 def _row_to_story(row, config: AppConfig) -> DigestStory:
@@ -114,6 +147,7 @@ def build_digest(
         f"{config.digest_subject_prefix} — {now.strftime('%b %-d, %Y')} "
         f"({len(stories)} signal{'' if len(stories) == 1 else 's'})"
     )
+    candidates = _build_candidates(store) if config.discovery_enabled else []
     return Digest(
         digest_date=digest_date,
         generated_at=now,
@@ -121,6 +155,7 @@ def build_digest(
         lookback_hours=config.digest_lookback_hours,
         sections=sections,
         story_count=len(stories),
+        candidates=candidates,
     )
 
 
@@ -163,6 +198,13 @@ def render_text(digest: Digest) -> str:
             if s.summary:
                 lines.append(f"  {s.summary}")
             lines.append(f"  {s.link}")
+        lines.append("")
+    if digest.candidates:
+        lines.append("## New candidate sources")
+        for c in digest.candidates:
+            flag = " (auto-promoted)" if c.auto_promoted else ""
+            lines.append(f"- {c.feed_title}{flag} — score {c.relevance_score:.2f}")
+            lines.append(f"  {c.feed_url}")
         lines.append("")
     lines.append(
         "Curated for analytic relevance — not legal, compliance, or investment advice."
