@@ -45,6 +45,11 @@ _SUGGESTED_CHECKS: dict[str, list[str]] = {
         "Check network adequacy data for affected areas",
         "Assess strategic implications for positioning",
     ],
+    "brokerage_distribution": [
+        "Review AEP enrollment volume and lead economics for the named brokerage",
+        "Check SEC filings for the brokerage's financial position",
+        "Assess distribution-channel shift vs. captive/agent mix",
+    ],
 }
 
 _HASHTAG_MAP: dict[str, list[str]] = {
@@ -57,6 +62,7 @@ _HASHTAG_MAP: dict[str, list[str]] = {
         "#HealthcareStrategy",
         "#ValueBasedCare",
     ],
+    "brokerage_distribution": ["#MedicareAdvantage", "#Brokerage", "#Distribution"],
 }
 
 
@@ -136,6 +142,11 @@ def _generate_analytic_angles(scored: ScoredItem, category_key: str) -> list[str
         angles.append(
             "Demographic trends in the MA-eligible population continue "
             "to reshape growth opportunities and risk profiles"
+        )
+    if "brokerage_distribution" in scored.matched_categories:
+        angles.append(
+            "Shifts in MA distribution economics — broker roll-ups, lead costs, "
+            "and AEP marketing — can reshape which plans win enrollment"
         )
 
     # Ensure at least 2 angles

@@ -71,6 +71,17 @@ categories:
       - "regulatory"
       - "rulemaking"
       - "MLR requirement"
+      - "healthcare reform"
+      - "health reform"
+      - "single risk pool"
+      - "health insurance exchange"
+      - "insurance exchange"
+      - "marketplace"
+      - "public option"
+      - "universal coverage"
+      - "ACA"
+      - "Affordable Care Act"
+      - "individual market"
 
   financial_pressure:
     label: "Financial / Operating Pressure"
@@ -94,6 +105,11 @@ categories:
       - "guidance"
       - "supplemental benefit"
       - "PMPM"
+      - "bankruptcy"
+      - "Chapter 11"
+      - "restructuring"
+      - "going concern"
+      - "net loss"
 
   competitive_strategy:
     label: "Competitive / Operational Strategy"
@@ -118,6 +134,27 @@ categories:
       - "pharmacy"
       - "PBM"
       - "vertical integration"
+
+  brokerage_distribution:
+    label: "Brokerage / Distribution"
+    description: "MA broker/agent distribution, FMOs, lead-gen, e-brokers, roll-ups, AEP marketing, brokerage restructuring"
+    weight: 0.9
+    keywords:
+      - "broker"
+      - "brokerage"
+      - "insurance agent"
+      - "FMO"
+      - "field marketing organization"
+      - "lead generation"
+      - "distribution"
+      - "e-broker"
+      - "call center"
+      - "captive agent"
+      - "roll-up"
+      - "commission"
+      - "Annual Enrollment Period"
+      - "AEP"
+      - "marketing organization"
 
 # Named entities (payers) to watch for - boosts relevance when detected
 watched_entities:
@@ -144,6 +181,15 @@ watched_entities:
   - "BCBS"
   - "CareSource"
   - "Bright Health"
+  - "GoHealth"
+  - "eHealth"
+  - "eHealthInsurance"
+  - "SelectQuote"
+  - "Gyde"
+  - "Ezekiel Emanuel"
+  - "Zeke Emanuel"
+  - "Mark Bertolini"
+  - "Bailey & Co"
 
 # Scoring configuration
 scoring:

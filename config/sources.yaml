@@ -137,3 +137,34 @@ sources:
     state: "national"
     homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000064803"
     description: "CVS Health (Aetna) 8-K material-event filings."
+
+  # --- SEC / Financial (MA brokerages / distribution) ---
+  - name: "SEC EDGAR - GoHealth"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001808220&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec", "brokerage"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001808220"
+    description: "GoHealth (GOCO) 8-K material-event filings — MA broker/distribution."
+
+  - name: "SEC EDGAR - eHealth"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001333493&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec", "brokerage"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001333493"
+    description: "eHealth (EHTH) 8-K material-event filings — MA broker/distribution."
+
+  - name: "SEC EDGAR - SelectQuote"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001794783&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec", "brokerage"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001794783"
+    description: "SelectQuote (SLQT) 8-K material-event filings — MA broker/distribution."
