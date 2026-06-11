@@ -84,7 +84,6 @@ sources:
     homepage: "https://ccf.georgetown.edu/"
     description: "Georgetown Center for Children and Families — Medicaid/CHIP research."
 
-  # --- State Intelligence ---
   - name: "STAT News"
     type: rss
     url: "https://www.statnews.com/feed/"
@@ -94,6 +93,63 @@ sources:
     state: "national"
     homepage: "https://www.statnews.com/"
     description: "Health, medicine, biotech, and health-policy news and analysis."
+
+  # --- State Intelligence ---
+  # One source per state (+ DC). Feed URLs verified working at time of addition.
+  - name: "Alabama Reflector"
+    type: rss
+    url: "https://alabamareflector.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "AL"
+    geography: "Alabama"
+    homepage: "https://alabamareflector.com/"
+    description: "Nonprofit States Newsroom affiliate covering Alabama state government and health policy."
+
+  - name: "Alaska Beacon"
+    type: rss
+    url: "https://alaskabeacon.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "AK"
+    geography: "Alaska"
+    homepage: "https://alaskabeacon.com/"
+    description: "States Newsroom nonprofit covering Alaska state government and health policy."
+
+  - name: "Arizona Mirror - Health"
+    type: rss
+    url: "https://azmirror.com/category/health/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "AZ"
+    geography: "Arizona"
+    homepage: "https://azmirror.com/"
+    description: "States Newsroom nonprofit; health-section feed covering Arizona health policy and insurance."
+
+  - name: "Arkansas Advocate"
+    type: rss
+    url: "https://arkansasadvocate.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "AR"
+    geography: "Arkansas"
+    homepage: "https://arkansasadvocate.com/"
+    description: "Nonprofit States Newsroom affiliate covering Arkansas government and health policy."
+
+  - name: "California Health Care Foundation"
+    type: rss
+    url: "https://www.chcf.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "CA"
+    geography: "California"
+    homepage: "https://www.chcf.org/"
+    description: "California nonprofit health policy foundation covering Medi-Cal, insurance reform, and health system issues."
 
   - name: "Colorado Newsline"
     type: rss
@@ -105,6 +161,501 @@ sources:
     geography: "Colorado"
     homepage: "https://coloradonewsline.com/"
     description: "Colorado policy newsroom (incl. health and human services)."
+
+  - name: "CT Mirror - Health"
+    type: rss
+    url: "https://ctmirror.org/tag/health/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "CT"
+    geography: "Connecticut"
+    homepage: "https://ctmirror.org/"
+    description: "Connecticut's nonprofit newsroom; health feed covering state insurance, Medicaid, and health policy."
+
+  - name: "Spotlight Delaware"
+    type: rss
+    url: "https://spotlightdelaware.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "DE"
+    geography: "Delaware"
+    homepage: "https://spotlightdelaware.org/"
+    description: "Nonprofit newsroom covering Delaware state policy, health care, and government accountability."
+
+  - name: "The 51st"
+    type: rss
+    url: "https://51st.news/rss/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "DC"
+    geography: "District of Columbia"
+    homepage: "https://51st.news/"
+    description: "Nonprofit local newsroom (DCist successor) covering DC city policy and health equity."
+
+  - name: "Florida Phoenix"
+    type: rss
+    url: "https://floridaphoenix.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "FL"
+    geography: "Florida"
+    homepage: "https://floridaphoenix.com/"
+    description: "Nonprofit States Newsroom affiliate covering Florida state politics and health policy."
+
+  - name: "Georgia Recorder"
+    type: rss
+    url: "https://georgiarecorder.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "GA"
+    geography: "Georgia"
+    homepage: "https://georgiarecorder.com/"
+    description: "Nonprofit States Newsroom affiliate covering Georgia state policy and health legislation."
+
+  - name: "Honolulu Civil Beat"
+    type: rss
+    url: "https://civilbeat.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "HI"
+    geography: "Hawaii"
+    homepage: "https://civilbeat.org/"
+    description: "Nonprofit investigative newsroom covering Hawaii politics and health policy."
+
+  - name: "Idaho Capital Sun"
+    type: rss
+    url: "https://idahocapitalsun.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "ID"
+    geography: "Idaho"
+    homepage: "https://idahocapitalsun.com/"
+    description: "States Newsroom nonprofit with a dedicated health care reporter covering Idaho policy and Medicaid."
+
+  - name: "Capitol News Illinois - Health"
+    type: rss
+    url: "https://capitolnewsillinois.com/news/category/health/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "IL"
+    geography: "Illinois"
+    homepage: "https://capitolnewsillinois.com/"
+    description: "Nonprofit Illinois statehouse newsroom; health feed covering Medicaid and insurance legislation."
+
+  - name: "Indiana Capital Chronicle"
+    type: rss
+    url: "https://indianacapitalchronicle.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "IN"
+    geography: "Indiana"
+    homepage: "https://indianacapitalchronicle.com/"
+    description: "States Newsroom nonprofit covering Indiana state government, health policy, and Medicaid."
+
+  - name: "Iowa Capital Dispatch - Health Care"
+    type: rss
+    url: "https://iowacapitaldispatch.com/category/health-care/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "IA"
+    geography: "Iowa"
+    homepage: "https://iowacapitaldispatch.com/"
+    description: "States Newsroom nonprofit; health-care feed covering Iowa Medicaid and insurance legislation."
+
+  - name: "Kansas Health Institute"
+    type: rss
+    url: "https://www.khi.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "KS"
+    geography: "Kansas"
+    homepage: "https://www.khi.org/"
+    description: "Nonpartisan nonprofit covering Kansas health policy, Medicaid, Medicare, and insurance."
+
+  - name: "Kentucky Lantern - Health"
+    type: rss
+    url: "https://kentuckylantern.com/category/health/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "KY"
+    geography: "Kentucky"
+    homepage: "https://kentuckylantern.com/"
+    description: "States Newsroom nonprofit; health feed covering Kentucky Medicaid, insurance, and legislation."
+
+  - name: "Louisiana Illuminator"
+    type: rss
+    url: "https://lailluminator.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "LA"
+    geography: "Louisiana"
+    homepage: "https://lailluminator.com/"
+    description: "Nonprofit States Newsroom affiliate covering Louisiana state politics and health policy."
+
+  - name: "Maine Morning Star"
+    type: rss
+    url: "https://mainemorningstar.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "ME"
+    geography: "Maine"
+    homepage: "https://mainemorningstar.com/"
+    description: "States Newsroom nonprofit covering Maine state politics, health care, and Medicaid."
+
+  - name: "Maryland Matters"
+    type: rss
+    url: "https://marylandmatters.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MD"
+    geography: "Maryland"
+    homepage: "https://marylandmatters.org/"
+    description: "Nonprofit States Newsroom affiliate covering Maryland government and health policy."
+
+  - name: "CommonWealth Beacon - Health"
+    type: rss
+    url: "https://commonwealthbeacon.org/category/health/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MA"
+    geography: "Massachusetts"
+    homepage: "https://commonwealthbeacon.org/"
+    description: "Nonprofit Massachusetts newsroom; health feed covering state health policy and insurance."
+
+  - name: "Michigan Advance"
+    type: rss
+    url: "https://michiganadvance.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MI"
+    geography: "Michigan"
+    homepage: "https://michiganadvance.com/"
+    description: "States Newsroom nonprofit covering Michigan politics, health policy, and Medicaid."
+
+  - name: "Minnesota Reformer"
+    type: rss
+    url: "https://minnesotareformer.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MN"
+    geography: "Minnesota"
+    homepage: "https://minnesotareformer.com/"
+    description: "Nonprofit States Newsroom affiliate with dedicated health care reporting for Minnesota."
+
+  - name: "Mississippi Today"
+    type: rss
+    url: "https://mississippitoday.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MS"
+    geography: "Mississippi"
+    homepage: "https://mississippitoday.org/"
+    description: "Nonprofit newsroom with a dedicated health team covering Mississippi Medicaid and rural health."
+
+  - name: "Missouri Independent"
+    type: rss
+    url: "https://missouriindependent.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MO"
+    geography: "Missouri"
+    homepage: "https://missouriindependent.com/"
+    description: "Nonprofit States Newsroom affiliate covering Missouri government and health policy."
+
+  - name: "Montana Free Press"
+    type: rss
+    url: "https://montanafreepress.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "MT"
+    geography: "Montana"
+    homepage: "https://montanafreepress.org/"
+    description: "Independent nonprofit covering Montana health policy, Medicaid, and insurance markets as a dedicated beat."
+
+  - name: "Nebraska Examiner"
+    type: rss
+    url: "https://nebraskaexaminer.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NE"
+    geography: "Nebraska"
+    homepage: "https://nebraskaexaminer.com/"
+    description: "Nonprofit States Newsroom affiliate covering Nebraska state government, health policy, and Medicaid."
+
+  - name: "Nevada Current"
+    type: rss
+    url: "https://nevadacurrent.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NV"
+    geography: "Nevada"
+    homepage: "https://nevadacurrent.com/"
+    description: "States Newsroom nonprofit covering Nevada health care, Medicaid, and insurance policy."
+
+  - name: "New Hampshire Bulletin"
+    type: rss
+    url: "https://newhampshirebulletin.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NH"
+    geography: "New Hampshire"
+    homepage: "https://newhampshirebulletin.com/"
+    description: "Nonprofit States Newsroom affiliate covering New Hampshire state government and health policy."
+
+  - name: "New Jersey Monitor"
+    type: rss
+    url: "https://newjerseymonitor.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NJ"
+    geography: "New Jersey"
+    homepage: "https://newjerseymonitor.com/"
+    description: "Nonprofit States Newsroom affiliate covering New Jersey government, Medicaid, and health insurance."
+
+  - name: "Source New Mexico"
+    type: rss
+    url: "https://sourcenm.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NM"
+    geography: "New Mexico"
+    homepage: "https://sourcenm.com/"
+    description: "States Newsroom nonprofit covering New Mexico government and health policy."
+
+  - name: "New York Focus"
+    type: rss
+    url: "https://nysfocus.com/feed"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NY"
+    geography: "New York"
+    homepage: "https://nysfocus.com/"
+    description: "Nonprofit investigative newsroom covering New York State policy, Medicaid, and Medicare Advantage."
+
+  - name: "North Carolina Health News"
+    type: rss
+    url: "https://www.northcarolinahealthnews.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "NC"
+    geography: "North Carolina"
+    homepage: "https://www.northcarolinahealthnews.org/"
+    description: "Independent nonprofit newsroom dedicated exclusively to North Carolina health care policy and Medicaid."
+
+  - name: "North Dakota Monitor"
+    type: rss
+    url: "https://northdakotamonitor.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "ND"
+    geography: "North Dakota"
+    homepage: "https://northdakotamonitor.com/"
+    description: "Nonprofit States Newsroom affiliate covering North Dakota state government, Medicaid, and insurance."
+
+  - name: "Ohio Capital Journal"
+    type: rss
+    url: "https://ohiocapitaljournal.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "OH"
+    geography: "Ohio"
+    homepage: "https://ohiocapitaljournal.com/"
+    description: "States Newsroom nonprofit covering Ohio state government, health policy, Medicaid, and Medicare."
+
+  - name: "Oklahoma Voice"
+    type: rss
+    url: "https://oklahomavoice.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "OK"
+    geography: "Oklahoma"
+    homepage: "https://oklahomavoice.com/"
+    description: "States Newsroom nonprofit covering Oklahoma state government, health policy, and SoonerCare/Medicaid."
+
+  - name: "The Lund Report"
+    type: rss
+    url: "https://www.thelundreport.org/rss.xml"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "OR"
+    geography: "Oregon"
+    homepage: "https://www.thelundreport.org/"
+    description: "Nonprofit outlet dedicated to Oregon health care policy, insurance, and Medicaid news."
+
+  - name: "Spotlight PA - Health"
+    type: rss
+    url: "https://www.spotlightpa.org/topics/health/index.xml"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "PA"
+    geography: "Pennsylvania"
+    homepage: "https://www.spotlightpa.org/"
+    description: "Independent nonprofit newsroom; health feed covering Pennsylvania public health and health policy."
+
+  - name: "Rhode Island Current"
+    type: rss
+    url: "https://rhodeislandcurrent.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "RI"
+    geography: "Rhode Island"
+    homepage: "https://rhodeislandcurrent.com/"
+    description: "States Newsroom nonprofit covering Rhode Island health insurance, Medicaid, and health care costs."
+
+  - name: "SC Daily Gazette"
+    type: rss
+    url: "https://scdailygazette.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "SC"
+    geography: "South Carolina"
+    homepage: "https://scdailygazette.com/"
+    description: "Nonprofit States Newsroom affiliate covering South Carolina state government and health policy."
+
+  - name: "South Dakota Searchlight"
+    type: rss
+    url: "https://southdakotasearchlight.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "SD"
+    geography: "South Dakota"
+    homepage: "https://southdakotasearchlight.com/"
+    description: "States Newsroom nonprofit covering South Dakota state government, health policy, and social services."
+
+  - name: "Tennessee Lookout"
+    type: rss
+    url: "https://tennesseelookout.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "TN"
+    geography: "Tennessee"
+    homepage: "https://tennesseelookout.com/"
+    description: "Nonprofit watchdog newsroom covering Tennessee health care, hospital closures, and TennCare/Medicaid."
+
+  - name: "Texas Tribune - Health Care"
+    type: rss
+    url: "https://www.texastribune.org/topics/health-care/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "TX"
+    geography: "Texas"
+    homepage: "https://www.texastribune.org/"
+    description: "Nonprofit Texas newsroom; health-care feed covering public health, hospitals, and insurance."
+
+  - name: "Utah News Dispatch"
+    type: rss
+    url: "https://utahnewsdispatch.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "UT"
+    geography: "Utah"
+    homepage: "https://utahnewsdispatch.com/"
+    description: "States Newsroom nonprofit covering Utah government and health policy."
+
+  - name: "VTDigger"
+    type: rss
+    url: "https://vtdigger.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "VT"
+    geography: "Vermont"
+    homepage: "https://vtdigger.org/"
+    description: "Vermont's nonprofit statewide newsroom with dedicated health care reporting."
+
+  - name: "Virginia Mercury"
+    type: rss
+    url: "https://virginiamercury.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "VA"
+    geography: "Virginia"
+    homepage: "https://virginiamercury.com/"
+    description: "Nonprofit Virginia newsroom covering state government, health policy, and Medicaid/Medicare."
+
+  - name: "Washington State Standard"
+    type: rss
+    url: "https://washingtonstatestandard.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "WA"
+    geography: "Washington"
+    homepage: "https://washingtonstatestandard.com/"
+    description: "Nonprofit States Newsroom affiliate covering Washington state policy, Medicaid, and insurance."
+
+  - name: "West Virginia Watch"
+    type: rss
+    url: "https://westvirginiawatch.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "WV"
+    geography: "West Virginia"
+    homepage: "https://westvirginiawatch.com/"
+    description: "States Newsroom nonprofit covering West Virginia politics, health policy, and Medicaid."
+
+  - name: "Wisconsin Examiner"
+    type: rss
+    url: "https://wisconsinexaminer.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "WI"
+    geography: "Wisconsin"
+    homepage: "https://wisconsinexaminer.com/"
+    description: "Nonprofit States Newsroom affiliate covering Wisconsin politics and health policy."
+
+  - name: "WyoFile"
+    type: rss
+    url: "https://wyofile.com/feed/"
+    priority: 2
+    enabled: true
+    tags: ["state", "policy"]
+    state: "WY"
+    geography: "Wyoming"
+    homepage: "https://wyofile.com/"
+    description: "Wyoming's nonprofit statewide newsroom covering politics and health policy."
 
   # --- SEC / Financial (EDGAR Atom feeds for watched MA payers) ---
   # SEC requests a descriptive User-Agent with contact info; set USER_AGENT.
