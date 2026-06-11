@@ -84,6 +84,88 @@ sources:
     homepage: "https://ccf.georgetown.edu/"
     description: "Georgetown Center for Children and Families — Medicaid/CHIP research."
 
+  # --- Congress / Legislation ---
+  - name: "Congress.gov - Bills Presented to the President"
+    type: rss
+    url: "https://www.congress.gov/rss/presented-to-president.xml"
+    priority: 4
+    enabled: true
+    tags: ["legislation", "congress"]
+    state: "national"
+    homepage: "https://www.congress.gov/"
+    description: "Bills passed by both chambers and sent to the White House — final-stage Medicare/health legislation."
+
+  - name: "House Energy and Commerce Committee"
+    type: rss
+    url: "https://energycommerce.house.gov/api/rss"
+    priority: 4
+    enabled: true
+    tags: ["legislation", "congress"]
+    state: "national"
+    homepage: "https://energycommerce.house.gov/"
+    description: "Press releases, hearings, and legislative activity from the House committee with primary Medicare jurisdiction."
+
+  - name: "House Ways and Means Committee"
+    type: rss
+    url: "https://waysandmeans.house.gov/feed/"
+    priority: 4
+    enabled: true
+    tags: ["legislation", "congress"]
+    state: "national"
+    homepage: "https://waysandmeans.house.gov/"
+    description: "News and legislative activity from the House committee over Medicare financing and MA payment policy."
+
+  - name: "Roll Call - Medicare"
+    type: rss
+    url: "https://rollcall.com/tag/medicare/feed/"
+    priority: 3
+    enabled: true
+    tags: ["policy", "legislation"]
+    state: "national"
+    homepage: "https://rollcall.com/"
+    description: "Capitol Hill coverage of Medicare bills, hearings, CMS oversight, and congressional health politics."
+
+  - name: "The Hill - Health Care"
+    type: rss
+    url: "https://thehill.com/policy/healthcare/feed/"
+    priority: 3
+    enabled: true
+    tags: ["policy", "legislation"]
+    state: "national"
+    homepage: "https://thehill.com/policy/healthcare/"
+    description: "Washington health policy news covering federal legislation, HHS/CMS actions, and Medicare politics."
+
+  # --- Federal Oversight / Fiscal ---
+  - name: "U.S. Government Accountability Office (GAO)"
+    type: rss
+    url: "https://www.gao.gov/rss/reports.xml"
+    priority: 3
+    enabled: true
+    tags: ["oversight", "federal"]
+    state: "national"
+    homepage: "https://www.gao.gov/"
+    description: "GAO reports incl. Medicare Advantage audits, improper-payment reviews, and health care oversight."
+
+  - name: "Congressional Budget Office (CBO)"
+    type: rss
+    url: "https://www.cbo.gov/publications/all/rss.xml"
+    priority: 3
+    enabled: true
+    tags: ["oversight", "federal"]
+    state: "national"
+    homepage: "https://www.cbo.gov/"
+    description: "CBO cost estimates and budget analyses covering Medicare, Medicaid, and health insurance legislation."
+
+  - name: "Medicare Payment Advisory Commission (MedPAC)"
+    type: rss
+    url: "https://www.medpac.gov/feed/"
+    priority: 3
+    enabled: true
+    tags: ["oversight", "federal"]
+    state: "national"
+    homepage: "https://www.medpac.gov/"
+    description: "MedPAC reports and meetings on Medicare payment policy, incl. MA benchmarks and overpayment analysis."
+
   - name: "STAT News"
     type: rss
     url: "https://www.statnews.com/feed/"
