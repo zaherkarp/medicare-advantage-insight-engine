@@ -32,6 +32,26 @@ sources:
     homepage: "https://www.federalregister.gov/agencies/centers-for-medicare-medicaid-services"
     description: "Proposed and final CMS rules as published in the Federal Register."
 
+  - name: "Federal Register - CMS Notices"
+    type: rss
+    url: "https://www.federalregister.gov/api/v1/documents.rss?conditions%5Bagencies%5D%5B%5D=centers-for-medicare-medicaid-services&conditions%5Btype%5D%5B%5D=NOTICE"
+    priority: 4
+    enabled: true
+    tags: ["cms", "regulatory"]
+    state: "national"
+    homepage: "https://www.federalregister.gov/agencies/centers-for-medicare-medicaid-services"
+    description: "CMS Federal Register notices: MA rate announcements, call letters, and program issuances (not in the rules feed)."
+
+  - name: "CMS MLN Connects Newsletter"
+    type: rss
+    url: "https://www.cms.gov/rss/31241"
+    priority: 4
+    enabled: true
+    tags: ["cms", "regulatory"]
+    state: "national"
+    homepage: "https://www.cms.gov/training-education/medicare-learning-network/newsletter"
+    description: "Weekly CMS Medicare Learning Network newsletter on payment policy changes and compliance guidance."
+
   # --- Industry News ---
   - name: "Healthcare Dive"
     type: rss
@@ -73,6 +93,26 @@ sources:
     homepage: "https://kffhealthnews.org/"
     description: "Nonprofit newsroom reporting on health policy and Medicare/Medicaid."
 
+  - name: "Becker's Payer Issues"
+    type: rss
+    url: "https://www.beckerspayer.com/feed/"
+    priority: 3
+    enabled: true
+    tags: ["industry", "payer"]
+    state: "national"
+    homepage: "https://www.beckerspayer.com/"
+    description: "Trade news for health plan executives covering MA, insurer strategy, CMS policy, PBMs, and managed care M&A."
+
+  - name: "Managed Healthcare Executive"
+    type: rss
+    url: "https://www.managedhealthcareexecutive.com/rss.xml"
+    priority: 3
+    enabled: true
+    tags: ["industry", "payer"]
+    state: "national"
+    homepage: "https://www.managedhealthcareexecutive.com/"
+    description: "Trade publication covering payer strategy, formulary management, value-based care, and plan operations."
+
   # --- Research / Policy ---
   - name: "Georgetown CCF"
     type: rss
@@ -83,6 +123,88 @@ sources:
     state: "national"
     homepage: "https://ccf.georgetown.edu/"
     description: "Georgetown Center for Children and Families — Medicaid/CHIP research."
+
+  - name: "KFF Medicare"
+    type: rss
+    url: "https://www.kff.org/topic/medicare/feed/"
+    priority: 3
+    enabled: true
+    tags: ["research", "policy"]
+    state: "national"
+    homepage: "https://www.kff.org/topic/medicare/"
+    description: "KFF Medicare-scoped research, data analysis, polling, and policy briefs on Medicare and MA."
+
+  - name: "Commonwealth Fund"
+    type: rss
+    url: "https://www.commonwealthfund.org/feed/the-commonwealth-fund-publications"
+    priority: 3
+    enabled: true
+    tags: ["research", "policy"]
+    state: "national"
+    homepage: "https://www.commonwealthfund.org/publications"
+    description: "Issue briefs and data analyses on health system performance and coverage; all publications free."
+
+  - name: "Paragon Health Institute"
+    type: rss
+    url: "https://paragoninstitute.org/feed/"
+    priority: 3
+    enabled: true
+    tags: ["research", "policy"]
+    state: "national"
+    homepage: "https://paragoninstitute.org/"
+    description: "Market-oriented health policy research covering Medicare reform, MA, Medicaid, and hospital payment."
+
+  # --- Trade Associations ---
+  - name: "Better Medicare Alliance"
+    type: rss
+    url: "https://bettermedicarealliance.org/feed/?post_type=news"
+    priority: 2
+    enabled: true
+    tags: ["industry", "association"]
+    state: "national"
+    homepage: "https://bettermedicarealliance.org/"
+    description: "The main MA advocacy coalition — payment rate fights, prior-auth policy, and pro-MA messaging."
+
+  - name: "Alliance of Community Health Plans"
+    type: rss
+    url: "https://achp.org/feed/"
+    priority: 2
+    enabled: true
+    tags: ["industry", "association"]
+    state: "national"
+    homepage: "https://achp.org/"
+    description: "Nonprofit/regional health plan association positions on MA payment, value-based care, and prior auth."
+
+  - name: "AHA News"
+    type: rss
+    url: "https://www.aha.org/aha-news-rss-feed"
+    priority: 2
+    enabled: true
+    tags: ["industry", "association"]
+    state: "national"
+    homepage: "https://www.aha.org/news"
+    description: "Hospital-side perspective on MA network adequacy, prior-auth denials, and payer contract disputes."
+
+  # --- Enforcement / Litigation ---
+  - name: "CourtListener - FCA / MA Filings"
+    type: rss
+    url: "https://www.courtlistener.com/feed/search/?q=%22False+Claims+Act%22+%22Medicare+Advantage%22&type=r"
+    priority: 3
+    enabled: true
+    tags: ["enforcement", "federal"]
+    state: "national"
+    homepage: "https://www.courtlistener.com/"
+    description: "Real-time PACER docket filings in False Claims Act cases involving Medicare Advantage plans and brokers."
+
+  - name: "CourtListener - FCA / MA Opinions"
+    type: rss
+    url: "https://www.courtlistener.com/feed/search/?q=%22False+Claims+Act%22+%22Medicare+Advantage%22&type=o"
+    priority: 3
+    enabled: true
+    tags: ["enforcement", "federal"]
+    state: "national"
+    homepage: "https://www.courtlistener.com/"
+    description: "Court opinions in False Claims Act cases involving MA plans, risk-adjustment fraud, and qui tam relators."
 
   # --- Congress / Legislation ---
   - name: "Congress.gov - Bills Presented to the President"
@@ -770,6 +892,86 @@ sources:
     state: "national"
     homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000064803"
     description: "CVS Health (Aetna) 8-K material-event filings."
+
+  - name: "SEC EDGAR - Elevance Health"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001156039&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001156039"
+    description: "Elevance Health (ELV) 8-K material-event filings — major MA payer (Anthem-branded plans)."
+
+  - name: "SEC EDGAR - Centene"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001071739&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001071739"
+    description: "Centene (CNC) 8-K material-event filings — MA and dual-eligible plans nationally."
+
+  - name: "SEC EDGAR - The Cigna Group"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001739940&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 4
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001739940"
+    description: "The Cigna Group (CI) 8-K material-event filings — MA plans via Cigna Healthcare segment."
+
+  - name: "SEC EDGAR - Molina Healthcare"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001179929&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001179929"
+    description: "Molina Healthcare (MOH) 8-K material-event filings — MA and dual-eligible special-needs plans."
+
+  - name: "SEC EDGAR - Clover Health"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001801170&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001801170"
+    description: "Clover Health (CLOV) 8-K material-event filings — MA-only insurer."
+
+  - name: "SEC EDGAR - Alignment Healthcare"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001832466&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001832466"
+    description: "Alignment Healthcare (ALHC) 8-K material-event filings — MA plan operator."
+
+  - name: "SEC EDGAR - agilon health"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001831097&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001831097"
+    description: "agilon health (AGL) 8-K material-event filings — physician total-cost-of-care MA risk models."
+
+  - name: "SEC EDGAR - Astrana Health"
+    type: sec
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001083446&type=8-K&dateb=&owner=include&count=20&output=atom"
+    priority: 3
+    enabled: true
+    tags: ["financial", "sec"]
+    state: "national"
+    homepage: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001083446"
+    description: "Astrana Health (ASTH) 8-K material-event filings — MA full-risk capitation contracts."
 
   # --- SEC / Financial (MA brokerages / distribution) ---
   - name: "SEC EDGAR - GoHealth"
