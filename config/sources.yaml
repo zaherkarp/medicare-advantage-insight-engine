@@ -24,7 +24,7 @@ sources:
 
   - name: "Federal Register - CMS Rules"
     type: rss
-    url: "https://www.federalregister.gov/documents/search.rss?conditions%5Bagencies%5D%5B%5D=centers-for-medicare-medicaid-services&conditions%5Btype%5D%5B%5D=RULE&conditions%5Btype%5D%5B%5D=PRORULE"
+    url: "https://www.federalregister.gov/api/v1/documents.rss?conditions%5Bagencies%5D%5B%5D=centers-for-medicare-medicaid-services&conditions%5Btype%5D%5B%5D=RULE&conditions%5Btype%5D%5B%5D=PRORULE"
     priority: 5
     enabled: true
     tags: ["regulatory", "cms", "rules"]
@@ -103,16 +103,6 @@ sources:
     homepage: "https://www.beckerspayer.com/"
     description: "Trade news for health plan executives covering MA, insurer strategy, CMS policy, PBMs, and managed care M&A."
 
-  - name: "Managed Healthcare Executive"
-    type: rss
-    url: "https://www.managedhealthcareexecutive.com/rss.xml"
-    priority: 3
-    enabled: true
-    tags: ["industry", "payer"]
-    state: "national"
-    homepage: "https://www.managedhealthcareexecutive.com/"
-    description: "Trade publication covering payer strategy, formulary management, value-based care, and plan operations."
-
   # --- Research / Policy ---
   - name: "Georgetown CCF"
     type: rss
@@ -133,16 +123,6 @@ sources:
     state: "national"
     homepage: "https://www.kff.org/topic/medicare/"
     description: "KFF Medicare-scoped research, data analysis, polling, and policy briefs on Medicare and MA."
-
-  - name: "Commonwealth Fund"
-    type: rss
-    url: "https://www.commonwealthfund.org/feed/the-commonwealth-fund-publications"
-    priority: 3
-    enabled: true
-    tags: ["research", "policy"]
-    state: "national"
-    homepage: "https://www.commonwealthfund.org/publications"
-    description: "Issue briefs and data analyses on health system performance and coverage; all publications free."
 
   - name: "Paragon Health Institute"
     type: rss
@@ -388,11 +368,13 @@ sources:
     homepage: "https://spotlightdelaware.org/"
     description: "Nonprofit newsroom covering Delaware state policy, health care, and government accountability."
 
+  # Disabled after first ingest assessment: 15 items, zero MA-relevant (max
+  # score 0.04) — DC city/civic coverage has no Medicare Advantage angle.
   - name: "The 51st"
     type: rss
     url: "https://51st.news/rss/"
     priority: 2
-    enabled: true
+    enabled: false
     tags: ["state", "policy"]
     state: "DC"
     geography: "District of Columbia"
@@ -443,16 +425,16 @@ sources:
     homepage: "https://idahocapitalsun.com/"
     description: "States Newsroom nonprofit with a dedicated health care reporter covering Idaho policy and Medicaid."
 
-  - name: "Capitol News Illinois - Health"
+  - name: "Health News Illinois"
     type: rss
-    url: "https://capitolnewsillinois.com/news/category/health/feed/"
+    url: "https://healthnewsillinois.com/feed/"
     priority: 2
     enabled: true
     tags: ["state", "policy"]
     state: "IL"
     geography: "Illinois"
-    homepage: "https://capitolnewsillinois.com/"
-    description: "Nonprofit Illinois statehouse newsroom; health feed covering Medicaid and insurance legislation."
+    homepage: "https://healthnewsillinois.com/"
+    description: "Daily news service dedicated to Illinois health care policy, Medicaid, and insurance."
 
   - name: "Indiana Capital Chronicle"
     type: rss
