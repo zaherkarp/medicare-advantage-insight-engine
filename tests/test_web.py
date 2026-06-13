@@ -144,6 +144,13 @@ def test_status_page(client):
     assert "Test Feed" in resp.text  # source listed
 
 
+def test_feed_cards_have_lightweight_rating(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "card-feedback" in resp.text
+    assert 'data-verdict="relevant"' in resp.text
+
+
 def test_story_renders_feedback_widget(client):
     resp = client.get("/story/story-a")
     assert resp.status_code == 200

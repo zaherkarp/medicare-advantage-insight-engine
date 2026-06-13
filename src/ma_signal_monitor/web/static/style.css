@@ -211,6 +211,15 @@ a.badge:hover { text-decoration: none; opacity: 0.85; }
 .feedback-error { font-size: 0.85rem; color: #b3261e; margin: 12px 0 0; }
 .feedback-static .feedback-hint { margin-top: 0; }
 
+/* Lightweight feed-card rating */
+.card-feedback { margin-top: 10px; display: flex; gap: 6px; }
+.card-fb {
+  cursor: pointer; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 16px; padding: 2px 10px; font-size: 0.9rem; line-height: 1.6;
+}
+.card-fb:hover { border-color: var(--accent); }
+.card-fb-done { font-size: 0.8rem; color: #1b8a52; font-weight: 600; }
+
 /* Static explainer page */
 .prose { max-width: 680px; }
 .prose h2 { font-size: 1.1rem; margin-top: 26px; }

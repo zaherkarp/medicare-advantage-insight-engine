@@ -111,6 +111,15 @@ def test_static_story_omits_post_widget(tmp_path, sample_config, temp_db):
     assert (out / "about-feedback.html").exists()
 
 
+def test_static_feed_omits_card_rating(tmp_path, sample_config, temp_db):
+    _seed(temp_db, "a1", "A story", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db, base="")
+    index = (out / "index.html").read_text()
+    # No dead POST controls on the static feed.
+    assert "card-feedback" not in index
+    assert '"/feedback"' not in index
+
+
 def test_static_story_mounts_giscus_when_configured(tmp_path, sample_config, temp_db):
     _seed(temp_db, "a1", "A story", category="policy_regulatory")
     sample_config.giscus_repo = "owner/repo"
