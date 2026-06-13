@@ -191,6 +191,16 @@ watched_entities:
   - "Mark Bertolini"
   - "Bailey & Co"
 
+# Exclusion keywords (whole-token, case-insensitive — same matcher as above).
+#   hard: a match vetoes the item to score 0 (still archived, with the reason).
+#         Keep this list short and surgical — only unambiguous off-topic noise.
+#   soft: each match subtracts scoring.exclusion_penalty from the score.
+# Populate from `ma-signal-feedback mine-keywords` exclusion candidates, then
+# review by hand. Empty by default so behaviour is unchanged until you add terms.
+exclusions:
+  hard: []
+  soft: []
+
 # Scoring configuration
 scoring:
   keyword_match_base: 0.15
@@ -198,3 +208,4 @@ scoring:
   source_priority_weight: 0.10
   multi_category_boost: 0.10
   title_keyword_multiplier: 1.5
+  exclusion_penalty: 0.25

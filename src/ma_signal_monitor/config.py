@@ -49,6 +49,7 @@ class ScoringConfig:
     source_priority_weight: float = 0.10
     multi_category_boost: float = 0.10
     title_keyword_multiplier: float = 1.5
+    exclusion_penalty: float = 0.25  # subtracted per matched soft-exclusion term
 
 
 @dataclass
@@ -71,6 +72,10 @@ class AppConfig:
     categories: list[CategoryConfig] = field(default_factory=list)
     watched_entities: list[str] = field(default_factory=list)
     scoring: ScoringConfig = field(default_factory=ScoringConfig)
+    # Exclusion keywords (see scoring.py). Hard terms veto an item to score 0;
+    # soft terms each subtract scoring.exclusion_penalty.
+    exclusions_hard: list[str] = field(default_factory=list)
+    exclusions_soft: list[str] = field(default_factory=list)
 
     # Delivery settings from app.yaml
     delivery_max_retries: int = 3
@@ -359,6 +364,10 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
     config.categories = categories
     config.watched_entities = data.get("watched_entities", [])
 
+    exclusions = data.get("exclusions", {}) or {}
+    config.exclusions_hard = exclusions.get("hard", []) or []
+    config.exclusions_soft = exclusions.get("soft", []) or []
+
     scoring_data = data.get("scoring", {})
     config.scoring = ScoringConfig(
         keyword_match_base=scoring_data.get("keyword_match_base", 0.15),
@@ -366,6 +375,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         source_priority_weight=scoring_data.get("source_priority_weight", 0.10),
         multi_category_boost=scoring_data.get("multi_category_boost", 0.10),
         title_keyword_multiplier=scoring_data.get("title_keyword_multiplier", 1.5),
+        exclusion_penalty=scoring_data.get("exclusion_penalty", 0.25),
     )
 
 

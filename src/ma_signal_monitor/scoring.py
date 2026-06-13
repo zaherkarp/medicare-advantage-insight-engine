@@ -131,8 +131,38 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
             )
         )
 
-    # Clamp to [0.0, 1.0]
-    final_score = min(1.0, max(0.0, raw_score))
+    # 5. Exclusion keywords. Soft terms each subtract a penalty (kept in the
+    # reasons so the score stays explainable); a hard term vetoes the item to 0
+    # but the item is still archived with the veto reason — never silently
+    # dropped (see docs/assumptions.md: false positives over false negatives).
+    for term in config.exclusions_soft:
+        if _keyword_in_text(term, text_combined):
+            raw_score -= sc.exclusion_penalty
+            reasons.append(
+                ScoringReason(
+                    factor="exclusion_keyword",
+                    detail=f"soft exclusion '{term}'",
+                    contribution=-sc.exclusion_penalty,
+                )
+            )
+
+    vetoed_by = next(
+        (t for t in config.exclusions_hard if _keyword_in_text(t, text_combined)),
+        None,
+    )
+    if vetoed_by is not None:
+        removed = round(max(0.0, raw_score), 3)
+        reasons.append(
+            ScoringReason(
+                factor="exclusion_veto",
+                detail=f"hard exclusion '{vetoed_by}' forces score to 0",
+                contribution=-removed,
+            )
+        )
+        final_score = 0.0
+    else:
+        # Clamp to [0.0, 1.0]
+        final_score = min(1.0, max(0.0, raw_score))
 
     return ScoredItem(
         item=item,

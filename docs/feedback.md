@@ -143,6 +143,21 @@ It needs a few labels of each class before it produces anything. Output is
 advisory: you review the candidates and edit `taxonomy.yaml` by hand — nothing
 auto-mutates config.
 
+### Acting on exclusions
+
+`taxonomy.yaml` has an `exclusions` block that the scorer reads:
+
+```yaml
+exclusions:
+  hard: ["high school sports"]   # a match vetoes the item to score 0
+  soft: ["webinar", "podcast"]   # each match subtracts scoring.exclusion_penalty
+```
+
+Hard vetoes are surgical kill-switches for unambiguous off-topic noise — a
+hard-vetoed item is still **archived** (with an `exclusion_veto` reason), never
+silently dropped. Soft terms nudge borderline items down (`exclusion_keyword`
+reason). Move mined exclusion candidates here once you trust them.
+
 ## What consumes this (planned)
 
 Still planned, in priority order: golden-set growth (every owner verdict is a

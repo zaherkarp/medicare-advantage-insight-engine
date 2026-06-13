@@ -182,3 +182,42 @@ class TestScoring:
         score_high = score_item(item_high, sample_config)
         score_low = score_item(item_low, sample_config)
         assert score_high.relevance_score > score_low.relevance_score
+
+
+class TestExclusions:
+    """Hard veto and soft penalty exclusion keywords."""
+
+    def _item(self):
+        return NormalizedItem(
+            item_id="ex001",
+            source_name="Test",
+            source_type="rss",
+            source_priority=4,
+            source_tags=[],
+            title="UnitedHealthcare expands enrollment to new counties",
+            link="https://x.com/1",
+            published_date=datetime(2024, 1, 1),
+            summary="Medicare Advantage service area enrollment grows.",
+        )
+
+    def test_soft_penalty_lowers_score(self, sample_config):
+        base = score_item(self._item(), sample_config).relevance_score
+        sample_config.exclusions_soft = ["counties"]
+        scored = score_item(self._item(), sample_config)
+        assert scored.relevance_score == round(
+            base - sample_config.scoring.exclusion_penalty, 3
+        )
+        assert any(r.factor == "exclusion_keyword" for r in scored.reasons)
+
+    def test_hard_veto_forces_zero(self, sample_config):
+        sample_config.exclusions_hard = ["counties"]
+        scored = score_item(self._item(), sample_config)
+        assert scored.relevance_score == 0.0
+        assert any(r.factor == "exclusion_veto" for r in scored.reasons)
+
+    def test_no_exclusions_unchanged(self, sample_config):
+        # Default config has empty exclusion lists → no exclusion reasons.
+        scored = score_item(self._item(), sample_config)
+        assert not any(
+            r.factor in ("exclusion_keyword", "exclusion_veto") for r in scored.reasons
+        )
