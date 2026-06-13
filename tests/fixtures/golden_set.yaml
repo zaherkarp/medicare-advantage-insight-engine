@@ -1,0 +1,52 @@
+# Hand-labelled regression set for the relevance scorer, scored against the
+# LIVE config/taxonomy.yaml. Each item is a realistic headline+summary labelled
+# relevant (a genuine Medicare Advantage signal) or irrelevant (off-topic noise).
+# tests/test_golden_set.py asserts precision/recall stay above floors, so a
+# taxonomy or scoring change that would regress past judgments fails CI.
+#
+# Keep examples unambiguous and well-separated from the threshold; this guards
+# against regressions, it is not a knife-edge benchmark.
+
+relevant:
+  - title: "CMS finalizes 2025 Star Ratings methodology for Medicare Advantage"
+    summary: "The final rule changes risk adjustment and cut points affecting plan bonuses."
+  - title: "Humana reports Medicare Advantage enrollment growth in Q3"
+    summary: "Membership rose as the insurer expanded its service area into new counties."
+  - title: "UnitedHealthcare flags rising medical loss ratio in MA business"
+    summary: "Executives cited utilization and cost trend pressure on margins."
+  - title: "Aetna exits several Medicare Advantage counties for 2025"
+    summary: "The disenrollment will shift membership amid benefit reductions."
+  - title: "CMS proposed rule targets prior authorization in Medicare Advantage"
+    summary: "The proposed rule would tighten risk adjustment and audit practices."
+  - title: "Humana and CVS Health expand value-based care partnership"
+    summary: "The joint venture targets dual-eligible special needs plan members."
+  - title: "Brokers warn of lead generation crackdown on MA marketing"
+    summary: "New CMS marketing rules hit field marketing organizations and FMO agents."
+  - title: "Centene posts Medicare Advantage margin pressure on benefit cuts"
+    summary: "The insurer trimmed supplemental benefits as premium increases loomed."
+  - title: "Star Ratings drop costs Elevance millions in MA bonus payments"
+    summary: "Lower Stars reduce quality bonus revenue across the membership base."
+  - title: "D-SNP enrollment surges among dual eligible seniors"
+    summary: "The special needs plan growth reflects an aging population shift."
+
+irrelevant:
+  - title: "Local high school football team wins state championship"
+    summary: "The Friday night game drew a record crowd to the stadium."
+  - title: "City council approves new downtown parking garage"
+    summary: "The multi-level structure adds 400 spaces for visitors."
+  - title: "Five easy weeknight pasta recipes for busy families"
+    summary: "These quick dinners come together in under thirty minutes."
+  - title: "Tech startup raises Series A for video game streaming app"
+    summary: "The consumer entertainment platform plans to hire engineers."
+  - title: "Weather service warns of heavy snowfall across the Midwest"
+    summary: "Travel delays are expected as a winter storm moves through."
+  - title: "Museum opens new exhibit on Renaissance painting"
+    summary: "The collection features works on loan from European galleries."
+  - title: "Marathon route announced for this year's city race"
+    summary: "Organizers expect thousands of runners along the waterfront course."
+  - title: "Grocery chain recalls bagged salad over listeria concern"
+    summary: "The voluntary recall covers several states for consumer safety."
+  - title: "New blockbuster movie tops the weekend box office"
+    summary: "The superhero sequel earned a hundred million dollars in three days."
+  - title: "Airline adds direct flights between two coastal cities"
+    summary: "The new route begins next spring with daily service."
