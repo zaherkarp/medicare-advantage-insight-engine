@@ -55,6 +55,14 @@ def create_app(
     templates.env.globals["state_name"] = state_name
     templates.env.globals["categories"] = config.categories
     templates.env.globals["static_site"] = static_export
+    templates.env.globals["giscus"] = {
+        "enabled": config.giscus_enabled,
+        "repo": config.giscus_repo,
+        "repo_id": config.giscus_repo_id,
+        "category": config.giscus_category,
+        "category_id": config.giscus_category_id,
+        "theme": config.giscus_theme,
+    }
     app.state.templates = templates
 
     app.mount(

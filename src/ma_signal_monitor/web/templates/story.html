@@ -61,8 +61,27 @@
         <p class="feedback-hint">Sign in with GitHub below to react 👍 / 👎, or
           comment if a category looks wrong — your reactions help curate this
           feed. <a href="/about-feedback">How feedback works</a></p>
-        {# giscus mount — wired in the fast-follow PR (mapping: specific, term = item_id). #}
-        <div class="giscus" data-giscus-term="{{ story.item_id }}"></div>
+        {% if giscus.enabled %}
+          {# mapping: specific → giscus binds the thread to this story's stable id. #}
+          <div class="giscus" data-giscus-term="{{ story.item_id }}"></div>
+          <script src="https://giscus.app/client.js"
+            data-repo="{{ giscus.repo }}"
+            data-repo-id="{{ giscus.repo_id }}"
+            data-category="{{ giscus.category }}"
+            data-category-id="{{ giscus.category_id }}"
+            data-mapping="specific"
+            data-term="{{ story.item_id }}"
+            data-strict="1"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="bottom"
+            data-theme="{{ giscus.theme }}"
+            data-lang="en"
+            crossorigin="anonymous"
+            async></script>
+        {% else %}
+          <p class="muted">Comments aren't configured for this site yet.</p>
+        {% endif %}
       </section>
     {% endif %}
 

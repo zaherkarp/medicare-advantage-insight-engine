@@ -191,6 +191,25 @@ Promoted feeds are merged in via a DB overlay (your curated `sources.yaml` is
 never rewritten). Everything stays local — no paid APIs or external crawlers.
 See [`docs/discovery.md`](docs/discovery.md) for the full design and all knobs.
 
+## Reader feedback
+
+Stories can be rated to tune what the filter surfaces. On the live web app,
+each story page has a 👍 / 👎 widget (with an optional "wrong category"
+correction) that records an owner verdict. On the static site, the same place
+mounts a [giscus](https://giscus.app) thread so visitors can react with their
+GitHub login — keyed on the story's stable `item_id`, so feedback stays bound
+to the right story even if titles or URLs change.
+
+```bash
+ma-signal-feedback mark <item_id> relevant   # record an owner verdict (weight 1.0)
+ma-signal-feedback ingest-github             # pull giscus reactions into the DB
+ma-signal-feedback summary <item_id>         # show verdicts for one story
+```
+
+Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
+(weight < 1.0) and never auto-change scoring or sources on their own. See
+[`docs/feedback.md`](docs/feedback.md) for the full design.
+
 ## Configuration
 
 ### `.env` — Environment settings
