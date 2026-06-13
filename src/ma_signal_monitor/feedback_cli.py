@@ -3,6 +3,7 @@
 Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
     ma-signal-feedback ingest-github
+    ma-signal-feedback ingest-ntfy
     ma-signal-feedback summary <item_id>
     ma-signal-feedback stats
 
@@ -11,7 +12,8 @@ history into the golden set. Verdicts: relevant | irrelevant | wrong_category |
 great. For ``wrong_category`` pass the corrected category key as ``[category]``.
 
 ``ingest-github`` pulls crowd reactions from giscus-backed Discussions (needs
-GISCUS_* config and a GITHUB_TOKEN).
+GISCUS_* config and a GITHUB_TOKEN). ``ingest-ntfy`` pulls owner 👍/👎 votes from
+the ntfy feedback topic (needs NTFY_FEEDBACK_TOPIC).
 """
 
 import sys
@@ -67,6 +69,19 @@ def main() -> None:
             print(
                 f"giscus ingest: scanned {summary['discussions']} discussion(s), "
                 f"matched {summary['reactions_matched']} reaction(s), "
+                f"recorded {summary['recorded']} new row(s)."
+            )
+
+        elif cmd == "ingest-ntfy":
+            from ma_signal_monitor.feedback_ingest import ingest_ntfy_feedback
+
+            try:
+                summary = ingest_ntfy_feedback(config, store)
+            except ValueError as e:
+                print(f"Cannot ingest: {e}")
+                sys.exit(1)
+            print(
+                f"ntfy ingest: scanned {summary['messages']} message(s), "
                 f"recorded {summary['recorded']} new row(s)."
             )
 

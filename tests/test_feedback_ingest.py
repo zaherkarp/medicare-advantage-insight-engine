@@ -1,5 +1,6 @@
 """Tests for giscus → feedback ingest."""
 
+import json
 from datetime import datetime
 
 import pytest
@@ -8,6 +9,7 @@ import responses
 from ma_signal_monitor.feedback_ingest import (
     GITHUB_GRAPHQL_URL,
     ingest_github_feedback,
+    ingest_ntfy_feedback,
 )
 from ma_signal_monitor.models import NormalizedItem, ScoredItem
 
@@ -151,6 +153,80 @@ def test_ingest_is_idempotent(sample_config, temp_db):
 
     first = ingest_github_feedback(_giscus_config(sample_config), temp_db, token="t")
     second = ingest_github_feedback(sample_config, temp_db, token="t")
+    assert first["recorded"] == 1
+    assert second["recorded"] == 0
+    assert temp_db.count_feedback() == 1
+
+
+# --- ntfy ingest ---
+
+NTFY_JSON_URL = "https://ntfy.sh/fb-topic/json"
+
+
+def _ntfy_config(sample_config):
+    sample_config.ntfy_feedback_topic = "fb-topic"
+    sample_config.ntfy_server = "https://ntfy.sh"
+    return sample_config
+
+
+def _ndjson(*objs):
+    return "\n".join(json.dumps(o) for o in objs)
+
+
+def test_ntfy_requires_config(sample_config, temp_db):
+    with pytest.raises(ValueError):
+        ingest_ntfy_feedback(sample_config, temp_db)
+
+
+@responses.activate
+def test_ntfy_maps_votes(sample_config, temp_db):
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.GET,
+        NTFY_JSON_URL,
+        body=_ndjson(
+            {"id": "m1", "event": "open"},  # non-message, ignored
+            {
+                "id": "m2",
+                "event": "message",
+                "message": json.dumps({"item_id": "story-1", "verdict": "relevant"}),
+            },
+            {
+                "id": "m3",
+                "event": "message",
+                "message": json.dumps({"item_id": "ghost", "verdict": "relevant"}),
+            },
+            {"id": "m4", "event": "message", "message": "not json"},
+        ),
+        status=200,
+    )
+
+    summary = ingest_ntfy_feedback(_ntfy_config(sample_config), temp_db)
+
+    assert summary["recorded"] == 1
+    s = temp_db.get_feedback_summary("story-1")
+    # ntfy is an owner channel → weight 1.0 → sets my_verdict.
+    assert s["my_verdict"] == "relevant"
+
+
+@responses.activate
+def test_ntfy_idempotent(sample_config, temp_db):
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.GET,
+        NTFY_JSON_URL,
+        body=_ndjson(
+            {
+                "id": "m2",
+                "event": "message",
+                "message": json.dumps({"item_id": "story-1", "verdict": "relevant"}),
+            }
+        ),
+        status=200,
+    )
+
+    first = ingest_ntfy_feedback(_ntfy_config(sample_config), temp_db)
+    second = ingest_ntfy_feedback(sample_config, temp_db)
     assert first["recorded"] == 1
     assert second["recorded"] == 0
     assert temp_db.count_feedback() == 1

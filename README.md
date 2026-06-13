@@ -200,9 +200,13 @@ mounts a [giscus](https://giscus.app) thread so visitors can react with their
 GitHub login — keyed on the story's stable `item_id`, so feedback stays bound
 to the right story even if titles or URLs change.
 
+If `WEBHOOK_MODE=ntfy`, alerts can also carry 👍/👎 buttons (set
+`NTFY_FEEDBACK_TOPIC`) so you can rate a signal the moment you read it.
+
 ```bash
 ma-signal-feedback mark <item_id> relevant   # record an owner verdict (weight 1.0)
 ma-signal-feedback ingest-github             # pull giscus reactions into the DB
+ma-signal-feedback ingest-ntfy               # pull ntfy 👍/👎 votes into the DB
 ma-signal-feedback summary <item_id>         # show verdicts for one story
 ```
 

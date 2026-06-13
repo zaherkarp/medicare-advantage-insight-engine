@@ -11,13 +11,14 @@ Ingest is idempotent: each reaction is stored under a ``source_ref`` of
 makes re-runs no-ops. Owner verdicts (weight 1.0) are unaffected.
 """
 
+import json
 import logging
 import os
 
 import requests
 
 from ma_signal_monitor.config import AppConfig
-from ma_signal_monitor.storage import StateStore
+from ma_signal_monitor.storage import VALID_VERDICTS, StateStore
 
 logger = logging.getLogger("ma_signal_monitor.feedback_ingest")
 
@@ -149,4 +150,71 @@ def ingest_github_feedback(
         "recorded": recorded,
     }
     logger.info("giscus feedback ingest: %s", summary)
+    return summary
+
+
+def ingest_ntfy_feedback(
+    config: AppConfig,
+    store: StateStore,
+    since: str = "all",
+) -> dict:
+    """Pull owner votes from the ntfy feedback topic into ``feedback``.
+
+    ntfy alerts carry 👍/👎 buttons that publish ``{item_id, verdict}`` to the
+    configured feedback topic. This polls that topic's JSON endpoint and records
+    each vote as an owner verdict (``channel="ntfy"``, weight 1.0).
+
+    Args:
+        config: App config (ntfy feedback settings).
+        store: Open StateStore to write feedback into.
+        since: ntfy ``since`` selector (timestamp, message id, duration, or
+            "all"). Idempotency is by message id, so re-polling is safe.
+
+    Returns:
+        Summary counts: messages scanned and rows newly recorded.
+
+    Raises:
+        ValueError: If the ntfy feedback topic isn't configured.
+    """
+    if not config.ntfy_feedback_enabled:
+        raise ValueError("ntfy feedback is not configured (set NTFY_FEEDBACK_TOPIC)")
+
+    url = f"{config.ntfy_server.rstrip('/')}/{config.ntfy_feedback_topic}/json"
+    resp = requests.get(
+        url, params={"poll": "1", "since": since}, timeout=config.request_timeout
+    )
+    resp.raise_for_status()
+
+    scanned = recorded = 0
+    # ntfy's JSON endpoint streams one JSON object per line (not an array).
+    for line in resp.text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        msg = json.loads(line)
+        if msg.get("event") != "message":
+            continue
+        scanned += 1
+        try:
+            vote = json.loads(msg.get("message", ""))
+            item_id, verdict = vote["item_id"], vote["verdict"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            logger.warning(
+                "Skipping unparseable ntfy feedback message %s", msg.get("id")
+            )
+            continue
+        if verdict not in VALID_VERDICTS or store.get_story(item_id) is None:
+            continue
+        before = store.count_feedback()
+        store.add_feedback(
+            item_id,
+            verdict,
+            channel="ntfy",
+            source_ref=f"ntfy:{msg.get('id')}",
+        )
+        if store.count_feedback() > before:
+            recorded += 1
+
+    summary = {"messages": scanned, "recorded": recorded}
+    logger.info("ntfy feedback ingest: %s", summary)
     return summary

@@ -27,6 +27,7 @@ plumbing.
 | Channel | Weight | How it's recorded |
 |---|---|---|
 | `local_web` | 1.0 | 👍/👎 + "wrong category" widget on the live app → `POST /feedback` |
+| `ntfy` | 1.0 | 👍/👎 action buttons on ntfy alerts → `ma-signal-feedback ingest-ntfy` |
 | `cli` | 1.0 | `ma-signal-feedback mark <item_id> <verdict> [category]` |
 | `github` | 0.2 | giscus reactions pulled by `ma-signal-feedback ingest-github` |
 
@@ -44,6 +45,22 @@ The story page shows a progressive-disclosure widget:
 
 Revisiting a story shows your last verdict (the 👍/👎 button comes back
 pressed). A plain-language explainer lives at `/about-feedback`.
+
+## ntfy action buttons (feedback at the moment of reading)
+
+When `WEBHOOK_MODE=ntfy` and `NTFY_FEEDBACK_TOPIC` is set, each alert carries
+👍 / 👎 buttons. Tapping one publishes `{item_id, verdict}` to a separate,
+private feedback topic (an ntfy `http` action). Pull those votes in with:
+
+```bash
+ma-signal-feedback ingest-ntfy
+```
+
+This polls the feedback topic's JSON endpoint and records each vote as an owner
+verdict (`channel="ntfy"`, weight 1.0), idempotent by ntfy message id
+(`source_ref=ntfy:<id>`). ntfy caps notifications at 3 buttons, so alerts show
+*View Source* + 👍 + 👎; richer corrections (wrong category) stay on the web
+widget. Choose a hard-to-guess topic name — anyone who knows it could post.
 
 ## Crowd via giscus
 

@@ -131,12 +131,23 @@ class AppConfig:
     giscus_category_id: str = ""
     giscus_theme: str = "light"
 
+    # ntfy action-button feedback (owner channel, weight 1.0). When
+    # ntfy_feedback_topic is set, ntfy alerts carry 👍/👎 buttons that publish a
+    # vote to that topic; ``ma-signal-feedback ingest-ntfy`` polls it back in.
+    ntfy_server: str = "https://ntfy.sh"
+    ntfy_feedback_topic: str = ""
+
     @property
     def giscus_enabled(self) -> bool:
         """True when enough giscus config is present to mount the widget."""
         return bool(
             self.giscus_repo and self.giscus_repo_id and self.giscus_category_id
         )
+
+    @property
+    def ntfy_feedback_enabled(self) -> bool:
+        """True when ntfy alerts should carry feedback action buttons."""
+        return bool(self.ntfy_feedback_topic)
 
 
 def load_config(project_root: str | Path | None = None) -> AppConfig:
@@ -195,6 +206,8 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         giscus_category=os.getenv("GISCUS_CATEGORY", "General"),
         giscus_category_id=os.getenv("GISCUS_CATEGORY_ID", ""),
         giscus_theme=os.getenv("GISCUS_THEME", "light"),
+        ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
+        ntfy_feedback_topic=os.getenv("NTFY_FEEDBACK_TOPIC", ""),
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),

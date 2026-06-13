@@ -161,6 +161,30 @@ class TestNtfyRenderer:
         payload = render_ntfy(sample_alert)
         assert "topic" not in payload
 
+    def test_feedback_buttons_added_when_topic_set(self, sample_alert):
+        """👍/👎 http actions publish votes to the feedback topic."""
+        import json
+
+        payload = render_ntfy(
+            sample_alert, feedback_topic="fb-topic", ntfy_server="https://ntfy.sh"
+        )
+        # view + 👍 + 👎, capped at 3.
+        assert len(payload["actions"]) == 3
+        fb = [a for a in payload["actions"] if a["action"] == "http"]
+        assert len(fb) == 2
+        verdicts = {json.loads(a["body"])["verdict"] for a in fb}
+        assert verdicts == {"relevant", "irrelevant"}
+        for a in fb:
+            assert a["url"] == "https://ntfy.sh/fb-topic"
+            assert a["method"] == "POST"
+            body = json.loads(a["body"])
+            assert body["item_id"] == sample_alert.scored_item.item.item_id
+
+    def test_no_feedback_buttons_when_topic_unset(self, sample_alert):
+        """Without a feedback topic, only the view action is present."""
+        payload = render_ntfy(sample_alert)
+        assert all(a["action"] != "http" for a in payload["actions"])
+
 
 class TestTeamsRenderer:
     """Test the Teams Adaptive Card renderer."""
