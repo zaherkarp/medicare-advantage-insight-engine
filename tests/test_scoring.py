@@ -3,7 +3,29 @@
 from datetime import datetime
 
 from ma_signal_monitor.models import NormalizedItem
-from ma_signal_monitor.scoring import score_item, score_items
+from ma_signal_monitor.scoring import _keyword_in_text, score_item, score_items
+
+
+class TestKeywordMatching:
+    """Whole-token keyword matching (precision over substring search)."""
+
+    def test_matches_whole_word(self):
+        assert _keyword_in_text("MLR", "the MLR rose sharply")
+        assert _keyword_in_text("star rating", "a new star rating method")
+
+    def test_rejects_substring_false_positives(self):
+        assert not _keyword_in_text("SNP", "see the snippet below")
+        assert not _keyword_in_text("bid", "this is forbidden")
+        assert not _keyword_in_text("MA", "based in Massachusetts")
+
+    def test_allows_plural(self):
+        assert _keyword_in_text("premium", "premiums increased")
+        assert _keyword_in_text("rating", "star ratings changed")
+        assert _keyword_in_text("box", "several boxes shipped")
+
+    def test_handles_punctuation_edged_keywords(self):
+        assert _keyword_in_text("value-based", "a value-based contract")
+        assert _keyword_in_text("C-SNP", "enrolled in a C-SNP plan")
 
 
 class TestScoring:

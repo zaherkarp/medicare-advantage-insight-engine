@@ -142,6 +142,24 @@ def test_status_page(client):
     assert "System Status" in resp.text
     assert "Stories by topic" in resp.text
     assert "Test Feed" in resp.text  # source listed
+    assert "Source relevance yield" in resp.text
+
+
+def test_status_flags_low_yield_source(sample_config, temp_db):
+    # 30 stories from one source, all well below the 0.3 threshold → flagged.
+    for i in range(30):
+        _seed_story(
+            temp_db,
+            f"junk-{i}",
+            f"Off-topic item {i}",
+            category="membership_movement",
+            score=0.02,
+        )
+    app = create_app(sample_config, temp_db)
+    resp = TestClient(app).get("/status")
+    assert resp.status_code == 200
+    assert "flagged for review" in resp.text
+    assert ">review<" in resp.text
 
 
 def test_feed_cards_have_lightweight_rating(client):

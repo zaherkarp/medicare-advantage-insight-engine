@@ -137,6 +137,13 @@ class AppConfig:
     ntfy_server: str = "https://ntfy.sh"
     ntfy_feedback_topic: str = ""
 
+    # Source-yield review policy (see docs/feedback.md / source_review.py). A
+    # source is flagged for review once it has this many items but a relevance
+    # yield below the floor and a best score below the max-score floor.
+    source_review_min_sample: int = 25
+    source_review_yield_floor: float = 0.05
+    source_review_max_score_floor: float = 0.2
+
     @property
     def giscus_enabled(self) -> bool:
         """True when enough giscus config is present to mount the widget."""
@@ -208,6 +215,11 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         giscus_theme=os.getenv("GISCUS_THEME", "light"),
         ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
         ntfy_feedback_topic=os.getenv("NTFY_FEEDBACK_TOPIC", ""),
+        source_review_min_sample=int(os.getenv("SOURCE_REVIEW_MIN_SAMPLE", "25")),
+        source_review_yield_floor=float(os.getenv("SOURCE_REVIEW_YIELD_FLOOR", "0.05")),
+        source_review_max_score_floor=float(
+            os.getenv("SOURCE_REVIEW_MAX_SCORE_FLOOR", "0.2")
+        ),
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),

@@ -690,6 +690,45 @@ class StateStore:
         ).fetchall()
         return {r["s"]: r["n"] for r in rows}
 
+    def get_source_yield(self, min_score: float) -> list[dict]:
+        """Per-source relevance yield for the source-review report.
+
+        For each source that has contributed stories, returns the total ingested,
+        how many cleared ``min_score``, the resulting yield fraction, mean/max
+        score, and last-fetched date. Ordered worst-yield first so low performers
+        surface at the top. This is read-only — flagging/disabling is a separate,
+        human-confirmed step (see ``source_review``).
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT source_name AS source,
+                      COUNT(*) AS total,
+                      SUM(CASE WHEN relevance_score >= ? THEN 1 ELSE 0 END) AS relevant,
+                      AVG(relevance_score) AS mean_score,
+                      MAX(relevance_score) AS max_score,
+                      MAX(fetched_at) AS last_fetched
+               FROM stories
+               GROUP BY source_name""",
+            (min_score,),
+        ).fetchall()
+        stats = []
+        for r in rows:
+            total = r["total"] or 0
+            relevant = r["relevant"] or 0
+            stats.append(
+                {
+                    "source": r["source"],
+                    "total": total,
+                    "relevant": relevant,
+                    "yield": (relevant / total) if total else 0.0,
+                    "mean_score": r["mean_score"] or 0.0,
+                    "max_score": r["max_score"] or 0.0,
+                    "last_fetched": (r["last_fetched"] or "")[:10],
+                }
+            )
+        stats.sort(key=lambda s: (s["yield"], s["max_score"]))
+        return stats
+
     # --- Source Discovery ---
 
     def upsert_candidate_domain(self, stat) -> None:

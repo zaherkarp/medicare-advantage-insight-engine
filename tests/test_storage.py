@@ -322,3 +322,39 @@ class TestFeedback:
 
         with pytest.raises(ValueError):
             temp_db.add_feedback("item-1", "bogus")
+
+
+class TestSourceYield:
+    """Per-source relevance-yield stats."""
+
+    def _store(self, temp_db, source, item_id, score):
+        item = NormalizedItem(
+            item_id=item_id,
+            source_name=source,
+            source_type="rss",
+            source_priority=3,
+            source_tags=["test"],
+            title=f"Story {item_id}",
+            link=f"https://example.com/{item_id}",
+            published_date=datetime(2024, 1, 1, 12, 0),
+            summary="summary",
+        )
+        temp_db.upsert_story(
+            ScoredItem(item=item, relevance_score=score, matched_categories=["x"]),
+            primary_category="x",
+        )
+
+    def test_yield_computed_and_sorted(self, temp_db):
+        # Good Feed: 2/2 above 0.3; Junk Feed: 0/2 above 0.3.
+        self._store(temp_db, "Good Feed", "g1", 0.7)
+        self._store(temp_db, "Good Feed", "g2", 0.5)
+        self._store(temp_db, "Junk Feed", "j1", 0.05)
+        self._store(temp_db, "Junk Feed", "j2", 0.1)
+
+        stats = temp_db.get_source_yield(min_score=0.3)
+        by_source = {s["source"]: s for s in stats}
+        assert by_source["Good Feed"]["yield"] == 1.0
+        assert by_source["Junk Feed"]["yield"] == 0.0
+        assert by_source["Junk Feed"]["max_score"] == 0.1
+        # Worst yield sorts first.
+        assert stats[0]["source"] == "Junk Feed"

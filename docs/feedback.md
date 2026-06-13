@@ -105,9 +105,26 @@ here and is never exposed to the browser (unlike the `GISCUS_*` values).
 Discussions whose title doesn't match a known story (e.g. ad-hoc threads in the
 category) are skipped.
 
+## Source-yield review
+
+Separately from per-story feedback, the **Status** page (`/status`) shows a
+per-source relevance-yield table: for each source, how many of its stories
+cleared `MIN_RELEVANCE_SCORE`, the resulting yield, and its best-ever score
+(worst performers first). A source is **flagged for review** once it has a fair
+sample but still under-delivers:
+
+- at least `SOURCE_REVIEW_MIN_SAMPLE` stories (default 25), **and**
+- yield below `SOURCE_REVIEW_YIELD_FLOOR` (default 5%), **and**
+- max score below `SOURCE_REVIEW_MAX_SCORE_FLOOR` (default 0.2).
+
+The third clause spares a source that occasionally lands a strong hit. Flagging
+is advisory — it surfaces the source with a reason like `0/30 relevant (0%), max
+score 0.04`; you confirm the disable by editing `sources.yaml`. This formalizes
+the manual "this feed never produces anything relevant" decision.
+
 ## What consumes this (planned)
 
 The table is the foundation for, in priority order: keyword-candidate mining
-(owner verdicts as labels), per-source yield review, golden-set growth, and a
-weekly crowd-vs-model disagreement digest. None of those auto-mutate config —
-they all feed review queues.
+(owner verdicts as labels), golden-set growth, and a weekly crowd-vs-model
+disagreement digest. None of those auto-mutate config — they all feed review
+queues.
