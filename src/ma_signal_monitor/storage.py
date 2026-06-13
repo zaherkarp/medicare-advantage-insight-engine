@@ -565,6 +565,44 @@ class StateStore:
             (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
         ]
 
+    def get_scored_owner_feedback(self) -> list[dict]:
+        """Pair each labeled story's scorer score with its latest owner verdict.
+
+        Joins the story archive (which carries the scorer's ``relevance_score``)
+        to the most recent owner-channel verdict per story, keeping only the
+        relevance verdicts the disagreement digest reasons about
+        (``relevant`` / ``great`` / ``irrelevant``). ``wrong_category`` is a
+        categorization signal, not a relevance one, so it is excluded here.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT s.item_id AS item_id, s.title AS title, s.link AS link,
+                      s.source_name AS source, s.relevance_score AS score,
+                      latest.verdict AS verdict
+               FROM stories s
+               JOIN (
+                   SELECT item_id, verdict,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY item_id ORDER BY id DESC
+                          ) AS rn
+                   FROM feedback
+                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+               ) latest
+               ON latest.item_id = s.item_id AND latest.rn = 1
+               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""",
+        ).fetchall()
+        return [
+            {
+                "item_id": r["item_id"],
+                "title": r["title"],
+                "link": r["link"],
+                "source": r["source"],
+                "score": r["score"],
+                "verdict": r["verdict"],
+            }
+            for r in rows
+        ]
+
     # --- Daily Briefing digests ---
 
     def save_digest(

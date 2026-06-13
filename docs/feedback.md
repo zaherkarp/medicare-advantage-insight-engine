@@ -158,8 +158,33 @@ hard-vetoed item is still **archived** (with an `exclusion_veto` reason), never
 silently dropped. Soft terms nudge borderline items down (`exclusion_keyword`
 reason). Move mined exclusion candidates here once you trust them.
 
+## Disagreement digest
+
+```bash
+ma-signal-feedback disagreements
+```
+
+Pairs each owner-labeled story with the score the relevance scorer gave it and
+surfaces the two places they diverge — the most direct signal for where the
+scorer needs tuning:
+
+- **Over-scored** — the scorer cleared it (score ≥ `MIN_RELEVANCE_SCORE`) but you
+  marked it *irrelevant*. False positives: candidates for a new exclusion keyword
+  (see above) or a category weight trim.
+- **Under-scored** — the scorer buried it (below the threshold) but you marked it
+  *relevant* / *great*. False negatives: candidates for a new inclusion keyword or
+  a golden-set fixture.
+
+Each side is ranked by `gap` — how far the score sits from the threshold — so the
+worst mismatches sort to the top. Only owner channels count as ground truth, the
+latest verdict per story wins, and `wrong_category` is ignored (it concerns
+categorization, not relevance). Output is advisory: it feeds the review queue, it
+does not mutate config.
+
 ## What consumes this (planned)
 
-Still planned, in priority order: golden-set growth (every owner verdict is a
-regression-fixture candidate) and a weekly crowd-vs-model disagreement digest.
-Neither auto-mutates config — they feed review queues.
+The feedback loop is now closed end to end: owner verdicts feed keyword mining,
+the disagreement digest, and golden-set growth (every owner verdict is a
+regression-fixture candidate). Next up is folding weighted *crowd* signal into
+the disagreement digest alongside owner ground truth. None of these auto-mutate
+config — they feed review queues.
