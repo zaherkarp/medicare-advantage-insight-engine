@@ -159,9 +159,7 @@ def test_about_feedback_page(client):
 
 
 def test_submit_feedback_relevant(client, temp_db):
-    resp = client.post(
-        "/feedback", json={"item_id": "story-a", "verdict": "relevant"}
-    )
+    resp = client.post("/feedback", json={"item_id": "story-a", "verdict": "relevant"})
     assert resp.status_code == 200
     body = resp.json()
     assert body["ok"] is True
@@ -178,16 +176,12 @@ def test_submit_feedback_is_reflected_on_reload(client):
 
 
 def test_submit_feedback_unknown_story_404(client):
-    resp = client.post(
-        "/feedback", json={"item_id": "nope", "verdict": "relevant"}
-    )
+    resp = client.post("/feedback", json={"item_id": "nope", "verdict": "relevant"})
     assert resp.status_code == 404
 
 
 def test_submit_feedback_bad_verdict_400(client):
-    resp = client.post(
-        "/feedback", json={"item_id": "story-a", "verdict": "spam"}
-    )
+    resp = client.post("/feedback", json={"item_id": "story-a", "verdict": "spam"})
     assert resp.status_code == 400
 
 

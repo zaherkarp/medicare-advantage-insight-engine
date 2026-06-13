@@ -13,9 +13,7 @@ logger = logging.getLogger("ma_signal_monitor.storage")
 
 # Allowed reader-feedback verdicts. Kept small and structured (not free-form)
 # so feedback feeds directly into the keyword-mining and source-yield loops.
-VALID_VERDICTS = frozenset(
-    {"relevant", "irrelevant", "wrong_category", "great"}
-)
+VALID_VERDICTS = frozenset({"relevant", "irrelevant", "wrong_category", "great"})
 # Channels whose votes are owner ground-truth (weight 1.0). Everything else is
 # advisory crowd signal that surfaces things for review but never auto-mutates.
 OWNER_CHANNELS = frozenset({"local_web", "ntfy", "cli"})
