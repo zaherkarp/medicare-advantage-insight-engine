@@ -539,6 +539,32 @@ class StateStore:
         conn = self._get_conn()
         return conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
 
+    def get_labeled_documents(self) -> list[tuple[str, str]]:
+        """Return ``(title + summary, verdict)`` for owner-labeled stories.
+
+        Only owner channels count (ground truth), and only relevant/irrelevant
+        verdicts (the labels keyword mining needs). The latest owner verdict per
+        story wins, so a correction supersedes an earlier vote.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT s.title AS title, s.summary AS summary, latest.verdict AS verdict
+               FROM stories s
+               JOIN (
+                   SELECT item_id, verdict,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY item_id ORDER BY id DESC
+                          ) AS rn
+                   FROM feedback
+                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+               ) latest
+               ON latest.item_id = s.item_id AND latest.rn = 1
+               WHERE latest.verdict IN ('relevant', 'irrelevant')""",
+        ).fetchall()
+        return [
+            (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
+        ]
+
     # --- Daily Briefing digests ---
 
     def save_digest(

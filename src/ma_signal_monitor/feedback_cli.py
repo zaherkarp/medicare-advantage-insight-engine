@@ -4,6 +4,7 @@ Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
     ma-signal-feedback ingest-github
     ma-signal-feedback ingest-ntfy
+    ma-signal-feedback mine-keywords
     ma-signal-feedback summary <item_id>
     ma-signal-feedback stats
 
@@ -84,6 +85,31 @@ def main() -> None:
                 f"ntfy ingest: scanned {summary['messages']} message(s), "
                 f"recorded {summary['recorded']} new row(s)."
             )
+
+        elif cmd == "mine-keywords":
+            from ma_signal_monitor.keyword_mining import mine_keywords
+
+            res = mine_keywords(store, config)
+            print(
+                f"Labeled stories: {res['positives']} relevant, "
+                f"{res['negatives']} irrelevant."
+            )
+            if not res["inclusion"] and not res["exclusion"]:
+                print("Not enough labels yet (need a few of each). Rate some stories.")
+            else:
+                print("\nInclusion candidates (frequent in relevant, not in taxonomy):")
+                for c in res["inclusion"]:
+                    print(
+                        f"  {c['score']:>6.2f}  {c['term']:<28} "
+                        f"(rel {c['relevant_docs']}, irrel {c['irrelevant_docs']})"
+                    )
+                print("\nExclusion candidates (frequent in irrelevant):")
+                for c in res["exclusion"]:
+                    print(
+                        f"  {c['score']:>6.2f}  {c['term']:<28} "
+                        f"(rel {c['relevant_docs']}, irrel {c['irrelevant_docs']})"
+                    )
+                print("\nReview these and edit taxonomy.yaml by hand.")
 
         elif cmd == "summary" and len(args) >= 2:
             s = store.get_feedback_summary(args[1])

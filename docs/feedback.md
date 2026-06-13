@@ -122,9 +122,29 @@ is advisory — it surfaces the source with a reason like `0/30 relevant (0%), m
 score 0.04`; you confirm the disable by editing `sources.yaml`. This formalizes
 the manual "this feed never produces anything relevant" decision.
 
+## Keyword-candidate mining
+
+```bash
+ma-signal-feedback mine-keywords
+```
+
+Turns owner verdicts into labels (relevant = positive, irrelevant = negative)
+and ranks uni-/bi-grams by the **weighted log-odds ratio with an informative
+Dirichlet prior** (Monroe, Colaresi & Quinn 2008). The z-score controls for
+overall frequency, so distinctive terms — not just common ones — rise to the
+top. It prints two lists with per-term doc counts:
+
+- **Inclusion candidates** — over-represented in *relevant* stories and not
+  already in the taxonomy (new keywords worth adding).
+- **Exclusion candidates** — over-represented in *irrelevant* stories (terms
+  worth treating as negative signal).
+
+It needs a few labels of each class before it produces anything. Output is
+advisory: you review the candidates and edit `taxonomy.yaml` by hand — nothing
+auto-mutates config.
+
 ## What consumes this (planned)
 
-The table is the foundation for, in priority order: keyword-candidate mining
-(owner verdicts as labels), golden-set growth, and a weekly crowd-vs-model
-disagreement digest. None of those auto-mutate config — they all feed review
-queues.
+Still planned, in priority order: golden-set growth (every owner verdict is a
+regression-fixture candidate) and a weekly crowd-vs-model disagreement digest.
+Neither auto-mutates config — they feed review queues.
