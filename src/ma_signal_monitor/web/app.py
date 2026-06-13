@@ -30,6 +30,7 @@ def create_app(
     *,
     enable_scheduler: bool = False,
     project_root: Path | None = None,
+    static_export: bool = False,
 ) -> FastAPI:
     """Build the FastAPI app.
 
@@ -38,6 +39,9 @@ def create_app(
         store: A StateStore opened against the archive DB.
         enable_scheduler: If True, run ingestion on an interval in-process.
         project_root: Root used by the scheduled ingestion run.
+        static_export: If True, templates render for the static GitHub Pages
+            build — interactive controls that POST back (e.g. the feedback
+            widget) are swapped for their static equivalents (giscus).
     """
     app = FastAPI(title="MA Signal Monitor", docs_url=None, redoc_url=None)
     app.state.config = config
@@ -50,6 +54,7 @@ def create_app(
     )
     templates.env.globals["state_name"] = state_name
     templates.env.globals["categories"] = config.categories
+    templates.env.globals["static_site"] = static_export
     app.state.templates = templates
 
     app.mount(

@@ -12,8 +12,19 @@ from urllib.parse import quote_plus
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 
 from ma_signal_monitor.geo import STATE_NAMES, state_name
+from ma_signal_monitor.storage import VALID_VERDICTS
+
+
+class FeedbackIn(BaseModel):
+    """Body of a reader-feedback submission from the live web UI."""
+
+    item_id: str
+    verdict: str
+    suggested_category: str | None = None
+    comment: str | None = Field(default=None, max_length=2000)
 
 
 def _story_view(row: sqlite3.Row) -> dict:
@@ -302,8 +313,44 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         return templates.TemplateResponse(
             request,
             "story.html",
-            {"story": _story_view(row)},
+            {
+                "story": _story_view(row),
+                "feedback": store.get_feedback_summary(item_id),
+            },
         )
+
+    @app.post("/feedback")
+    def submit_feedback(request: Request, payload: FeedbackIn) -> dict:
+        """Record an owner verdict on a story (live app only).
+
+        Static exports can't reach this — the crowd uses giscus instead.
+        """
+        store = request.app.state.store
+        config = request.app.state.config
+        if payload.verdict not in VALID_VERDICTS:
+            raise HTTPException(status_code=400, detail="Unknown verdict")
+        if store.get_story(payload.item_id) is None:
+            raise HTTPException(status_code=404, detail="Story not found")
+        suggested = None
+        if payload.verdict == "wrong_category":
+            valid = {c.key for c in config.categories}
+            if payload.suggested_category not in valid:
+                raise HTTPException(
+                    status_code=400, detail="Unknown suggested_category"
+                )
+            suggested = payload.suggested_category
+        store.add_feedback(
+            payload.item_id,
+            payload.verdict,
+            channel="local_web",
+            suggested_category=suggested,
+            comment=payload.comment,
+        )
+        return {"ok": True, "feedback": store.get_feedback_summary(payload.item_id)}
+
+    @app.get("/about-feedback", response_class=HTMLResponse)
+    def about_feedback(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "about_feedback.html", {})
 
     @app.get("/health")
     def health(request: Request) -> dict:

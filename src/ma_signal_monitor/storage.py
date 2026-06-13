@@ -11,6 +11,15 @@ from ma_signal_monitor.models import DeliveryResult, ScoredItem
 
 logger = logging.getLogger("ma_signal_monitor.storage")
 
+# Allowed reader-feedback verdicts. Kept small and structured (not free-form)
+# so feedback feeds directly into the keyword-mining and source-yield loops.
+VALID_VERDICTS = frozenset(
+    {"relevant", "irrelevant", "wrong_category", "great"}
+)
+# Channels whose votes are owner ground-truth (weight 1.0). Everything else is
+# advisory crowd signal that surfaces things for review but never auto-mutates.
+OWNER_CHANNELS = frozenset({"local_web", "ntfy", "cli"})
+
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS seen_items (
     item_id TEXT PRIMARY KEY,
@@ -101,8 +110,30 @@ CREATE TABLE IF NOT EXISTS candidate_sources (
     status TEXT NOT NULL DEFAULT 'new'
 );
 
+-- Reader feedback on stories. Append-only audit log written by every channel
+-- (local web buttons, ntfy actions, CLI, and later crowd reactions via giscus).
+-- `weight` separates ground-truth owner votes (1.0) from advisory crowd signal
+-- (< 1.0). `source_ref` makes crowd re-ingest idempotent via the partial unique
+-- index below. Rows are never mutated after insert.
+CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    channel TEXT NOT NULL DEFAULT 'local_web',
+    voter_key TEXT,
+    weight REAL NOT NULL DEFAULT 1.0,
+    suggested_category TEXT,
+    comment TEXT,
+    source_ref TEXT,
+    created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_candidate_domains_rank ON candidate_domains(status, relevance_score);
 CREATE INDEX IF NOT EXISTS idx_candidate_sources_rank ON candidate_sources(status, relevance_score);
+CREATE INDEX IF NOT EXISTS idx_feedback_item ON feedback(item_id);
+-- Idempotent crowd ingest: one row per (channel, source_ref) when a ref is set.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_feedback_source_ref
+    ON feedback(channel, source_ref) WHERE source_ref IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_seen_items_first_seen ON seen_items(first_seen_at);
 CREATE INDEX IF NOT EXISTS idx_delivery_log_timestamp ON delivery_log(timestamp);
@@ -438,6 +469,77 @@ class StateStore:
             (since.isoformat(), min_score, limit),
         ).fetchall()
         return rows
+
+    # --- Reader feedback ---
+
+    def add_feedback(
+        self,
+        item_id: str,
+        verdict: str,
+        *,
+        channel: str = "local_web",
+        voter_key: str | None = None,
+        weight: float | None = None,
+        suggested_category: str | None = None,
+        comment: str | None = None,
+        source_ref: str | None = None,
+    ) -> None:
+        """Append a feedback row for a story.
+
+        `weight` defaults to 1.0 for owner channels and 0.2 for everything else
+        unless given explicitly. When `source_ref` is set the insert is
+        idempotent (re-ingesting the same crowd reaction is a no-op).
+        """
+        if verdict not in VALID_VERDICTS:
+            raise ValueError(f"Unknown verdict: {verdict!r}")
+        if weight is None:
+            weight = 1.0 if channel in OWNER_CHANNELS else 0.2
+        conn = self._get_conn()
+        conn.execute(
+            """INSERT OR IGNORE INTO feedback
+               (item_id, verdict, channel, voter_key, weight,
+                suggested_category, comment, source_ref, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                item_id,
+                verdict,
+                channel,
+                voter_key,
+                weight,
+                suggested_category,
+                comment,
+                source_ref,
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        conn.commit()
+
+    def get_feedback_summary(self, item_id: str) -> dict:
+        """Summarize feedback for one story for the UI.
+
+        Returns verdict counts across all channels plus ``my_verdict`` — the
+        most recent owner-channel verdict — so the widget can show prior input.
+        """
+        conn = self._get_conn()
+        counts = {
+            row["verdict"]: row["n"]
+            for row in conn.execute(
+                "SELECT verdict, COUNT(*) AS n FROM feedback "
+                "WHERE item_id = ? GROUP BY verdict",
+                (item_id,),
+            ).fetchall()
+        }
+        owner = conn.execute(
+            "SELECT verdict FROM feedback WHERE item_id = ? AND channel IN "
+            "('local_web', 'ntfy', 'cli') ORDER BY id DESC LIMIT 1",
+            (item_id,),
+        ).fetchone()
+        return {"counts": counts, "my_verdict": owner["verdict"] if owner else None}
+
+    def count_feedback(self) -> int:
+        """Total number of feedback rows recorded (all channels)."""
+        conn = self._get_conn()
+        return conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
 
     # --- Daily Briefing digests ---
 

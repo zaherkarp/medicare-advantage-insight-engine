@@ -21,6 +21,51 @@
       {% for st in story.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
     </div>
 
+    {% if not static_site %}
+      {# Live app: owner feedback widget. Verdicts POST to /feedback. #}
+      <section class="feedback" id="feedback" data-item-id="{{ story.item_id }}"
+        {% if feedback and feedback.my_verdict %}data-my-verdict="{{ feedback.my_verdict }}"{% endif %}>
+        <h2 class="feedback-q">Is this relevant to Medicare Advantage signal-watching?</h2>
+        <div class="feedback-actions" role="group" aria-label="Rate this signal">
+          <button type="button" class="fb-btn" data-verdict="relevant"
+            aria-pressed="{{ 'true' if feedback and feedback.my_verdict == 'relevant' else 'false' }}">
+            👍 <span>Relevant</span></button>
+          <button type="button" class="fb-btn" data-verdict="irrelevant"
+            aria-pressed="{{ 'true' if feedback and feedback.my_verdict == 'irrelevant' else 'false' }}">
+            👎 <span>Not relevant</span></button>
+        </div>
+        <p class="feedback-hint">Your call helps tune what gets surfaced. One tap is plenty.
+          <a class="feedback-what" href="/about-feedback">What's this?</a></p>
+
+        {# Tier 1 — revealed after a first vote. Optional. #}
+        <div class="feedback-more" hidden>
+          <p class="feedback-more-q">Thanks. Want to say a bit more? <span class="muted">(optional)</span></p>
+          <div class="feedback-more-actions">
+            <button type="button" class="fb-chip" data-verdict="wrong_category">Wrong category</button>
+            <label class="fb-cat-label" hidden>it's really about
+              <select class="fb-cat">
+                <option value="">pick a topic…</option>
+                {% for cat in categories %}<option value="{{ cat.key }}">{{ cat.label }}</option>{% endfor %}
+              </select>
+            </label>
+            <button type="button" class="fb-chip" data-verdict="great">⭐ A great one</button>
+          </div>
+        </div>
+        <p class="feedback-done" role="status" aria-live="polite" hidden></p>
+        <p class="feedback-error" role="alert" hidden>Couldn't save that — try again.</p>
+      </section>
+    {% else %}
+      {# Static site: the crowd ranks via giscus reactions instead. #}
+      <section class="feedback feedback-static">
+        <h2 class="feedback-q">Useful signal?</h2>
+        <p class="feedback-hint">Sign in with GitHub below to react 👍 / 👎, or
+          comment if a category looks wrong — your reactions help curate this
+          feed. <a href="/about-feedback">How feedback works</a></p>
+        {# giscus mount — wired in the fast-follow PR (mapping: specific, term = item_id). #}
+        <div class="giscus" data-giscus-term="{{ story.item_id }}"></div>
+      </section>
+    {% endif %}
+
     {% if story.public_draft %}
       {% set d = story.public_draft %}
       <section class="draft">
@@ -47,4 +92,73 @@
 
     <p class="back"><a href="/">← Back to feed</a></p>
   </article>
+
+{% if not static_site %}
+<script>
+(function () {
+  var box = document.getElementById('feedback');
+  if (!box) return;
+  var itemId = box.dataset.itemId;
+  var more = box.querySelector('.feedback-more');
+  var done = box.querySelector('.feedback-done');
+  var err = box.querySelector('.feedback-error');
+  var catLabel = box.querySelector('.fb-cat-label');
+  var catSelect = box.querySelector('.fb-cat');
+
+  function post(payload) {
+    err.hidden = true;
+    return fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ item_id: itemId }, payload))
+    }).then(function (r) {
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      return r.json();
+    });
+  }
+
+  function confirm(msg) {
+    done.textContent = '✓ ' + msg;
+    done.hidden = false;
+  }
+
+  // Tier 0 — relevant / not relevant.
+  box.querySelectorAll('.feedback-actions .fb-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var verdict = btn.dataset.verdict;
+      post({ verdict: verdict }).then(function () {
+        box.querySelectorAll('.feedback-actions .fb-btn').forEach(function (b) {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+        more.hidden = false;
+        confirm('Logged. The filter learns from this over time.');
+      }).catch(function () { err.hidden = false; });
+    });
+  });
+
+  // Tier 1 — "great", and "wrong category" which reveals the topic picker.
+  box.querySelectorAll('.feedback-more .fb-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      if (chip.dataset.verdict === 'wrong_category') {
+        catLabel.hidden = false;
+        catSelect.focus();
+        return;
+      }
+      post({ verdict: chip.dataset.verdict }).then(function () {
+        confirm('Thanks — noted.');
+      }).catch(function () { err.hidden = false; });
+    });
+  });
+
+  if (catSelect) {
+    catSelect.addEventListener('change', function () {
+      if (!catSelect.value) return;
+      post({ verdict: 'wrong_category', suggested_category: catSelect.value })
+        .then(function () { confirm('Category correction saved.'); })
+        .catch(function () { err.hidden = false; });
+    });
+  }
+})();
+</script>
+{% endif %}
 {% endblock %}
