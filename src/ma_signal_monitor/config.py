@@ -49,6 +49,7 @@ class ScoringConfig:
     source_priority_weight: float = 0.10
     multi_category_boost: float = 0.10
     title_keyword_multiplier: float = 1.5
+    exclusion_penalty: float = 0.25  # subtracted per matched soft-exclusion term
 
 
 @dataclass
@@ -71,6 +72,10 @@ class AppConfig:
     categories: list[CategoryConfig] = field(default_factory=list)
     watched_entities: list[str] = field(default_factory=list)
     scoring: ScoringConfig = field(default_factory=ScoringConfig)
+    # Exclusion keywords (see scoring.py). Hard terms veto an item to score 0;
+    # soft terms each subtract scoring.exclusion_penalty.
+    exclusions_hard: list[str] = field(default_factory=list)
+    exclusions_soft: list[str] = field(default_factory=list)
 
     # Delivery settings from app.yaml
     delivery_max_retries: int = 3
@@ -136,6 +141,13 @@ class AppConfig:
     # vote to that topic; ``ma-signal-feedback ingest-ntfy`` polls it back in.
     ntfy_server: str = "https://ntfy.sh"
     ntfy_feedback_topic: str = ""
+
+    # Source-yield review policy (see docs/feedback.md / source_review.py). A
+    # source is flagged for review once it has this many items but a relevance
+    # yield below the floor and a best score below the max-score floor.
+    source_review_min_sample: int = 25
+    source_review_yield_floor: float = 0.05
+    source_review_max_score_floor: float = 0.2
 
     @property
     def giscus_enabled(self) -> bool:
@@ -208,6 +220,11 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         giscus_theme=os.getenv("GISCUS_THEME", "light"),
         ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
         ntfy_feedback_topic=os.getenv("NTFY_FEEDBACK_TOPIC", ""),
+        source_review_min_sample=int(os.getenv("SOURCE_REVIEW_MIN_SAMPLE", "25")),
+        source_review_yield_floor=float(os.getenv("SOURCE_REVIEW_YIELD_FLOOR", "0.05")),
+        source_review_max_score_floor=float(
+            os.getenv("SOURCE_REVIEW_MAX_SCORE_FLOOR", "0.2")
+        ),
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),
@@ -347,6 +364,10 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
     config.categories = categories
     config.watched_entities = data.get("watched_entities", [])
 
+    exclusions = data.get("exclusions", {}) or {}
+    config.exclusions_hard = exclusions.get("hard", []) or []
+    config.exclusions_soft = exclusions.get("soft", []) or []
+
     scoring_data = data.get("scoring", {})
     config.scoring = ScoringConfig(
         keyword_match_base=scoring_data.get("keyword_match_base", 0.15),
@@ -354,6 +375,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         source_priority_weight=scoring_data.get("source_priority_weight", 0.10),
         multi_category_boost=scoring_data.get("multi_category_boost", 0.10),
         title_keyword_multiplier=scoring_data.get("title_keyword_multiplier", 1.5),
+        exclusion_penalty=scoring_data.get("exclusion_penalty", 0.25),
     )
 
 

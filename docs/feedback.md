@@ -105,9 +105,86 @@ here and is never exposed to the browser (unlike the `GISCUS_*` values).
 Discussions whose title doesn't match a known story (e.g. ad-hoc threads in the
 category) are skipped.
 
+## Source-yield review
+
+Separately from per-story feedback, the **Status** page (`/status`) shows a
+per-source relevance-yield table: for each source, how many of its stories
+cleared `MIN_RELEVANCE_SCORE`, the resulting yield, and its best-ever score
+(worst performers first). A source is **flagged for review** once it has a fair
+sample but still under-delivers:
+
+- at least `SOURCE_REVIEW_MIN_SAMPLE` stories (default 25), **and**
+- yield below `SOURCE_REVIEW_YIELD_FLOOR` (default 5%), **and**
+- max score below `SOURCE_REVIEW_MAX_SCORE_FLOOR` (default 0.2).
+
+The third clause spares a source that occasionally lands a strong hit. Flagging
+is advisory — it surfaces the source with a reason like `0/30 relevant (0%), max
+score 0.04`; you confirm the disable by editing `sources.yaml`. This formalizes
+the manual "this feed never produces anything relevant" decision.
+
+## Keyword-candidate mining
+
+```bash
+ma-signal-feedback mine-keywords
+```
+
+Turns owner verdicts into labels (relevant = positive, irrelevant = negative)
+and ranks uni-/bi-grams by the **weighted log-odds ratio with an informative
+Dirichlet prior** (Monroe, Colaresi & Quinn 2008). The z-score controls for
+overall frequency, so distinctive terms — not just common ones — rise to the
+top. It prints two lists with per-term doc counts:
+
+- **Inclusion candidates** — over-represented in *relevant* stories and not
+  already in the taxonomy (new keywords worth adding).
+- **Exclusion candidates** — over-represented in *irrelevant* stories (terms
+  worth treating as negative signal).
+
+It needs a few labels of each class before it produces anything. Output is
+advisory: you review the candidates and edit `taxonomy.yaml` by hand — nothing
+auto-mutates config.
+
+### Acting on exclusions
+
+`taxonomy.yaml` has an `exclusions` block that the scorer reads:
+
+```yaml
+exclusions:
+  hard: ["high school sports"]   # a match vetoes the item to score 0
+  soft: ["webinar", "podcast"]   # each match subtracts scoring.exclusion_penalty
+```
+
+Hard vetoes are surgical kill-switches for unambiguous off-topic noise — a
+hard-vetoed item is still **archived** (with an `exclusion_veto` reason), never
+silently dropped. Soft terms nudge borderline items down (`exclusion_keyword`
+reason). Move mined exclusion candidates here once you trust them.
+
+## Disagreement digest
+
+```bash
+ma-signal-feedback disagreements
+```
+
+Pairs each owner-labeled story with the score the relevance scorer gave it and
+surfaces the two places they diverge — the most direct signal for where the
+scorer needs tuning:
+
+- **Over-scored** — the scorer cleared it (score ≥ `MIN_RELEVANCE_SCORE`) but you
+  marked it *irrelevant*. False positives: candidates for a new exclusion keyword
+  (see above) or a category weight trim.
+- **Under-scored** — the scorer buried it (below the threshold) but you marked it
+  *relevant* / *great*. False negatives: candidates for a new inclusion keyword or
+  a golden-set fixture.
+
+Each side is ranked by `gap` — how far the score sits from the threshold — so the
+worst mismatches sort to the top. Only owner channels count as ground truth, the
+latest verdict per story wins, and `wrong_category` is ignored (it concerns
+categorization, not relevance). Output is advisory: it feeds the review queue, it
+does not mutate config.
+
 ## What consumes this (planned)
 
-The table is the foundation for, in priority order: keyword-candidate mining
-(owner verdicts as labels), per-source yield review, golden-set growth, and a
-weekly crowd-vs-model disagreement digest. None of those auto-mutate config —
-they all feed review queues.
+The feedback loop is now closed end to end: owner verdicts feed keyword mining,
+the disagreement digest, and golden-set growth (every owner verdict is a
+regression-fixture candidate). Next up is folding weighted *crowd* signal into
+the disagreement digest alongside owner ground truth. None of these auto-mutate
+config — they feed review queues.

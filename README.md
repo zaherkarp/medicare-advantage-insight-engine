@@ -207,8 +207,16 @@ If `WEBHOOK_MODE=ntfy`, alerts can also carry 👍/👎 buttons (set
 ma-signal-feedback mark <item_id> relevant   # record an owner verdict (weight 1.0)
 ma-signal-feedback ingest-github             # pull giscus reactions into the DB
 ma-signal-feedback ingest-ntfy               # pull ntfy 👍/👎 votes into the DB
+ma-signal-feedback mine-keywords             # suggest taxonomy keywords from labels
+ma-signal-feedback disagreements             # stories where your verdicts diverge from the scorer
 ma-signal-feedback summary <item_id>         # show verdicts for one story
 ```
+
+The `/status` page also flags low-yield sources for review, `mine-keywords`
+proposes inclusion/exclusion keyword candidates from your verdicts, and
+`disagreements` lists stories the scorer over- or under-valued relative to your
+verdicts — all advisory, with you confirming changes to `sources.yaml` /
+`taxonomy.yaml`.
 
 Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
 (weight < 1.0) and never auto-change scoring or sources on their own. See

@@ -7,6 +7,7 @@ Implements a transparent, explainable scoring model based on:
 - Multi-category matches
 """
 
+import functools
 import logging
 import re
 
@@ -16,10 +17,26 @@ from ma_signal_monitor.models import NormalizedItem, ScoredItem, ScoringReason
 logger = logging.getLogger("ma_signal_monitor.scoring")
 
 
+@functools.lru_cache(maxsize=2048)
+def _keyword_pattern(keyword: str) -> re.Pattern:
+    """Compile a case-insensitive, whole-token matcher for a keyword.
+
+    Uses lookarounds rather than ``\\b`` so keywords with punctuation at their
+    edges (e.g. ``value-based``, ``C-SNP``) still match as whole tokens. This
+    prevents substring false positives like ``SNP`` in "snippet", ``bid`` in
+    "forbidden", or ``MA`` in "Massachusetts".
+
+    An optional trailing ``s``/``es`` is allowed so a singular keyword still
+    matches its plural (``premium`` → "premiums", ``rating`` → "ratings")
+    without re-opening the substring problem — ``MA`` still won't match
+    "Massachusetts".
+    """
+    return re.compile(rf"(?<!\w){re.escape(keyword)}(?:es|s)?(?!\w)", re.IGNORECASE)
+
+
 def _keyword_in_text(keyword: str, text: str) -> bool:
-    """Check if a keyword appears in text (case-insensitive, word boundary aware)."""
-    pattern = re.compile(re.escape(keyword), re.IGNORECASE)
-    return bool(pattern.search(text))
+    """Check if a keyword appears in text (case-insensitive, whole-token)."""
+    return bool(_keyword_pattern(keyword).search(text))
 
 
 def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
@@ -114,8 +131,38 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
             )
         )
 
-    # Clamp to [0.0, 1.0]
-    final_score = min(1.0, max(0.0, raw_score))
+    # 5. Exclusion keywords. Soft terms each subtract a penalty (kept in the
+    # reasons so the score stays explainable); a hard term vetoes the item to 0
+    # but the item is still archived with the veto reason — never silently
+    # dropped (see docs/assumptions.md: false positives over false negatives).
+    for term in config.exclusions_soft:
+        if _keyword_in_text(term, text_combined):
+            raw_score -= sc.exclusion_penalty
+            reasons.append(
+                ScoringReason(
+                    factor="exclusion_keyword",
+                    detail=f"soft exclusion '{term}'",
+                    contribution=-sc.exclusion_penalty,
+                )
+            )
+
+    vetoed_by = next(
+        (t for t in config.exclusions_hard if _keyword_in_text(t, text_combined)),
+        None,
+    )
+    if vetoed_by is not None:
+        removed = round(max(0.0, raw_score), 3)
+        reasons.append(
+            ScoringReason(
+                factor="exclusion_veto",
+                detail=f"hard exclusion '{vetoed_by}' forces score to 0",
+                contribution=-removed,
+            )
+        )
+        final_score = 0.0
+    else:
+        # Clamp to [0.0, 1.0]
+        final_score = min(1.0, max(0.0, raw_score))
 
     return ScoredItem(
         item=item,

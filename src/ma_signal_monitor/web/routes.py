@@ -379,6 +379,11 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             for c in config.categories
         ]
         latest_digest = store.get_latest_digest()
+        from ma_signal_monitor.source_review import flag_low_yield_sources
+
+        source_yield = store.get_source_yield(config.min_relevance_score)
+        flagged = flag_low_yield_sources(source_yield, config)
+        flagged_names = {f["source"] for f in flagged}
         return templates.TemplateResponse(
             request,
             "status.html",
@@ -395,5 +400,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "fts_enabled": store.fts_enabled,
                 "ingest_interval_hours": config.ingest_interval_hours,
                 "digest_enabled": config.digest_enabled,
+                "source_yield": source_yield,
+                "flagged_sources": flagged,
+                "flagged_names": flagged_names,
+                "min_relevance_score": config.min_relevance_score,
             },
         )

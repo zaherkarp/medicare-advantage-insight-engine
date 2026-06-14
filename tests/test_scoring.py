@@ -3,7 +3,29 @@
 from datetime import datetime
 
 from ma_signal_monitor.models import NormalizedItem
-from ma_signal_monitor.scoring import score_item, score_items
+from ma_signal_monitor.scoring import _keyword_in_text, score_item, score_items
+
+
+class TestKeywordMatching:
+    """Whole-token keyword matching (precision over substring search)."""
+
+    def test_matches_whole_word(self):
+        assert _keyword_in_text("MLR", "the MLR rose sharply")
+        assert _keyword_in_text("star rating", "a new star rating method")
+
+    def test_rejects_substring_false_positives(self):
+        assert not _keyword_in_text("SNP", "see the snippet below")
+        assert not _keyword_in_text("bid", "this is forbidden")
+        assert not _keyword_in_text("MA", "based in Massachusetts")
+
+    def test_allows_plural(self):
+        assert _keyword_in_text("premium", "premiums increased")
+        assert _keyword_in_text("rating", "star ratings changed")
+        assert _keyword_in_text("box", "several boxes shipped")
+
+    def test_handles_punctuation_edged_keywords(self):
+        assert _keyword_in_text("value-based", "a value-based contract")
+        assert _keyword_in_text("C-SNP", "enrolled in a C-SNP plan")
 
 
 class TestScoring:
@@ -160,3 +182,42 @@ class TestScoring:
         score_high = score_item(item_high, sample_config)
         score_low = score_item(item_low, sample_config)
         assert score_high.relevance_score > score_low.relevance_score
+
+
+class TestExclusions:
+    """Hard veto and soft penalty exclusion keywords."""
+
+    def _item(self):
+        return NormalizedItem(
+            item_id="ex001",
+            source_name="Test",
+            source_type="rss",
+            source_priority=4,
+            source_tags=[],
+            title="UnitedHealthcare expands enrollment to new counties",
+            link="https://x.com/1",
+            published_date=datetime(2024, 1, 1),
+            summary="Medicare Advantage service area enrollment grows.",
+        )
+
+    def test_soft_penalty_lowers_score(self, sample_config):
+        base = score_item(self._item(), sample_config).relevance_score
+        sample_config.exclusions_soft = ["counties"]
+        scored = score_item(self._item(), sample_config)
+        assert scored.relevance_score == round(
+            base - sample_config.scoring.exclusion_penalty, 3
+        )
+        assert any(r.factor == "exclusion_keyword" for r in scored.reasons)
+
+    def test_hard_veto_forces_zero(self, sample_config):
+        sample_config.exclusions_hard = ["counties"]
+        scored = score_item(self._item(), sample_config)
+        assert scored.relevance_score == 0.0
+        assert any(r.factor == "exclusion_veto" for r in scored.reasons)
+
+    def test_no_exclusions_unchanged(self, sample_config):
+        # Default config has empty exclusion lists → no exclusion reasons.
+        scored = score_item(self._item(), sample_config)
+        assert not any(
+            r.factor in ("exclusion_keyword", "exclusion_veto") for r in scored.reasons
+        )

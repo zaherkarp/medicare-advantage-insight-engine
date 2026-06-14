@@ -539,6 +539,70 @@ class StateStore:
         conn = self._get_conn()
         return conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
 
+    def get_labeled_documents(self) -> list[tuple[str, str]]:
+        """Return ``(title + summary, verdict)`` for owner-labeled stories.
+
+        Only owner channels count (ground truth), and only relevant/irrelevant
+        verdicts (the labels keyword mining needs). The latest owner verdict per
+        story wins, so a correction supersedes an earlier vote.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT s.title AS title, s.summary AS summary, latest.verdict AS verdict
+               FROM stories s
+               JOIN (
+                   SELECT item_id, verdict,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY item_id ORDER BY id DESC
+                          ) AS rn
+                   FROM feedback
+                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+               ) latest
+               ON latest.item_id = s.item_id AND latest.rn = 1
+               WHERE latest.verdict IN ('relevant', 'irrelevant')""",
+        ).fetchall()
+        return [
+            (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
+        ]
+
+    def get_scored_owner_feedback(self) -> list[dict]:
+        """Pair each labeled story's scorer score with its latest owner verdict.
+
+        Joins the story archive (which carries the scorer's ``relevance_score``)
+        to the most recent owner-channel verdict per story, keeping only the
+        relevance verdicts the disagreement digest reasons about
+        (``relevant`` / ``great`` / ``irrelevant``). ``wrong_category`` is a
+        categorization signal, not a relevance one, so it is excluded here.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT s.item_id AS item_id, s.title AS title, s.link AS link,
+                      s.source_name AS source, s.relevance_score AS score,
+                      latest.verdict AS verdict
+               FROM stories s
+               JOIN (
+                   SELECT item_id, verdict,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY item_id ORDER BY id DESC
+                          ) AS rn
+                   FROM feedback
+                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+               ) latest
+               ON latest.item_id = s.item_id AND latest.rn = 1
+               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""",
+        ).fetchall()
+        return [
+            {
+                "item_id": r["item_id"],
+                "title": r["title"],
+                "link": r["link"],
+                "source": r["source"],
+                "score": r["score"],
+                "verdict": r["verdict"],
+            }
+            for r in rows
+        ]
+
     # --- Daily Briefing digests ---
 
     def save_digest(
@@ -689,6 +753,45 @@ class StateStore:
             "SELECT source_name AS s, COUNT(*) AS n FROM stories GROUP BY source_name"
         ).fetchall()
         return {r["s"]: r["n"] for r in rows}
+
+    def get_source_yield(self, min_score: float) -> list[dict]:
+        """Per-source relevance yield for the source-review report.
+
+        For each source that has contributed stories, returns the total ingested,
+        how many cleared ``min_score``, the resulting yield fraction, mean/max
+        score, and last-fetched date. Ordered worst-yield first so low performers
+        surface at the top. This is read-only — flagging/disabling is a separate,
+        human-confirmed step (see ``source_review``).
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT source_name AS source,
+                      COUNT(*) AS total,
+                      SUM(CASE WHEN relevance_score >= ? THEN 1 ELSE 0 END) AS relevant,
+                      AVG(relevance_score) AS mean_score,
+                      MAX(relevance_score) AS max_score,
+                      MAX(fetched_at) AS last_fetched
+               FROM stories
+               GROUP BY source_name""",
+            (min_score,),
+        ).fetchall()
+        stats = []
+        for r in rows:
+            total = r["total"] or 0
+            relevant = r["relevant"] or 0
+            stats.append(
+                {
+                    "source": r["source"],
+                    "total": total,
+                    "relevant": relevant,
+                    "yield": (relevant / total) if total else 0.0,
+                    "mean_score": r["mean_score"] or 0.0,
+                    "max_score": r["max_score"] or 0.0,
+                    "last_fetched": (r["last_fetched"] or "")[:10],
+                }
+            )
+        stats.sort(key=lambda s: (s["yield"], s["max_score"]))
+        return stats
 
     # --- Source Discovery ---
 

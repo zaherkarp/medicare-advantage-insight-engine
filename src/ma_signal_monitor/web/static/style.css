@@ -178,6 +178,9 @@ a.badge:hover { text-decoration: none; opacity: 0.85; }
 .status-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .status-table th { text-align: left; font-weight: 600; color: #41506a; padding: 7px 10px; border-bottom: 1px solid var(--border); width: 60%; }
 .status-table td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.review-flag { background: #fdeceb; border: 1px solid #f3c7c4; color: #8a2820; border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; }
+.yield-table th { width: auto; }
+.yield-table tr.flagged th, .yield-table tr.flagged td { background: #fdf3f2; }
 
 /* Reader feedback widget */
 .feedback {

@@ -4,6 +4,8 @@ Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
     ma-signal-feedback ingest-github
     ma-signal-feedback ingest-ntfy
+    ma-signal-feedback mine-keywords
+    ma-signal-feedback disagreements
     ma-signal-feedback summary <item_id>
     ma-signal-feedback stats
 
@@ -84,6 +86,63 @@ def main() -> None:
                 f"ntfy ingest: scanned {summary['messages']} message(s), "
                 f"recorded {summary['recorded']} new row(s)."
             )
+
+        elif cmd == "mine-keywords":
+            from ma_signal_monitor.keyword_mining import mine_keywords
+
+            res = mine_keywords(store, config)
+            print(
+                f"Labeled stories: {res['positives']} relevant, "
+                f"{res['negatives']} irrelevant."
+            )
+            if not res["inclusion"] and not res["exclusion"]:
+                print("Not enough labels yet (need a few of each). Rate some stories.")
+            else:
+                print("\nInclusion candidates (frequent in relevant, not in taxonomy):")
+                for c in res["inclusion"]:
+                    print(
+                        f"  {c['score']:>6.2f}  {c['term']:<28} "
+                        f"(rel {c['relevant_docs']}, irrel {c['irrelevant_docs']})"
+                    )
+                print("\nExclusion candidates (frequent in irrelevant):")
+                for c in res["exclusion"]:
+                    print(
+                        f"  {c['score']:>6.2f}  {c['term']:<28} "
+                        f"(rel {c['relevant_docs']}, irrel {c['irrelevant_docs']})"
+                    )
+                print("\nReview these and edit taxonomy.yaml by hand.")
+
+        elif cmd == "disagreements":
+            from ma_signal_monitor.disagreement import find_disagreements
+
+            rows = store.get_scored_owner_feedback()
+            res = find_disagreements(rows, config.min_relevance_score)
+            print(
+                f"Owner-labeled stories vs. the scorer: {res['labeled']} "
+                f"(threshold {config.min_relevance_score:.2f})."
+            )
+            if not res["over_scored"] and not res["under_scored"]:
+                if res["labeled"] == 0:
+                    print("No owner-labeled stories yet. Rate some stories first.")
+                else:
+                    print("No disagreements — the scorer and your verdicts agree. 🎉")
+            else:
+
+                def _print(rows: list[dict]) -> None:
+                    for e in rows:
+                        print(
+                            f"  +{e['gap']:>5.2f}  score {e['score']:.2f}  "
+                            f"{e['source'][:18]:<18}  {e['title'][:48]}"
+                        )
+
+                print("\nOver-scored (scorer cleared it, you marked irrelevant):")
+                _print(res["over_scored"])
+                print("\nUnder-scored (scorer buried it, you marked relevant):")
+                _print(res["under_scored"])
+                print(
+                    "\nOver-scored → exclusion-keyword / weight candidates; "
+                    "under-scored → inclusion-keyword / golden-set candidates."
+                )
 
         elif cmd == "summary" and len(args) >= 2:
             s = store.get_feedback_summary(args[1])

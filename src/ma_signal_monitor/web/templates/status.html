@@ -65,6 +65,33 @@
   </section>
 
   <section class="status-section">
+    <h2>Source relevance yield</h2>
+    {% if flagged_sources %}
+      <p class="review-flag">⚠ {{ flagged_sources|length }} source{{ '' if flagged_sources|length == 1 else 's' }}
+        flagged for review — low relevance yield after a fair sample. Confirm
+        before disabling in <code>sources.yaml</code>.</p>
+    {% endif %}
+    {% if source_yield %}
+      <table class="status-table yield-table">
+        <tr><th>Source</th><th>Relevant / total</th><th>Yield</th><th>Max</th><th>Last</th></tr>
+        {% for s in source_yield %}
+          <tr class="{{ 'flagged' if s.source in flagged_names else '' }}">
+            <th>{{ s.source }}{% if s.source in flagged_names %} <span class="badge badge-off">review</span>{% endif %}</th>
+            <td>{{ s.relevant }} / {{ s.total }}</td>
+            <td>{{ '%.0f'|format(s['yield'] * 100) }}%</td>
+            <td>{{ '%.2f'|format(s.max_score) }}</td>
+            <td>{{ s.last_fetched }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+      <p class="muted">Yield = share of a source's stories scoring ≥
+        {{ '%.2f'|format(min_relevance_score) }}. Worst performers first.</p>
+    {% else %}
+      <p class="empty">No stories archived yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="status-section">
     <h2>Daily Briefing</h2>
     {% if latest_digest %}
       <p>Latest: <a href="/briefing">{{ latest_digest['digest_date'] }}</a>
