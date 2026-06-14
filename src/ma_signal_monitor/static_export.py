@@ -58,6 +58,8 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = "search.html"
     elif path == "/status":
         tail = "status.html"
+    elif path == "/about-feedback":
+        tail = "about-feedback.html"
     else:
         return path_with_q  # unknown — leave as-is
     return f"{base}/{tail}"
@@ -185,7 +187,7 @@ def build_site(
 
     # Render against a single page so paginated feeds fit without ?page= links.
     config.web_page_size = _MAX_STORY_PAGES
-    app = create_app(config, store)
+    app = create_app(config, store, static_export=True)
     # A known origin so we can strip it: Starlette's url_for() (used for static
     # assets) emits absolute URLs against the client base.
     origin = "https://export.local"
@@ -202,6 +204,7 @@ def build_site(
     grab("/candidates", "candidates.html")
     grab("/states", "states.html")
     grab("/status", "status.html")
+    grab("/about-feedback", "about-feedback.html")
     grab("/briefing", "briefing.html")
 
     for c in config.categories:

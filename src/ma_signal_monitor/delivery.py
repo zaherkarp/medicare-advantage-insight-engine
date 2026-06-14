@@ -22,18 +22,23 @@ from ma_signal_monitor.renderers.teams import render_teams
 logger = logging.getLogger("ma_signal_monitor.delivery")
 
 
-def _render_payload(alert: Alert, mode: str) -> dict:
+def _render_payload(alert: Alert, config: AppConfig) -> dict:
     """Render an alert into the appropriate payload format.
 
     Args:
         alert: The alert to render.
-        mode: Webhook mode ("generic", "teams", "test").
+        config: Application configuration (mode + ntfy feedback settings).
 
     Returns:
         Dictionary payload for JSON serialization.
     """
+    mode = config.webhook_mode
     if mode == "ntfy":
-        return render_ntfy(alert)
+        return render_ntfy(
+            alert,
+            feedback_topic=config.ntfy_feedback_topic,
+            ntfy_server=config.ntfy_server,
+        )
     if mode == "teams":
         return render_teams(alert)
     # "generic" and "test" both use the generic renderer
@@ -58,7 +63,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
     backoff_base = config.delivery_retry_backoff_base
     timeout = config.delivery_timeout
 
-    payload = _render_payload(alert, mode)
+    payload = _render_payload(alert, config)
 
     if mode == "test" and not url:
         logger.info(

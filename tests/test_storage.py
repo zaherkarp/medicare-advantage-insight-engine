@@ -269,3 +269,56 @@ class TestStateStore:
         store2 = StateStore(db_path)
         assert store2.is_seen("persist_item")
         store2.close()
+
+
+class TestFeedback:
+    """Reader-feedback storage."""
+
+    def test_add_and_summarize(self, temp_db):
+        temp_db.add_feedback("item-1", "relevant")
+        temp_db.add_feedback("item-1", "irrelevant")  # later owner vote wins
+        summary = temp_db.get_feedback_summary("item-1")
+        assert summary["my_verdict"] == "irrelevant"
+        assert summary["counts"] == {"relevant": 1, "irrelevant": 1}
+        assert temp_db.count_feedback() == 2
+
+    def test_owner_vs_crowd_weight(self, temp_db):
+        temp_db.add_feedback("item-1", "relevant", channel="local_web")
+        temp_db.add_feedback(
+            "item-1", "relevant", channel="github", voter_key="octocat"
+        )
+        conn = temp_db._get_conn()
+        weights = {
+            r["channel"]: r["weight"]
+            for r in conn.execute(
+                "SELECT channel, weight FROM feedback WHERE item_id = 'item-1'"
+            )
+        }
+        assert weights["local_web"] == 1.0
+        assert weights["github"] < 1.0
+
+    def test_crowd_ingest_is_idempotent(self, temp_db):
+        # Same (channel, source_ref) ingested twice → one row.
+        for _ in range(2):
+            temp_db.add_feedback(
+                "item-1",
+                "relevant",
+                channel="github",
+                voter_key="octocat",
+                source_ref="discussion:1#reaction:9",
+            )
+        assert temp_db.count_feedback() == 1
+
+    def test_my_verdict_ignores_crowd(self, temp_db):
+        temp_db.add_feedback("item-1", "relevant", channel="local_web")
+        temp_db.add_feedback(
+            "item-1", "irrelevant", channel="github", voter_key="octocat"
+        )
+        # Crowd vote does not override the owner's verdict readout.
+        assert temp_db.get_feedback_summary("item-1")["my_verdict"] == "relevant"
+
+    def test_invalid_verdict_rejected(self, temp_db):
+        import pytest
+
+        with pytest.raises(ValueError):
+            temp_db.add_feedback("item-1", "bogus")

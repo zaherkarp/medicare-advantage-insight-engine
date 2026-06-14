@@ -142,3 +142,72 @@ def test_status_page(client):
     assert "System Status" in resp.text
     assert "Stories by topic" in resp.text
     assert "Test Feed" in resp.text  # source listed
+
+
+def test_feed_cards_have_lightweight_rating(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "card-feedback" in resp.text
+    assert 'data-verdict="relevant"' in resp.text
+
+
+def test_story_renders_feedback_widget(client):
+    resp = client.get("/story/story-a")
+    assert resp.status_code == 200
+    assert 'id="feedback"' in resp.text
+    assert "Is this relevant" in resp.text
+    assert 'data-verdict="relevant"' in resp.text
+
+
+def test_about_feedback_page(client):
+    resp = client.get("/about-feedback")
+    assert resp.status_code == 200
+    assert "How feedback works" in resp.text
+
+
+def test_submit_feedback_relevant(client, temp_db):
+    resp = client.post("/feedback", json={"item_id": "story-a", "verdict": "relevant"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["feedback"]["my_verdict"] == "relevant"
+    assert body["feedback"]["counts"]["relevant"] == 1
+
+
+def test_submit_feedback_is_reflected_on_reload(client):
+    client.post("/feedback", json={"item_id": "story-b", "verdict": "irrelevant"})
+    resp = client.get("/story/story-b")
+    # The 👎 button should come back pre-pressed.
+    assert 'data-verdict="irrelevant"' in resp.text
+    assert 'aria-pressed="true"' in resp.text
+
+
+def test_submit_feedback_unknown_story_404(client):
+    resp = client.post("/feedback", json={"item_id": "nope", "verdict": "relevant"})
+    assert resp.status_code == 404
+
+
+def test_submit_feedback_bad_verdict_400(client):
+    resp = client.post("/feedback", json={"item_id": "story-a", "verdict": "spam"})
+    assert resp.status_code == 400
+
+
+def test_wrong_category_requires_valid_category(client):
+    bad = client.post(
+        "/feedback",
+        json={
+            "item_id": "story-a",
+            "verdict": "wrong_category",
+            "suggested_category": "not_a_topic",
+        },
+    )
+    assert bad.status_code == 400
+    good = client.post(
+        "/feedback",
+        json={
+            "item_id": "story-a",
+            "verdict": "wrong_category",
+            "suggested_category": "policy_regulatory",
+        },
+    )
+    assert good.status_code == 200

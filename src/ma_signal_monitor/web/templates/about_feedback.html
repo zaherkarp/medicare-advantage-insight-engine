@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}How feedback works — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>How feedback works</h1>
+    <p class="subtitle">A 30-second guide — no expertise required.</p>
+  </section>
+
+  <article class="prose">
+    <p>This site watches the news for developments worth following in
+      <strong>Medicare Advantage</strong> — the privately-run version of
+      Medicare. A piece of software reads many sources and tries to surface the
+      stories that matter. It isn't perfect, so it learns from people.</p>
+
+    <h2>What a "signal" means</h2>
+    <p>A signal is just a news story the system thinks is relevant — a policy
+      change, an enrollment shift, a financial pressure, a strategic move. Each
+      one gets a relevance score, and the ones that clear the bar show up in the
+      feed.</p>
+
+    <h2>What you can do (only if you want to)</h2>
+    <ul>
+      <li><strong>👍 Relevant / 👎 Not relevant</strong> — one tap on any story
+        tells the filter whether it got that one right. This is the most useful
+        thing you can do, and it takes a second.</li>
+      <li><strong>Wrong category</strong> — if a story is on-topic but filed
+        under the wrong heading, you can point it to the right one. This helps
+        more than almost anything else, but it's entirely optional.</li>
+      <li><strong>Comment</strong> — on the public site you can sign in with
+        GitHub and leave a note or react. Your reactions help curate the feed
+        for everyone.</li>
+    </ul>
+
+    <h2>Is anything published?</h2>
+    <p>No. Nothing you click here is posted anywhere. Your input simply adjusts
+      what the system surfaces over time — it's a dial, not a megaphone. On the
+      live app no account is needed; on the public site you sign in with GitHub
+      so reactions can be attributed and kept spam-free.</p>
+
+    <h2>Does it change instantly?</h2>
+    <p>No — and that's deliberate. Feedback is collected and reviewed before it
+      changes how stories are scored, so one stray tap never throws things off.
+      Over time, the pattern of what people mark relevant teaches the filter to
+      do better.</p>
+
+    <p class="back"><a href="/">← Back to feed</a></p>
+  </article>
+{% endblock %}

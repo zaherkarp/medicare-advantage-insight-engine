@@ -99,3 +99,36 @@ def test_root_base_path(tmp_path, sample_config, temp_db):
     index = (out / "index.html").read_text()
     assert "/story/a1.html" in index
     assert "/static/style.css" in index
+
+
+def test_static_story_omits_post_widget(tmp_path, sample_config, temp_db):
+    _seed(temp_db, "a1", "A story", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db, base="")
+    story = (out / "story" / "a1.html").read_text()
+    # Static export drops the interactive POST widget (no server to post to).
+    assert "fetch('/feedback'" not in story
+    # The explainer page is exported too.
+    assert (out / "about-feedback.html").exists()
+
+
+def test_static_feed_omits_card_rating(tmp_path, sample_config, temp_db):
+    _seed(temp_db, "a1", "A story", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db, base="")
+    index = (out / "index.html").read_text()
+    # No dead POST controls on the static feed.
+    assert "card-feedback" not in index
+    assert '"/feedback"' not in index
+
+
+def test_static_story_mounts_giscus_when_configured(tmp_path, sample_config, temp_db):
+    _seed(temp_db, "a1", "A story", category="policy_regulatory")
+    sample_config.giscus_repo = "owner/repo"
+    sample_config.giscus_repo_id = "R_kgABC"
+    sample_config.giscus_category_id = "DIC_kwABC"
+    out, _ = _build(tmp_path, sample_config, temp_db, base="")
+    story = (out / "story" / "a1.html").read_text()
+    # giscus binds to the story's stable item_id via mapping: specific.
+    assert "giscus.app/client.js" in story
+    assert 'data-mapping="specific"' in story
+    assert 'data-term="a1"' in story
+    assert 'data-repo="owner/repo"' in story

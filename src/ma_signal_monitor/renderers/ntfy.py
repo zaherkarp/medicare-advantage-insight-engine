@@ -7,6 +7,8 @@ and click-through URLs — all free and without signup.
 See: https://docs.ntfy.sh/publish/#publish-as-json
 """
 
+import json
+
 from ma_signal_monitor.models import Alert
 
 
@@ -44,12 +46,45 @@ _CONFIDENCE_LABEL = {
 }
 
 
-def render_ntfy(alert: Alert, topic: str = "") -> dict:
+def _feedback_actions(
+    item_id: str, feedback_topic: str, ntfy_server: str
+) -> list[dict]:
+    """Build 👍/👎 http action buttons that publish a vote to a feedback topic.
+
+    Each button POSTs a small JSON body (``{item_id, verdict}``) to the feedback
+    topic; ``ma-signal-feedback ingest-ntfy`` polls that topic back into the
+    store. ``clear`` is left false so a tap doesn't dismiss the notification.
+    """
+    url = f"{ntfy_server.rstrip('/')}/{feedback_topic}"
+    return [
+        {
+            "action": "http",
+            "label": f"{emoji} {label}",
+            "url": url,
+            "method": "POST",
+            "body": json.dumps({"item_id": item_id, "verdict": verdict}),
+        }
+        for emoji, label, verdict in (
+            ("👍", "Relevant", "relevant"),
+            ("👎", "Not relevant", "irrelevant"),
+        )
+    ]
+
+
+def render_ntfy(
+    alert: Alert,
+    topic: str = "",
+    *,
+    feedback_topic: str = "",
+    ntfy_server: str = "https://ntfy.sh",
+) -> dict:
     """Render an alert as an ntfy.sh JSON payload.
 
     Args:
         alert: The alert to render.
         topic: Ntfy topic name (extracted from URL at delivery time if empty).
+        feedback_topic: If set, add 👍/👎 buttons publishing votes to this topic.
+        ntfy_server: Base ntfy server URL for the feedback buttons.
 
     Returns:
         A dictionary for JSON POST to ntfy.sh.
@@ -117,14 +152,23 @@ def render_ntfy(alert: Alert, topic: str = "") -> dict:
     if topic:
         payload["topic"] = topic
 
+    actions: list[dict] = []
     if internal.source_url:
         payload["click"] = internal.source_url
-        payload["actions"] = [
+        actions.append(
             {
                 "action": "view",
                 "label": "View Source",
                 "url": internal.source_url,
             }
-        ]
+        )
+
+    item_id = alert.scored_item.item.item_id if alert.scored_item else ""
+    if feedback_topic and item_id:
+        actions.extend(_feedback_actions(item_id, feedback_topic, ntfy_server))
+
+    # ntfy caps notifications at 3 action buttons.
+    if actions:
+        payload["actions"] = actions[:3]
 
     return payload

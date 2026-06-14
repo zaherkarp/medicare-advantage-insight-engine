@@ -120,6 +120,35 @@ class AppConfig:
     digest_to: str = ""  # comma-separated recipient list
     public_base_url: str = ""  # e.g. https://ma.example.com, for links in emails
 
+    # giscus crowd feedback (public, client-side values — not secrets). When
+    # giscus_repo + giscus_repo_id + giscus_category_id are all set, static
+    # story pages mount a giscus thread keyed on item_id, and
+    # ``ma-signal-feedback ingest-github`` can pull reactions back. The API
+    # token for ingest is read from GITHUB_TOKEN at run time, never stored here.
+    giscus_repo: str = ""  # "owner/name"
+    giscus_repo_id: str = ""
+    giscus_category: str = "General"
+    giscus_category_id: str = ""
+    giscus_theme: str = "light"
+
+    # ntfy action-button feedback (owner channel, weight 1.0). When
+    # ntfy_feedback_topic is set, ntfy alerts carry 👍/👎 buttons that publish a
+    # vote to that topic; ``ma-signal-feedback ingest-ntfy`` polls it back in.
+    ntfy_server: str = "https://ntfy.sh"
+    ntfy_feedback_topic: str = ""
+
+    @property
+    def giscus_enabled(self) -> bool:
+        """True when enough giscus config is present to mount the widget."""
+        return bool(
+            self.giscus_repo and self.giscus_repo_id and self.giscus_category_id
+        )
+
+    @property
+    def ntfy_feedback_enabled(self) -> bool:
+        """True when ntfy alerts should carry feedback action buttons."""
+        return bool(self.ntfy_feedback_topic)
+
 
 def load_config(project_root: str | Path | None = None) -> AppConfig:
     """Load configuration from .env and YAML files.
@@ -172,6 +201,13 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         digest_from=os.getenv("DIGEST_FROM", ""),
         digest_to=os.getenv("DIGEST_TO", ""),
         public_base_url=os.getenv("PUBLIC_BASE_URL", "").rstrip("/"),
+        giscus_repo=os.getenv("GISCUS_REPO", ""),
+        giscus_repo_id=os.getenv("GISCUS_REPO_ID", ""),
+        giscus_category=os.getenv("GISCUS_CATEGORY", "General"),
+        giscus_category_id=os.getenv("GISCUS_CATEGORY_ID", ""),
+        giscus_theme=os.getenv("GISCUS_THEME", "light"),
+        ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
+        ntfy_feedback_topic=os.getenv("NTFY_FEEDBACK_TOPIC", ""),
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),
