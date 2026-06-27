@@ -81,6 +81,16 @@ jobs:
         run: ma-signal-digest
 
       - name: Build static site
+        env:
+          # Public giscus values (not secrets) live in repo Variables — Settings
+          # → Secrets and variables → Actions → Variables. Actions doesn't expose
+          # them to steps automatically, so map them in here for build_static.py.
+          # Only REPO + REPO_ID + CATEGORY_ID gate the widget (giscus_enabled).
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY || 'General' }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+          GISCUS_THEME: ${{ vars.GISCUS_THEME || 'light' }}
         run: |
           python scripts/build_static.py --base-path "$STATIC_BASE_PATH" --out site
           # Persist the DB inside the published site so the next run restores it.
