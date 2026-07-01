@@ -5,12 +5,18 @@ in-process TestClient, then rewrites root-relative links/asset paths into
 static ``.html`` files under a configurable base path (so it works under a
 GitHub *project* Pages sub-path like ``/<repo>/``).
 
+Paginated feeds (the main feed, topics, states, candidates) are crawled one
+page at a time and written to numbered files (``index.html``, ``index-2.html``,
+…) so the on-page ``?page=`` pager links resolve to real static files instead
+of dumping the whole archive onto a single page.
+
 Full-text search can't run server-side on Pages, so search is replaced with a
 client-side page backed by a generated ``search-index.json``.
 """
 
 import json
 import logging
+import math
 import re
 import shutil
 from pathlib import Path
@@ -31,9 +37,34 @@ _LINK_RE = re.compile(r'(href|src|action)="(/[^"]*)"')
 _MAX_STORY_PAGES = 2000
 
 
+def _page_from_query(query: str) -> int:
+    """Parse a 1-based ``page`` value from a raw query string (clamped >= 1)."""
+    for part in query.split("&"):
+        if part.startswith("page="):
+            try:
+                return max(1, int(part[len("page=") :]))
+            except ValueError:
+                return 1
+    return 1
+
+
+def _paginate_tail(tail: str, page: int) -> str:
+    """Insert a ``-<page>`` suffix before the extension (page >= 2 only).
+
+    ``index.html`` -> ``index-2.html``; ``topics/x.html`` -> ``topics/x-2.html``.
+    Page 1 keeps the bare filename so pager links back to it resolve cleanly.
+    """
+    if page <= 1:
+        return tail
+    stem, dot, ext = tail.rpartition(".")
+    return f"{stem}-{page}.{ext}" if dot else f"{tail}-{page}"
+
+
 def _map_path(path_with_q: str, base: str) -> str:
-    """Map a server route to its static file URL (base-prefixed)."""
-    path = path_with_q.split("?", 1)[0].split("#", 1)[0]
+    """Map a server route (with any ``?page=``) to its static file URL."""
+    raw = path_with_q.split("#", 1)[0]
+    path, _, query = raw.partition("?")
+    page = _page_from_query(query)
     if path == "/":
         tail = "index.html"
     elif path.startswith("/static/"):
@@ -62,7 +93,7 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = "about-feedback.html"
     else:
         return path_with_q  # unknown — leave as-is
-    return f"{base}/{tail}"
+    return f"{base}/{_paginate_tail(tail, page)}"
 
 
 def _rewrite_links(html: str, base: str) -> str:
@@ -185,8 +216,7 @@ def build_site(
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
-    # Render against a single page so paginated feeds fit without ?page= links.
-    config.web_page_size = _MAX_STORY_PAGES
+    page_size = max(1, config.web_page_size)
     app = create_app(config, store, static_export=True)
     # A known origin so we can strip it: Starlette's url_for() (used for static
     # assets) emits absolute URLs against the client base.
@@ -199,18 +229,39 @@ def build_site(
             html = resp.text.replace(origin, "")
             _write(out_dir, tail, html, base)
 
-    grab("/", "index.html")
+    def grab_paginated(route: str, page1_tail: str, total: int) -> None:
+        """Render every page of a paginated feed to its own static file.
+
+        Page 1 keeps the canonical filename (e.g. ``index.html``); pages 2..N
+        get a ``-<page>`` suffix that matches the pager links rewritten by
+        :func:`_map_path`, so navigation between pages works statically.
+        """
+        total_pages = max(1, math.ceil(total / page_size)) if total else 1
+        grab(route, page1_tail)
+        sep = "&" if "?" in route else "?"
+        for p in range(2, total_pages + 1):
+            grab(f"{route}{sep}page={p}", _paginate_tail(page1_tail, p))
+
+    grab_paginated("/", "index.html", store.count_stories())
     grab("/sources", "sources.html")
-    grab("/candidates", "candidates.html")
+    grab_paginated("/candidates", "candidates.html", store.count_candidate_sources())
     grab("/states", "states.html")
     grab("/status", "status.html")
     grab("/about-feedback", "about-feedback.html")
     grab("/briefing", "briefing.html")
 
     for c in config.categories:
-        grab(f"/topics/{c.key}", f"topics/{c.key}.html")
+        grab_paginated(
+            f"/topics/{c.key}",
+            f"topics/{c.key}.html",
+            store.count_stories(category=c.key),
+        )
     for code in store.get_state_counts():
-        grab(f"/states/{code}", f"states/{code}.html")
+        grab_paginated(
+            f"/states/{code}",
+            f"states/{code}.html",
+            store.count_stories(state=code),
+        )
     story_rows = store.get_stories(limit=_MAX_STORY_PAGES)
     for row in story_rows:
         grab(f"/story/{row['item_id']}", f"story/{row['item_id']}.html")
