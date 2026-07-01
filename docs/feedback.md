@@ -80,6 +80,12 @@ When all of `GISCUS_REPO`, `GISCUS_REPO_ID`, and `GISCUS_CATEGORY_ID` are set,
 `mapping: specific` and the term set to the `item_id`. giscus creates one
 Discussion per story whose **title is the `item_id`**.
 
+For the GitHub Pages deploy these go in repo **Variables** (Settings → Secrets
+and variables → Actions → *Variables*), not a local `.env` — they're public, so
+Variables, not Secrets. The `deploy-pages.yml` build step maps `vars.GISCUS_*`
+into the environment; a local `.env` is only needed to preview the build
+locally.
+
 ### Pulling reactions back
 
 ```bash
