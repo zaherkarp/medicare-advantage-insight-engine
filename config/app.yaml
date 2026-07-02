@@ -20,6 +20,11 @@ delivery:
 processing:
   # Minimum relevance score to generate an alert (0.0 - 1.0)
   min_relevance_score: 0.3
+  # Public archive display floor (0.0 - 1.0). Sub-floor stories stay in the DB
+  # but are hidden from the feed, topic/state pages, search, and static site.
+  # Filters pure source-priority "noise" (no keyword and no entity match).
+  # Set to 0.0 to surface everything, as before.
+  archive_min_score: 0.1
   # Maximum age of items to process (in days, 0 = no limit)
   max_item_age_days: 7
   # Maximum summary length in characters

@@ -202,6 +202,64 @@ class TestStateStore:
         assert counts["TX"] == 2
         assert counts["CA"] == 1
 
+    def test_min_score_filters_browsable_stories(self, temp_db):
+        """The archive keeps everything; min_score gates the browsable views."""
+        temp_db.upsert_story(
+            _make_scored(
+                "noise",
+                "Pure priority noise",
+                published=datetime(2024, 1, 1),
+                score=0.04,
+            ),
+            primary_category="uncategorized",
+        )
+        temp_db.upsert_story(
+            _make_scored(
+                "signal",
+                "Real MA signal",
+                published=datetime(2024, 1, 2),
+                score=0.4,
+                categories=["policy_regulatory"],
+            ),
+            primary_category="policy_regulatory",
+        )
+        # Default (min_score=0.0) surfaces the full archive — unchanged behavior.
+        assert temp_db.count_stories() == 2
+        assert len(temp_db.get_stories()) == 2
+        # Floored views drop the sub-floor item only.
+        assert temp_db.count_stories(min_score=0.1) == 1
+        assert [r["item_id"] for r in temp_db.get_stories(min_score=0.1)] == ["signal"]
+
+    def test_min_score_boundary_is_inclusive(self, temp_db):
+        """A story scoring exactly at the floor is kept (>=), just below is not."""
+        temp_db.upsert_story(
+            _make_scored("edge", "Edge", published=datetime(2024, 1, 1), score=0.1),
+            primary_category="policy_regulatory",
+        )
+        assert temp_db.count_stories(min_score=0.1) == 1
+        assert temp_db.count_stories(min_score=0.11) == 0
+
+    def test_min_score_filters_state_counts(self, temp_db):
+        """State tallies honor the floor so they match the filtered state feed."""
+        temp_db.upsert_story(
+            _make_scored("n", "noise", published=datetime(2024, 1, 1), score=0.04),
+            primary_category="uncategorized",
+            states=["TX"],
+        )
+        temp_db.upsert_story(
+            _make_scored(
+                "s",
+                "signal",
+                published=datetime(2024, 1, 2),
+                score=0.5,
+                categories=["membership_movement"],
+            ),
+            primary_category="membership_movement",
+            states=["TX"],
+        )
+        assert temp_db.get_state_counts()["TX"] == 2
+        assert temp_db.get_state_counts(min_score=0.1)["TX"] == 1
+
     def test_category_and_source_counts(self, temp_db):
         """Aggregate counts for the status dashboard."""
         temp_db.upsert_story(

@@ -347,53 +347,98 @@ class StateStore:
         return " AND ".join(f'"{t}"*' for t in terms)
 
     def search_stories(
-        self, query: str, limit: int = 25, offset: int = 0
+        self, query: str, limit: int = 25, offset: int = 0, min_score: float = 0.0
     ) -> list[sqlite3.Row]:
         """Full-text search over story titles and summaries.
 
         Uses FTS5 (ranked by relevance) when available, else a LIKE scan.
+        ``min_score`` applies the same archive floor as the feed so search
+        results don't resurface sub-floor noise.
         """
         conn = self._get_conn()
+        floored = min_score > 0.0
         if self.fts_enabled:
             match = self._fts_query(query)
             if not match:
                 return []
+            score_clause = " AND COALESCE(s.relevance_score, 0) >= ?" if floored else ""
+            params = (
+                (match, min_score, limit, offset)
+                if floored
+                else (
+                    match,
+                    limit,
+                    offset,
+                )
+            )
             return conn.execute(
-                """SELECT s.* FROM stories_fts f
+                f"""SELECT s.* FROM stories_fts f
                    JOIN stories s ON s.item_id = f.item_id
-                   WHERE stories_fts MATCH ?
+                   WHERE stories_fts MATCH ?{score_clause}
                    ORDER BY rank LIMIT ? OFFSET ?""",
-                (match, limit, offset),
+                params,
             ).fetchall()
         like = f"%{query.strip()}%"
+        score_clause = " AND COALESCE(relevance_score, 0) >= ?" if floored else ""
+        params = (
+            (like, like, min_score, limit, offset)
+            if floored
+            else (
+                like,
+                like,
+                limit,
+                offset,
+            )
+        )
         return conn.execute(
-            """SELECT * FROM stories
-               WHERE title LIKE ? OR summary LIKE ?
+            f"""SELECT * FROM stories
+               WHERE (title LIKE ? OR summary LIKE ?){score_clause}
                ORDER BY COALESCE(published_date, fetched_at) DESC
                LIMIT ? OFFSET ?""",
-            (like, like, limit, offset),
+            params,
         ).fetchall()
 
-    def count_search(self, query: str) -> int:
+    def count_search(self, query: str, min_score: float = 0.0) -> int:
         """Count full-text search matches (for pagination)."""
         conn = self._get_conn()
+        floored = min_score > 0.0
         if self.fts_enabled:
             match = self._fts_query(query)
             if not match:
                 return 0
+            if floored:
+                return conn.execute(
+                    """SELECT COUNT(*) FROM stories_fts f
+                       JOIN stories s ON s.item_id = f.item_id
+                       WHERE stories_fts MATCH ?
+                         AND COALESCE(s.relevance_score, 0) >= ?""",
+                    (match, min_score),
+                ).fetchone()[0]
             return conn.execute(
                 "SELECT COUNT(*) FROM stories_fts WHERE stories_fts MATCH ?",
                 (match,),
             ).fetchone()[0]
         like = f"%{query.strip()}%"
+        score_clause = " AND COALESCE(relevance_score, 0) >= ?" if floored else ""
+        params = (like, like, min_score) if floored else (like, like)
         return conn.execute(
-            "SELECT COUNT(*) FROM stories WHERE title LIKE ? OR summary LIKE ?",
-            (like, like),
+            f"SELECT COUNT(*) FROM stories WHERE (title LIKE ? OR summary LIKE ?)"
+            f"{score_clause}",
+            params,
         ).fetchone()[0]
 
     @staticmethod
-    def _story_filters(category: str | None, state: str | None) -> tuple[str, list]:
-        """Build a shared WHERE clause for story queries."""
+    def _story_filters(
+        category: str | None, state: str | None, min_score: float = 0.0
+    ) -> tuple[str, list]:
+        """Build a shared WHERE clause for story queries.
+
+        ``min_score`` gates the browsable surfaces (feed, topics, states,
+        search) so pure source-priority "noise" — items that matched no
+        taxonomy keyword and no watched entity — stays out of the public views
+        while remaining in the archive. A ``min_score`` of 0.0 (the default)
+        adds no clause, so unfiltered callers behave exactly as before.
+        """
         clauses: list[str] = []
         params: list = []
         if category:
@@ -403,6 +448,10 @@ class StateStore:
             # states is a JSON array of USPS codes; match the quoted token.
             clauses.append("states LIKE ?")
             params.append(f'%"{state}"%')
+        if min_score > 0.0:
+            # NULL scores are treated as 0 so they never slip past the floor.
+            clauses.append("COALESCE(relevance_score, 0) >= ?")
+            params.append(min_score)
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         return where, params
 
@@ -412,14 +461,16 @@ class StateStore:
         state: str | None = None,
         limit: int = 25,
         offset: int = 0,
+        min_score: float = 0.0,
     ) -> list[sqlite3.Row]:
         """Return stories in reverse-chronological order, optionally filtered.
 
         Dateless items (no published_date) fall back to fetched_at so they
-        still sort sensibly.
+        still sort sensibly. ``min_score`` hides sub-floor stories (see
+        :meth:`_story_filters`).
         """
         conn = self._get_conn()
-        where, params = self._story_filters(category, state)
+        where, params = self._story_filters(category, state, min_score)
         rows = conn.execute(
             f"""SELECT * FROM stories{where}
                 ORDER BY COALESCE(published_date, fetched_at) DESC
@@ -429,11 +480,14 @@ class StateStore:
         return rows
 
     def count_stories(
-        self, category: str | None = None, state: str | None = None
+        self,
+        category: str | None = None,
+        state: str | None = None,
+        min_score: float = 0.0,
     ) -> int:
         """Count stories matching the given filters (for pagination)."""
         conn = self._get_conn()
-        where, params = self._story_filters(category, state)
+        where, params = self._story_filters(category, state, min_score)
         row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
         return row[0]
 
@@ -656,15 +710,21 @@ class StateStore:
             (limit,),
         ).fetchall()
 
-    def get_state_counts(self) -> dict[str, int]:
+    def get_state_counts(self, min_score: float = 0.0) -> dict[str, int]:
         """Return a {state_code: story_count} map across the archive.
 
         Each story's `states` JSON array may contain several codes; every code
-        is counted. Used by the State Intelligence overview.
+        is counted. Used by the State Intelligence overview. ``min_score``
+        applies the archive floor so state tallies match the filtered feed.
         """
         conn = self._get_conn()
+        sql = "SELECT states FROM stories WHERE states IS NOT NULL"
+        params: tuple = ()
+        if min_score > 0.0:
+            sql += " AND COALESCE(relevance_score, 0) >= ?"
+            params = (min_score,)
         counts: dict[str, int] = {}
-        for row in conn.execute("SELECT states FROM stories WHERE states IS NOT NULL"):
+        for row in conn.execute(sql, params):
             for code in json.loads(row[0] or "[]"):
                 counts[code] = counts.get(code, 0) + 1
         return counts

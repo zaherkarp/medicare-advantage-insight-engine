@@ -108,9 +108,15 @@ def _write(out_dir: Path, tail: str, html: str, base: str) -> None:
 
 
 def _search_index(store: StateStore, config: AppConfig, base: str) -> list[dict]:
-    """Build the client-side search index from the archive."""
+    """Build the client-side search index from the archive.
+
+    Honors ``archive_min_score`` so client-side search can't resurface the
+    sub-floor noise that the rest of the static site hides.
+    """
     index = []
-    for row in store.get_stories(limit=_MAX_STORY_PAGES):
+    for row in store.get_stories(
+        limit=_MAX_STORY_PAGES, min_score=config.archive_min_score
+    ):
         cat = row["primary_category"] or "uncategorized"
         index.append(
             {
@@ -217,6 +223,10 @@ def build_site(
     out_dir.mkdir(parents=True)
 
     page_size = max(1, config.web_page_size)
+    # Public archive floor: sub-floor stories (pure source-priority noise) are
+    # kept in the DB but never rendered as pages, linked, counted, or indexed
+    # on the published site. Mirrors the live web routes.
+    floor = config.archive_min_score
     app = create_app(config, store, static_export=True)
     # A known origin so we can strip it: Starlette's url_for() (used for static
     # assets) emits absolute URLs against the client base.
@@ -242,7 +252,7 @@ def build_site(
         for p in range(2, total_pages + 1):
             grab(f"{route}{sep}page={p}", _paginate_tail(page1_tail, p))
 
-    grab_paginated("/", "index.html", store.count_stories())
+    grab_paginated("/", "index.html", store.count_stories(min_score=floor))
     grab("/sources", "sources.html")
     grab_paginated("/candidates", "candidates.html", store.count_candidate_sources())
     grab("/states", "states.html")
@@ -254,15 +264,15 @@ def build_site(
         grab_paginated(
             f"/topics/{c.key}",
             f"topics/{c.key}.html",
-            store.count_stories(category=c.key),
+            store.count_stories(category=c.key, min_score=floor),
         )
-    for code in store.get_state_counts():
+    for code in store.get_state_counts(min_score=floor):
         grab_paginated(
             f"/states/{code}",
             f"states/{code}.html",
-            store.count_stories(state=code),
+            store.count_stories(state=code, min_score=floor),
         )
-    story_rows = store.get_stories(limit=_MAX_STORY_PAGES)
+    story_rows = store.get_stories(limit=_MAX_STORY_PAGES, min_score=floor)
     for row in story_rows:
         grab(f"/story/{row['item_id']}", f"story/{row['item_id']}.html")
     for d in store.list_digests(limit=400):
@@ -283,7 +293,7 @@ def build_site(
     counts = {
         "stories": len(story_rows),
         "topics": len(config.categories),
-        "states": len(store.get_state_counts()),
+        "states": len(store.get_state_counts(min_score=floor)),
         "digests": len(store.list_digests(limit=400)),
     }
     logger.info("Static site built at %s: %s", out_dir, counts)
