@@ -16,6 +16,7 @@ _ENV_KEYS = [
     "CONFIG_DIR",
     "MAX_ITEMS_PER_SOURCE",
     "MIN_RELEVANCE_SCORE",
+    "ARCHIVE_MIN_SCORE",
     "REQUEST_TIMEOUT",
     "USER_AGENT",
 ]
@@ -66,6 +67,20 @@ class TestConfigLoading:
         config = load_config(project_root_with_config)
         assert config.scoring.keyword_match_base == 0.15
         assert config.scoring.entity_match_boost == 0.20
+
+    def test_archive_min_score_defaults(self, project_root_with_config):
+        """archive_min_score defaults to the noise floor when unset."""
+        config = load_config(project_root_with_config)
+        assert config.archive_min_score == 0.1
+
+    def test_archive_min_score_env_override(self, project_root_with_config):
+        """ARCHIVE_MIN_SCORE overrides the default (0 disables filtering)."""
+        (project_root_with_config / ".env").write_text(
+            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\nARCHIVE_MIN_SCORE=0\n"
+        )
+        os.environ.pop("ARCHIVE_MIN_SCORE", None)
+        config = load_config(project_root_with_config)
+        assert config.archive_min_score == 0.0
 
     def test_missing_sources_file_raises(self, tmp_path):
         """FileNotFoundError when sources.yaml is missing."""
@@ -140,4 +155,13 @@ class TestConfigValidation:
         )
         os.environ.pop("MIN_RELEVANCE_SCORE", None)
         with pytest.raises(ValueError, match="min_relevance_score"):
+            load_config(project_root_with_config)
+
+    def test_invalid_archive_min_score_raises(self, project_root_with_config):
+        """ValueError for out-of-range archive_min_score."""
+        (project_root_with_config / ".env").write_text(
+            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\nARCHIVE_MIN_SCORE=1.5\n"
+        )
+        os.environ.pop("ARCHIVE_MIN_SCORE", None)
+        with pytest.raises(ValueError, match="archive_min_score"):
             load_config(project_root_with_config)

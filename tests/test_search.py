@@ -111,6 +111,53 @@ def test_like_fallback_when_fts_disabled(temp_db):
     assert temp_db.count_search("Humana") == 1
 
 
+def _seed_scored(store, item_id, title, summary, score):
+    """Seed a story at an explicit relevance score (for floor tests)."""
+    item = NormalizedItem(
+        item_id=item_id,
+        source_name="Virginia Mercury",
+        source_type="rss",
+        source_priority=2,
+        source_tags=["state"],
+        title=title,
+        link=f"https://example.com/{item_id}",
+        published_date=datetime(2024, 1, 1, 12, 0),
+        summary=summary,
+    )
+    store.upsert_story(
+        ScoredItem(item=item, relevance_score=score, matched_categories=[]),
+        primary_category="uncategorized",
+    )
+
+
+def test_search_respects_min_score(temp_db):
+    # Two stories share the term "Medicare"; one is sub-floor noise.
+    _seed(
+        temp_db,
+        "hi",
+        "Medicare Advantage Star Ratings",
+        summary="A real signal.",
+    )  # score 0.6
+    _seed_scored(
+        temp_db, "lo", "Medicare mentioned in a local column", "Off-topic.", 0.04
+    )
+    assert temp_db.count_search("Medicare") == 2  # archive keeps both
+    assert temp_db.count_search("Medicare", min_score=0.1) == 1
+    rows = temp_db.search_stories("Medicare", min_score=0.1)
+    assert {r["item_id"] for r in rows} == {"hi"}
+
+
+def test_search_min_score_like_fallback(temp_db):
+    _seed(temp_db, "hi", "Medicare Advantage Star Ratings", summary="A real signal.")
+    _seed_scored(
+        temp_db, "lo", "Medicare mentioned in a local column", "Off-topic.", 0.04
+    )
+    temp_db.fts_enabled = False  # force the LIKE path
+    assert temp_db.count_search("Medicare", min_score=0.1) == 1
+    rows = temp_db.search_stories("Medicare", min_score=0.1)
+    assert {r["item_id"] for r in rows} == {"hi"}
+
+
 def test_upsert_keeps_fts_in_sync(temp_db):
     _seed(temp_db, "u1", "Original title about benchmarks")
     assert len(temp_db.search_stories("benchmarks")) == 1

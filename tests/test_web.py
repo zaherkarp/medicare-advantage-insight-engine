@@ -114,6 +114,39 @@ def test_unknown_state_404(client):
     assert client.get("/states/ZZ").status_code == 404
 
 
+def test_feed_hides_sub_floor_noise(sample_config, temp_db):
+    """Sub-floor 'noise' is kept in the archive but hidden from public views."""
+    _seed_story(
+        temp_db,
+        "keep",
+        "CMS finalizes Star Ratings rule",
+        category="policy_regulatory",
+        score=0.5,
+    )
+    _seed_story(
+        temp_db,
+        "noise",
+        "Local parade draws a big crowd",
+        category="uncategorized",
+        score=0.04,
+        states=["TX"],
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+
+    feed = client.get("/")
+    assert "Star Ratings rule" in feed.text
+    assert "Local parade" not in feed.text  # noise filtered from the feed
+
+    # State intelligence pages are filtered the same way.
+    assert "Local parade" not in client.get("/states/TX").text
+
+    # But nothing is deleted: the story is still archived and directly reachable,
+    # and the diagnostic counts still see the full archive (so low-yield sources
+    # remain visible for pruning).
+    assert client.get("/story/noise").status_code == 200
+    assert client.get("/health").json()["stories"] == 2
+
+
 def test_story_detail_renders_draft(client):
     resp = client.get("/story/story-a")
     assert resp.status_code == 200

@@ -85,6 +85,40 @@ def test_build_creates_expected_pages(tmp_path, sample_config, temp_db):
     assert counts["stories"] == 2
 
 
+def test_export_omits_sub_floor_stories(tmp_path, sample_config, temp_db):
+    """Sub-floor noise isn't rendered as a page, counted, or in the search index."""
+    _seed(temp_db, "keep", "CMS Star Ratings rule", category="policy_regulatory")
+    # A pure source-priority "noise" item (matched nothing): kept in the DB but
+    # never published.
+    noise = NormalizedItem(
+        item_id="noise",
+        source_name="Virginia Mercury",
+        source_type="rss",
+        source_priority=2,
+        source_tags=["state"],
+        title="Man enters plea agreement in threat case",
+        link="https://example.com/noise",
+        published_date=datetime(2024, 1, 1, 12, 0),
+        summary="Unrelated local news.",
+    )
+    temp_db.upsert_story(
+        ScoredItem(item=noise, relevance_score=0.04, matched_categories=[]),
+        primary_category="uncategorized",
+        states=["VA"],
+    )
+
+    out, counts = _build(tmp_path, sample_config, temp_db)
+
+    assert (out / "story" / "keep.html").exists()
+    assert not (out / "story" / "noise.html").exists()  # noise page not generated
+    assert counts["stories"] == 1
+    # No state page for a state that only had noise.
+    assert not (out / "states" / "VA.html").exists()
+    # And the client-side search index excludes it.
+    data = json.loads((out / "search-index.json").read_text())
+    assert {e["url"] for e in data} == {"/myrepo/story/keep.html"}
+
+
 def test_links_are_rewritten_with_base_path(tmp_path, sample_config, temp_db):
     _seed(temp_db, "a1", "CMS Star Ratings rule", category="policy_regulatory")
     out, _ = _build(tmp_path, sample_config, temp_db, base="/myrepo")

@@ -114,6 +114,23 @@ Jinja web app renders it as a browsable site. Pages:
 | `/status` | System status dashboard (last run, coverage by topic/source) |
 | `/health` | JSON health/counts (stories, sources, last run, categories) |
 
+#### Archive noise floor
+
+Ingestion stores **every** scored item so the source-yield review and feedback
+loops see the full picture, but broad, general-interest feeds (e.g. the
+statewide newsrooms) inevitably produce items with no Medicare Advantage angle
+— they match no taxonomy keyword and no watched payer, so their entire score is
+just the source-priority floor (`0.04`–`0.10`).
+
+`ARCHIVE_MIN_SCORE` (default `0.1`) keeps those items out of the browsable
+surfaces — the feed, topic/state pages, search, and the static Pages site —
+while leaving them in the archive. With default scoring weights, anything with
+a real signal scores `≥ 0.12`, so the floor drops pure-priority noise without
+hiding genuine signals. The `/status` dashboard and `/health` counts still
+reflect the **full** archive (that's where you gauge how much a source
+contributes and decide whether to prune it in `sources.yaml`). Set it to `0.0`
+to surface everything, as before.
+
 ### Run the web app locally
 
 ```bash
@@ -232,6 +249,7 @@ Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
 | `WEBHOOK_MODE` | `ntfy` | `ntfy`, `generic`, `teams`, or `test` |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `MIN_RELEVANCE_SCORE` | `0.3` | Threshold for alert generation (0.0-1.0) |
+| `ARCHIVE_MIN_SCORE` | `0.1` | Public display floor — hides sub-floor "noise" from the site (0.0-1.0; 0 disables) |
 
 ### `config/sources.yaml` — Feed sources
 

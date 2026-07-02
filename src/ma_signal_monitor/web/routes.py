@@ -91,8 +91,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         config = request.app.state.config
         page_size = config.web_page_size
         page = _page_param(request)
+        floor = config.archive_min_score
 
-        total = store.count_stories(category=category, state=state)
+        total = store.count_stories(category=category, state=state, min_score=floor)
         total_pages = max(1, math.ceil(total / page_size)) if total else 1
         page = min(page, total_pages)
         rows = store.get_stories(
@@ -100,6 +101,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             state=state,
             limit=page_size,
             offset=(page - 1) * page_size,
+            min_score=floor,
         )
         stories = [_story_view(r) for r in rows]
         return templates.TemplateResponse(
@@ -154,11 +156,15 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         total = 0
         total_pages = 1
         if query:
-            total = store.count_search(query)
+            floor = config.archive_min_score
+            total = store.count_search(query, min_score=floor)
             total_pages = max(1, math.ceil(total / page_size)) if total else 1
             page = min(page, total_pages)
             rows = store.search_stories(
-                query, limit=page_size, offset=(page - 1) * page_size
+                query,
+                limit=page_size,
+                offset=(page - 1) * page_size,
+                min_score=floor,
             )
             stories = [_story_view(r) for r in rows]
 
@@ -240,7 +246,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
     def states(request: Request) -> HTMLResponse:
         store = request.app.state.store
         config = request.app.state.config
-        counts = store.get_state_counts()
+        counts = store.get_state_counts(min_score=config.archive_min_score)
         # Sources explicitly tagged to a state (i.e. not national).
         state_sources: dict[str, list] = {}
         for s in config.sources:

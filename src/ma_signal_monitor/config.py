@@ -64,6 +64,16 @@ class AppConfig:
     config_dir: str = "config"
     max_items_per_source: int = 50
     min_relevance_score: float = 0.3
+    # Public archive display floor. Stories below this are still stored (for
+    # auditability, source-yield review, and the operator's live app) but are
+    # hidden from the public browsable surfaces — the feed, topic/state pages,
+    # search, and the static Pages export. It filters pure source-priority
+    # "noise": items that matched no taxonomy keyword and no watched entity, so
+    # their whole score is just the source-priority floor. With default scoring
+    # weights anything with a real MA signal scores >= 0.12 while pure-priority
+    # items top out at 0.10, so this drops noise without hiding real signals.
+    # Set to 0.0 to disable and surface everything, as before.
+    archive_min_score: float = 0.1
     request_timeout: int = 30
     user_agent: str = "MA-Signal-Monitor/1.0 (Educational/Research)"
 
@@ -190,6 +200,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         config_dir=os.getenv("CONFIG_DIR", "config"),
         max_items_per_source=int(os.getenv("MAX_ITEMS_PER_SOURCE", "50")),
         min_relevance_score=float(os.getenv("MIN_RELEVANCE_SCORE", "0.3")),
+        archive_min_score=float(os.getenv("ARCHIVE_MIN_SCORE", "0.1")),
         request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
         user_agent=os.getenv(
             "USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"
@@ -398,6 +409,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     config.min_relevance_score = processing.get(
         "min_relevance_score", config.min_relevance_score
     )
+    config.archive_min_score = processing.get(
+        "archive_min_score", config.archive_min_score
+    )
     config.max_item_age_days = processing.get(
         "max_item_age_days", config.max_item_age_days
     )
@@ -444,4 +458,9 @@ def _validate_config(config: AppConfig) -> None:
     if not 0.0 <= config.min_relevance_score <= 1.0:
         raise ValueError(
             f"min_relevance_score must be between 0.0 and 1.0, got: {config.min_relevance_score}"
+        )
+
+    if not 0.0 <= config.archive_min_score <= 1.0:
+        raise ValueError(
+            f"archive_min_score must be between 0.0 and 1.0, got: {config.archive_min_score}"
         )
