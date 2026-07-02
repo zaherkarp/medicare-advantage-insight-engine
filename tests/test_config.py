@@ -68,6 +68,12 @@ class TestConfigLoading:
         assert config.scoring.keyword_match_base == 0.15
         assert config.scoring.entity_match_boost == 0.20
 
+    def test_ma_context_gate_defaults(self, project_root_with_config):
+        """MA-context gate defaults are sane when the taxonomy omits them."""
+        config = load_config(project_root_with_config)
+        assert config.scoring.ma_context_min_priority == 3
+        assert config.ma_context_terms == []
+
     def test_archive_min_score_defaults(self, project_root_with_config):
         """archive_min_score defaults to the noise floor when unset."""
         config = load_config(project_root_with_config)

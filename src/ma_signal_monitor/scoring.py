@@ -39,6 +39,23 @@ def _keyword_in_text(keyword: str, text: str) -> bool:
     return bool(_keyword_pattern(keyword).search(text))
 
 
+def _has_ma_context(text: str, config: AppConfig) -> bool:
+    """True if the text actually establishes Medicare Advantage context.
+
+    Context is a watched payer entity or a core Medicare/MA anchor term
+    (``config.ma_context_terms``). Used to gate keyword scoring for broad,
+    low-priority sources so a lone generic keyword ("premium", "network") from
+    a general-news firehose doesn't read as an MA signal (see :func:`score_item`).
+    """
+    for entity in config.watched_entities:
+        if _keyword_in_text(entity, text):
+            return True
+    for term in config.ma_context_terms:
+        if _keyword_in_text(term, text):
+            return True
+    return False
+
+
 def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     """Score a single item for relevance.
 
@@ -59,38 +76,62 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     text_combined = f"{item.title} {item.summary}".lower()
     title_lower = item.title.lower()
 
-    # 1. Keyword matches per category
-    for category in config.categories:
-        category_matched = False
-        for keyword in category.keywords:
-            if _keyword_in_text(keyword, text_combined):
-                contribution = sc.keyword_match_base * category.weight
-                # Boost if keyword appears in title
-                if _keyword_in_text(keyword, title_lower):
-                    contribution *= sc.title_keyword_multiplier
-                    reasons.append(
-                        ScoringReason(
-                            factor="title_keyword",
-                            detail=f"'{keyword}' in title [{category.label}]",
-                            contribution=contribution,
-                        )
-                    )
-                else:
-                    reasons.append(
-                        ScoringReason(
-                            factor="body_keyword",
-                            detail=f"'{keyword}' in summary [{category.label}]",
-                            contribution=contribution,
-                        )
-                    )
-                raw_score += contribution
-                category_matched = True
-                # Only count first keyword match per category to avoid
-                # over-scoring articles with many hits in one category
-                break
+    # Broad, general-interest sources (low priority) constantly brush a taxonomy
+    # keyword ("premium", "network", "earnings") in stories that have nothing to
+    # do with Medicare Advantage. For those sources, require a real MA anchor —
+    # a watched payer or a core Medicare/MA term — before keyword matches count.
+    # Dedicated MA sources are higher priority and are trusted to be on-topic, so
+    # they are never gated. Set scoring.ma_context_min_priority to 0 to disable.
+    ma_context_gated = (
+        item.source_priority < sc.ma_context_min_priority
+        and not _has_ma_context(text_combined, config)
+    )
 
-        if category_matched:
-            matched_categories.append(category.key)
+    # 1. Keyword matches per category (suppressed for gated broad sources so the
+    #    item falls back to the source-priority floor and is treated as noise).
+    if ma_context_gated:
+        reasons.append(
+            ScoringReason(
+                factor="ma_context_gate",
+                detail=(
+                    f"broad source (priority {item.source_priority}) lacks "
+                    "Medicare/MA context; keyword matches not counted"
+                ),
+                contribution=0.0,
+            )
+        )
+    else:
+        for category in config.categories:
+            category_matched = False
+            for keyword in category.keywords:
+                if _keyword_in_text(keyword, text_combined):
+                    contribution = sc.keyword_match_base * category.weight
+                    # Boost if keyword appears in title
+                    if _keyword_in_text(keyword, title_lower):
+                        contribution *= sc.title_keyword_multiplier
+                        reasons.append(
+                            ScoringReason(
+                                factor="title_keyword",
+                                detail=f"'{keyword}' in title [{category.label}]",
+                                contribution=contribution,
+                            )
+                        )
+                    else:
+                        reasons.append(
+                            ScoringReason(
+                                factor="body_keyword",
+                                detail=f"'{keyword}' in summary [{category.label}]",
+                                contribution=contribution,
+                            )
+                        )
+                    raw_score += contribution
+                    category_matched = True
+                    # Only count first keyword match per category to avoid
+                    # over-scoring articles with many hits in one category
+                    break
+
+            if category_matched:
+                matched_categories.append(category.key)
 
     # 2. Source priority boost
     priority_contribution = (item.source_priority / 5.0) * sc.source_priority_weight

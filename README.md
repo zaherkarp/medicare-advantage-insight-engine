@@ -131,6 +131,20 @@ reflect the **full** archive (that's where you gauge how much a source
 contributes and decide whether to prune it in `sources.yaml`). Set it to `0.0`
 to surface everything, as before.
 
+Noise reduction is two layers, one at scoring and one at display:
+
+1. **Source-aware scoring gate** (`taxonomy.yaml` → `scoring.ma_context_min_priority`,
+   default `3`). Broad, general-interest feeds constantly brush a taxonomy
+   keyword ("premium", "network", "earnings") in stories with no Medicare angle.
+   For sources **below** that priority, an item must carry real Medicare/MA
+   context — a watched payer or one of the `ma_context_terms` (Medicare, Part C/D,
+   D-SNP, CMS, …) — before its keyword matches count; otherwise it falls back to
+   the source-priority floor and reads as noise. Dedicated MA sources (priority
+   3–5: CMS, KFF, Fierce, …) are trusted on-topic and stay fully sensitive. Set
+   to `0` to disable.
+2. **Display floor** (`ARCHIVE_MIN_SCORE`, above) then hides whatever still
+   scores as pure source-priority noise from the public surfaces.
+
 ### Run the web app locally
 
 ```bash

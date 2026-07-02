@@ -50,6 +50,11 @@ class ScoringConfig:
     multi_category_boost: float = 0.10
     title_keyword_multiplier: float = 1.5
     exclusion_penalty: float = 0.25  # subtracted per matched soft-exclusion term
+    # Sources with priority below this must carry Medicare/MA context (a watched
+    # payer or an ma_context_terms match) for their taxonomy-keyword matches to
+    # count as signal. Dedicated MA sources are higher priority and stay fully
+    # sensitive. Set to 0 to disable the gate. See scoring.score_item.
+    ma_context_min_priority: int = 3
 
 
 @dataclass
@@ -81,6 +86,11 @@ class AppConfig:
     sources: list[SourceConfig] = field(default_factory=list)
     categories: list[CategoryConfig] = field(default_factory=list)
     watched_entities: list[str] = field(default_factory=list)
+    # Core Medicare/MA anchor terms. Together with watched_entities these
+    # establish that an item is actually about Medicare Advantage, which the
+    # scorer requires before counting keyword matches from broad, low-priority
+    # sources (see ScoringConfig.ma_context_min_priority).
+    ma_context_terms: list[str] = field(default_factory=list)
     scoring: ScoringConfig = field(default_factory=ScoringConfig)
     # Exclusion keywords (see scoring.py). Hard terms veto an item to score 0;
     # soft terms each subtract scoring.exclusion_penalty.
@@ -374,6 +384,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         )
     config.categories = categories
     config.watched_entities = data.get("watched_entities", [])
+    config.ma_context_terms = data.get("ma_context_terms", []) or []
 
     exclusions = data.get("exclusions", {}) or {}
     config.exclusions_hard = exclusions.get("hard", []) or []
@@ -387,6 +398,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         multi_category_boost=scoring_data.get("multi_category_boost", 0.10),
         title_keyword_multiplier=scoring_data.get("title_keyword_multiplier", 1.5),
         exclusion_penalty=scoring_data.get("exclusion_penalty", 0.25),
+        ma_context_min_priority=scoring_data.get("ma_context_min_priority", 3),
     )
 
 

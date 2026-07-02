@@ -221,3 +221,95 @@ class TestExclusions:
         assert not any(
             r.factor in ("exclusion_keyword", "exclusion_veto") for r in scored.reasons
         )
+
+
+class TestMaContextGate:
+    """Broad, low-priority sources need Medicare/MA context to score keywords."""
+
+    def _cfg(self, sample_config):
+        sample_config.ma_context_terms = ["Medicare", "Medicare Advantage", "D-SNP"]
+        sample_config.scoring.ma_context_min_priority = 3
+        return sample_config
+
+    def _item(self, priority, title, summary):
+        return NormalizedItem(
+            item_id="g",
+            source_name="State Feed",
+            source_type="rss",
+            source_priority=priority,
+            source_tags=["state"],
+            title=title,
+            link="https://x.com/1",
+            published_date=datetime(2024, 1, 1),
+            summary=summary,
+        )
+
+    def test_broad_source_keyword_without_context_is_suppressed(self, sample_config):
+        cfg = self._cfg(sample_config)
+        # Priority 2 (< 3); brushes 'premium'/'enrollment'/'network'/'partnership'
+        # but says nothing about Medicare and names no payer.
+        scored = score_item(
+            self._item(
+                2,
+                "County debates premium gas tax and open enrollment",
+                "A local road network partnership advanced.",
+            ),
+            cfg,
+        )
+        assert scored.matched_categories == []
+        assert any(r.factor == "ma_context_gate" for r in scored.reasons)
+        assert scored.relevance_score < cfg.min_relevance_score
+
+    def test_broad_source_with_medicare_term_counts(self, sample_config):
+        cfg = self._cfg(sample_config)
+        scored = score_item(
+            self._item(
+                2,
+                "State reviews Medicare Advantage enrollment for seniors",
+                "New D-SNP plan options for dual eligibles.",
+            ),
+            cfg,
+        )
+        assert "membership_movement" in scored.matched_categories
+        assert not any(r.factor == "ma_context_gate" for r in scored.reasons)
+
+    def test_broad_source_naming_a_payer_counts(self, sample_config):
+        cfg = self._cfg(sample_config)
+        scored = score_item(
+            self._item(
+                2,
+                "UnitedHealthcare expands enrollment in the state",
+                "The insurer adds members.",
+            ),
+            cfg,
+        )
+        assert "UnitedHealthcare" in scored.matched_entities
+        assert not any(r.factor == "ma_context_gate" for r in scored.reasons)
+
+    def test_dedicated_source_is_exempt(self, sample_config):
+        cfg = self._cfg(sample_config)
+        # Priority 3 == threshold (not below) → trusted, never gated.
+        scored = score_item(
+            self._item(
+                3,
+                "Premium and enrollment trends reshape the market",
+                "Network and care delivery strategy shifts.",
+            ),
+            cfg,
+        )
+        assert scored.matched_categories
+        assert not any(r.factor == "ma_context_gate" for r in scored.reasons)
+
+    def test_gate_disabled_when_threshold_zero(self, sample_config):
+        cfg = self._cfg(sample_config)
+        cfg.scoring.ma_context_min_priority = 0
+        scored = score_item(
+            self._item(
+                1,
+                "Enrollment and premium news from the statehouse",
+                "A network partnership was announced.",
+            ),
+            cfg,
+        )
+        assert scored.matched_categories  # nothing is gated
+        assert not any(r.factor == "ma_context_gate" for r in scored.reasons)
