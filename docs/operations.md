@@ -2,9 +2,11 @@
 
 ## Daily Operation Model
 
-The monitor is designed to run periodically (e.g., every 4 hours or daily). Each run:
+The monitor is designed to run periodically (the repo workflows run alerts
+every 3 hours and the Pages rebuild every 2 hours; self-hosters can pick any
+cadence). Each run:
 
-1. Fetches all enabled RSS sources
+1. Fetches all enabled sources concurrently (`FETCH_WORKERS`, default 8)
 2. Normalizes and deduplicates items
 3. Scores and classifies new items
 4. Delivers alerts for items above the relevance threshold
@@ -23,7 +25,7 @@ Log level is controlled by `LOG_LEVEL` in `.env` (default: `INFO`).
 
 For cron, redirect output:
 ```bash
-0 */4 * * * cd /path/to/project && .venv/bin/python -m ma_signal_monitor.main >> logs/cron.log 2>&1
+0 */3 * * * cd /path/to/project && .venv/bin/python -m ma_signal_monitor.main >> logs/cron.log 2>&1
 ```
 
 ## State Database Location

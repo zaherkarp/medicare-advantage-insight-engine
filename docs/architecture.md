@@ -57,6 +57,7 @@ RSS/Atom feeds via `feedparser`. Each source is configured in `config/sources.ya
 - Strips HTML from summaries
 - Collapses whitespace
 - Truncates summaries to configurable length
+- Drops items with no title and no summary (a malformed feed can emit empty entries — there is nothing to score or display)
 
 ## Scoring
 
@@ -65,7 +66,10 @@ RSS/Atom feeds via `feedparser`. Each source is configured in `config/sources.ya
 1. **Keyword matching**: For each taxonomy category, checks if category keywords appear in the title or summary. Title matches are weighted higher (1.5x by default).
 2. **Source priority**: Higher-priority sources (e.g., CMS newsroom = 5) contribute more.
 3. **Entity detection**: Named payer entities from the watch list boost the score.
-4. **Multi-category bonus**: Items matching 2+ categories get an additional boost.
+4. **Core-MA-term boost**: Strong MA vocabulary (`ma_boost_terms` — "Medicare Advantage", "D-SNP", "Part C", …) adds a one-time boost, since it is direct relevance evidence even when no category keyword matches.
+5. **Multi-category bonus**: Items matching 2+ categories get an additional boost.
+6. **Exclusions**: soft-exclusion terms each subtract a penalty; a hard-exclusion term vetoes the item to 0 (still archived, with the reason).
+7. **Source-aware Medicare-context gate**: for sources below `scoring.ma_context_min_priority`, keyword matches only count once the item carries real MA context (a watched payer or an `ma_context_terms` anchor) — this keeps broad, low-priority feeds from scoring generic keyword brushes as MA signal.
 
 The score is clamped to [0.0, 1.0] and returned with a list of `ScoringReason` objects explaining each contribution. This makes the scoring explainable and auditable.
 
@@ -128,5 +132,5 @@ SQLite (`storage.py`) provides eight tables plus a full-text index:
 | Adaptive Cards (not MessageCard) | Adaptive Cards are the current Teams standard; MessageCard is legacy |
 | Dataclasses (not Pydantic) | Sufficient for this use case; avoids extra dependency |
 | Delivery abstraction | Endpoint compatibility varies; abstraction allows easy format swaps |
-| Sequential fetching | Simpler to reason about, debug, and log; parallelism is a future enhancement |
+| Thread-pool fetching | Sources are fetched concurrently (`FETCH_WORKERS`, default 8) with per-source error isolation and config-order results; set `FETCH_WORKERS=1` for strictly sequential fetching |
 | Per-source error isolation | One bad feed shouldn't block the entire run |
