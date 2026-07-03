@@ -24,11 +24,14 @@ _RECALL_FLOOR = 0.8
 
 
 def _item(entry: dict) -> NormalizedItem:
+    # Entries default to priority 3 (a trusted, ungated MA source). Entries may
+    # set source_priority: 2 to exercise the MA-context gate that broad,
+    # low-priority feeds are subject to (scoring.ma_context_min_priority).
     return NormalizedItem(
         item_id="golden",
         source_name="Golden Set",
         source_type="rss",
-        source_priority=3,
+        source_priority=entry.get("source_priority", 3),
         source_tags=[],
         title=entry["title"],
         link="https://example.com/golden",
