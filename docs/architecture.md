@@ -42,9 +42,9 @@
 
 ## Source Ingestion
 
-**Current (Phase 1)**: RSS feeds via `feedparser`. Each source is configured in `config/sources.yaml` with a name, URL, priority (1-5), and tags. The RSS fetcher uses `requests` for HTTP and `feedparser` for parsing, with HTML stripping for summaries.
+RSS/Atom feeds via `feedparser`. Each source is configured in `config/sources.yaml` with a name, URL, type (`rss`, `sec`, or `cms`), priority (1-5), and tags. The fetcher uses `requests` for HTTP and `feedparser` for parsing, with HTML stripping for summaries.
 
-**Phase 2 (stubbed)**: SEC EDGAR and CMS public file fetchers. The fetcher interface is standardized: `fetch_*(source, timeout, user_agent, max_items) -> list[RawFeedItem]`, so adding new source types requires only implementing this function and registering it in the dispatcher.
+**SEC EDGAR and CMS fetchers are live**: `fetchers/sec.py` consumes SEC EDGAR Atom feeds (8-K filings for watched payers/brokerages) and `fetchers/cms.py` consumes CMS newsroom/bulletin feeds; both delegate to the shared feed fetcher. The fetcher interface is standardized: `fetch_*(source, timeout, user_agent, max_items) -> list[RawFeedItem]`, so adding new source types requires only implementing this function and registering it in the dispatcher.
 
 **Error handling**: Each source is fetched independently. A failure in one source (network error, parse error) is logged and skipped — the pipeline continues with the remaining sources.
 
@@ -73,13 +73,14 @@ The score is clamped to [0.0, 1.0] and returned with a list of `ScoringReason` o
 
 ## Classification
 
-`classify.py` selects the primary trigger category from matched categories, preferring the one with the highest taxonomy weight. The taxonomy has five categories:
+`classify.py` selects the primary trigger category from matched categories, preferring the one with the highest taxonomy weight. The taxonomy has six categories:
 
 1. Membership Movement
 2. Demographic Shifts
 3. Policy / Regulatory Changes
 4. Financial / Operating Pressure
 5. Competitive / Operational Strategy
+6. Brokerage / Distribution
 
 ## Rendering and Delivery
 
@@ -103,11 +104,16 @@ Delivery is abstracted behind a mode selector:
 
 ## State Management
 
-SQLite (`storage.py`) provides three tables:
+SQLite (`storage.py`) provides eight tables plus a full-text index:
 
 - `seen_items`: Deduplication records (item_id, source, title, link, timestamp)
 - `delivery_log`: Record of every delivery attempt (success/failure, status code, error)
 - `run_metadata`: Start/end times and counts for each pipeline run
+- `stories`: The browsable archive — every scored item, with score, reasons, category, entities, and states
+- `stories_fts`: FTS5 full-text index over the archive (powers `/search`)
+- `digests`: Saved Daily Briefing digests
+- `candidate_domains` / `candidate_sources`: Source-discovery harvest and ranked feed candidates
+- `feedback`: Reader/owner verdicts (append-only, weighted)
 
 **Why SQLite**: Durable, zero-config, single-file, works on all platforms. No server needed. Retention-based cleanup prevents unbounded growth.
 

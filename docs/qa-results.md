@@ -1,5 +1,9 @@
 # QA Results
 
+> **Historical snapshot.** These are the QA results from the initial
+> implementation. The suite has since grown to 227 tests (see CI for current
+> results); the counts below are kept for reference.
+
 ## Automated Tests
 
 **73 tests, all passing.**
