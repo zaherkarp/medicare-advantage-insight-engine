@@ -59,29 +59,29 @@ categories:
       - "risk adjustment"
       - "V28"
       - "chart review"
-      - "bid"
       - "benchmark"
       - "Part C"
       - "Part D"
       - "RADV"
       - "HCC"
+      - "OIG"
+      - "overpayment"
+      - "upcoding"
+      - "fraud"
+      - "settlement"
       - "advance notice"
       - "rate notice"
-      - "regulation"
-      - "regulatory"
+      - "rate announcement"
       - "rulemaking"
       - "MLR requirement"
-      - "healthcare reform"
-      - "health reform"
-      - "single risk pool"
-      - "health insurance exchange"
-      - "insurance exchange"
-      - "marketplace"
-      - "public option"
-      - "universal coverage"
-      - "ACA"
-      - "Affordable Care Act"
-      - "individual market"
+      # Removed (2026-07-03, iteration 5): bare "regulation"/"regulatory"
+      # (utility-docket and state-politics noise), "bid" (court/bond bids),
+      # and the ACA-marketplace vocabulary ("ACA", "Affordable Care Act",
+      # "marketplace", "individual market", "insurance exchange", "health
+      # insurance exchange", "healthcare reform", "health reform", "single
+      # risk pool", "public option", "universal coverage") — those stories
+      # are out of scope for an MA tracker and were the largest labeled
+      # false-positive class. Guarded by golden-set irrelevant entries.
 
   financial_pressure:
     label: "Financial / Operating Pressure"
@@ -110,6 +110,7 @@ categories:
       - "restructuring"
       - "going concern"
       - "net loss"
+      - "8-K"
 
   competitive_strategy:
     label: "Competitive / Operational Strategy"
@@ -120,6 +121,10 @@ categories:
       - "acquisition"
       - "merger"
       - "joint venture"
+      - "divestiture"
+      - "divest"
+      - "sale"
+      - "sell"
       - "vendor"
       - "platform"
       - "value-based"
@@ -127,13 +132,17 @@ categories:
       - "ACO"
       - "care delivery"
       - "network"
-      - "provider"
+      - "out of network"
+      - "contract dispute"
       - "telehealth"
       - "home health"
       - "primary care"
       - "pharmacy"
       - "PBM"
       - "vertical integration"
+      # Removed (2026-07-03, iteration 5): bare "provider" — matches any
+      # hospital/clinician story; genuine payer-network signals carry
+      # "network"/"out of network"/"contract dispute" instead.
 
   brokerage_distribution:
     label: "Brokerage / Distribution"
@@ -151,7 +160,10 @@ categories:
       - "call center"
       - "captive agent"
       - "roll-up"
-      - "commission"
+      - "broker commission"
+      - "agent commission"
+      # Removed (2026-07-03, iteration 5): bare "commission" — Public
+      # Service/election/county commissions dominated its matches.
       - "Annual Enrollment Period"
       - "AEP"
       - "marketing organization"
@@ -182,11 +194,28 @@ ma_context_terms:
   - "CMS"
   - "Centers for Medicare"
 
+# Strong MA-plan vocabulary. Any one match adds scoring.ma_term_boost once —
+# core MA terms are direct relevance evidence even when no category keyword
+# matches (e.g. "Fairview to drop UnitedHealthcare Medicare Advantage").
+# Deliberately narrower than ma_context_terms: bare "Medicare"/"CMS" establish
+# context but are not themselves evidence of an MA-market signal.
+ma_boost_terms:
+  - "Medicare Advantage"
+  - "MA plan"
+  - "Part C"
+  - "D-SNP"
+  - "C-SNP"
+  - "I-SNP"
+  - "dual eligible"
+  - "dual-eligible"
+  - "Medigap"
+
 # Named entities (payers) to watch for - boosts relevance when detected
 watched_entities:
   - "UnitedHealthcare"
   - "UnitedHealth"
   - "UHC"
+  - "Optum"
   - "Humana"
   - "CVS Health"
   - "Aetna"
@@ -225,7 +254,23 @@ watched_entities:
 # review by hand. Empty by default so behaviour is unchanged until you add terms.
 exclusions:
   hard: []
-  soft: []
+  soft:
+    # Medicare FFS provider-payment machinery — not MA-plan signals. ("Home
+    # Health Value-Based Purchasing" is an FFS program name; MA stories say
+    # "value-based care", which still matches the value-based keyword.)
+    - "prospective payment system"
+    - "provider enrollment"
+    - "value-based purchasing"
+    # Medicaid-eligibility policy news that brushes "final rule"/"CMS".
+    - "work requirements"
+    # State rural-health grant/program stories that brush "CMS" with no MA
+    # angle; genuine MA-rural stories carry MA terms/keywords that outweigh
+    # this penalty.
+    - "rural health"
+    # Reproductive-health litigation/telehealth stories that brush
+    # "telehealth"; effectively never MA-relevant.
+    - "abortion"
+    - "mifepristone"
 
 # Scoring configuration
 scoring:
@@ -235,6 +280,8 @@ scoring:
   multi_category_boost: 0.10
   title_keyword_multiplier: 1.5
   exclusion_penalty: 0.25
+  # Added once when any ma_boost_terms entry is present (see that list above).
+  ma_term_boost: 0.15
   # Sources with priority below this must carry Medicare/MA context (a watched
   # payer or an ma_context_terms match) before keyword matches count. Dedicated
   # MA sources are priority 3-5 and stay fully sensitive. 0 disables the gate.

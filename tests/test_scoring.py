@@ -313,3 +313,39 @@ class TestMaContextGate:
         )
         assert scored.matched_categories  # nothing is gated
         assert not any(r.factor == "ma_context_gate" for r in scored.reasons)
+
+
+class TestMaTermBoost:
+    """Core MA vocabulary earns a one-time boost (ma_boost_terms)."""
+
+    @staticmethod
+    def _item(title, summary=""):
+        return NormalizedItem(
+            item_id="boost001",
+            source_name="Test",
+            source_type="rss",
+            source_priority=3,
+            source_tags=[],
+            title=title,
+            link="https://x.com/boost",
+            published_date=datetime(2024, 1, 1),
+            summary=summary,
+        )
+
+    def test_boost_applies_once_for_ma_terms(self, sample_config):
+        sample_config.ma_boost_terms = ["Medicare Advantage", "D-SNP"]
+        # No category keyword, no entity: score is priority floor + boost.
+        scored = score_item(
+            self._item("Health system drops Medicare Advantage and D-SNP plans"),
+            sample_config,
+        )
+        boosts = [r for r in scored.reasons if r.factor == "ma_term"]
+        assert len(boosts) == 1  # applied once even with two matching terms
+        assert scored.relevance_score == round(
+            0.06 + sample_config.scoring.ma_term_boost, 3
+        )
+
+    def test_no_boost_without_ma_terms(self, sample_config):
+        sample_config.ma_boost_terms = ["Medicare Advantage"]
+        scored = score_item(self._item("Hospital opens new cancer wing"), sample_config)
+        assert not any(r.factor == "ma_term" for r in scored.reasons)

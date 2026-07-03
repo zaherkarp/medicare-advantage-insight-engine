@@ -35,7 +35,7 @@ PAYER_GROUPS: tuple[PayerGroup, ...] = (
         "unitedhealthcare",
         "UnitedHealthcare",
         "payer",
-        ("UnitedHealthcare", "UnitedHealth", "UHC"),
+        ("UnitedHealthcare", "UnitedHealth", "UHC", "Optum"),
     ),
     PayerGroup("humana", "Humana", "payer", ("Humana",)),
     PayerGroup("cvs-aetna", "CVS Health / Aetna", "payer", ("CVS Health", "Aetna")),

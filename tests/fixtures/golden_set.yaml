@@ -9,12 +9,13 @@
 # MA-context gate for broad priority-2 feeds.
 #
 # The set mixes easy, well-separated cases with hard near-threshold cases mined
-# from the production archive (labelled with adversarial double-review), plus a
-# few deliberate KNOWN-GAP entries the scorer currently misclassifies. Known
-# gaps document real scorer weaknesses (M&A sale/divestiture vocabulary, dry
-# SEC 8-K titles, provider network drops, CMS/rule keywords with no MA angle)
-# and are the targets for future scoring iterations: fixing them raises
-# measured precision/recall toward 1.0. The CI floors tolerate them.
+# from the production archive (labelled with adversarial double-review). The
+# "formerly known gaps" sections hold cases the scorer once misclassified —
+# recall gaps (M&A sale/divestiture vocabulary, dry SEC 8-K titles, provider
+# network drops) and precision gaps (ACA-marketplace/Medicaid-rule/FFS-payment
+# stories with no MA angle) — all fixed in iteration 5 (taxonomy keyword
+# cleanup, soft exclusions, and the ma_boost_terms mechanism). They stay here
+# as regression guards for exactly those fixes.
 
 
 relevant:
@@ -110,7 +111,9 @@ relevant:
       and membership growth in the first quarter would continue in Q2 despite the Medicare Advantage
       headwinds confronting many other insurers.
 
-  # -- KNOWN GAPS: genuine MA signals the scorer currently misses (< 0.3) --
+  # -- formerly known gaps: genuine MA signals the scorer once missed (fixed in
+  #    iteration 5 by ma_boost_terms, the 8-K keyword, sale/sell vocabulary, and
+  #    the Optum entity; kept as regression guards) --
   - title: Fairview to drop UnitedHealthcare Medicare Advantage in 2027
     summary: Fairview Health Services will stop scheduling patients with UnitedHealthcare Medicare
       Advantage plans effective Jan. 1, 2027. The Minneapolis-based health system said frequent
@@ -271,7 +274,19 @@ irrelevant:
     summary: Twenty-eight health centers and organizations are set to receive just over $69
       million in federal grants, Illinois’ two senators said this week.
 
-  # -- KNOWN GAPS: noise the scorer currently passes (>= 0.3) --
+  # -- new guards for iteration 5's keyword removals and exclusions --
+  - title: Public Service Commission approves electric utility rate increase
+    summary: Regulators said the new commission rules take effect in January.
+  - title: CMS finalizes home health prospective payment system rule for 2027
+    summary: The rule updates provider enrollment safeguards and value-based purchasing
+      for home health agencies.
+  - title: Telehealth abortion access resumes under court order
+    summary: The ruling preserves mifepristone prescriptions by telehealth while the appeal
+      proceeds.
+
+  # -- formerly known gaps: noise the scorer once passed (fixed in iteration 5 by
+  #    removing the ACA-marketplace keywords and adding the work-requirements and
+  #    rural-health soft exclusions; kept as regression guards) --
   - title: CMS approves budget for GO-NORTH, the state’s federally funded rural health program
     summary: The Centers for Medicare and Medicaid Services approved New Hampshire’s spending
       plan for a large tranche of federal money that will go toward rural health initiatives,

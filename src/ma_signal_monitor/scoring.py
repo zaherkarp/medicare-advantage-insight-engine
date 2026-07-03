@@ -160,6 +160,23 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
             if len(matched_entities) >= 2:
                 break
 
+    # 3b. Core MA vocabulary boost. Strong MA-plan terms ("Medicare Advantage",
+    # "D-SNP", …) are direct relevance evidence independent of category
+    # keywords — a story can be squarely about an MA plan without brushing any
+    # category vocabulary (e.g. a health system dropping a payer's MA plans).
+    # Applied once for the first matching term, like the entity boost.
+    for term in config.ma_boost_terms:
+        if _keyword_in_text(term, text_combined):
+            raw_score += sc.ma_term_boost
+            reasons.append(
+                ScoringReason(
+                    factor="ma_term",
+                    detail=f"Core MA term '{term}' present",
+                    contribution=sc.ma_term_boost,
+                )
+            )
+            break
+
     # 4. Multi-category boost
     if len(matched_categories) > 1:
         multi_boost = sc.multi_category_boost * (len(matched_categories) - 1)

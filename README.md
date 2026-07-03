@@ -78,6 +78,7 @@ story page. An item's raw score is the sum of:
 | **Category keyword** | `0.15 × category weight` | First match per category only; ×`1.5` when the keyword is in the title |
 | **Source priority** | `(priority ÷ 5) × 0.10` | A small floor of trust for where it came from (`0.02`–`0.10`) |
 | **Named entity** | `+0.20` each | Watched payers (UnitedHealthcare, Humana, …); capped at 2 |
+| **Core MA term** | `+0.15` once | Strong MA vocabulary (`ma_boost_terms`: "Medicare Advantage", "D-SNP", "Part C", …) is relevance evidence even when no category keyword matches |
 | **Multi-category** | `+0.10` per extra category | Rewards items touching several trigger types |
 | **Soft exclusion** | `−0.25` each | Configurable "this term makes it less relevant" penalties |
 | **Hard exclusion** | **score → 0** | Vetoes an unambiguously off-topic item (still archived, with the reason) |
