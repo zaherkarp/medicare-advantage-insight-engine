@@ -38,6 +38,115 @@ RSS Feeds ──→ Fetcher ──→ Normalizer ──→ Deduplicator ──�
 
 All processing is local. No cloud services, paid APIs, or Google dependencies.
 
+## How This Works
+
+This section explains the mechanics end to end — most importantly, **how an
+item earns a relevance score and how noise is kept out of the public site**.
+
+### The pipeline
+
+Each run walks one linear pipeline (`main.run`), and one bad feed never stops
+the run:
+
+1. **Fetch** — every enabled source in `config/sources.yaml` is pulled (RSS,
+   plus SEC EDGAR and CMS fetchers), sequentially.
+2. **Normalize** — raw entries become a uniform `NormalizedItem` (title,
+   summary, link, published date, source + priority), HTML stripped.
+3. **Deduplicate** — a stable `item_id` (hash of source + link) is checked
+   against the SQLite `seen_items` table, so each item is processed only the
+   first time it appears.
+4. **Score** — each new item gets a `relevance_score` in `[0, 1]` plus a list
+   of human-readable `reasons` (see below).
+5. **Classify** — the highest-weighted matched category becomes the item's
+   primary topic vertical (or `uncategorized`).
+6. **Draft** — items above the alert threshold get a two-part alert: an
+   internal analytic note and a clearly-marked *draft* public insight angle.
+7. **Deliver** — those alerts are rendered for ntfy / Teams / generic JSON and
+   POSTed to your webhook.
+8. **Persist** — **every** scored item (not just alerted ones) is written to
+   the `stories` archive that backs the web frontend.
+
+### The scoring model
+
+Scoring is deliberately **transparent and keyword-based** — no ML black box.
+Every point added or removed is recorded as a `reason` you can read on the
+story page. An item's raw score is the sum of:
+
+| Factor | Contribution | Notes |
+|---|---|---|
+| **Category keyword** | `0.15 × category weight` | First match per category only; ×`1.5` when the keyword is in the title |
+| **Source priority** | `(priority ÷ 5) × 0.10` | A small floor of trust for where it came from (`0.02`–`0.10`) |
+| **Named entity** | `+0.20` each | Watched payers (UnitedHealthcare, Humana, …); capped at 2 |
+| **Multi-category** | `+0.10` per extra category | Rewards items touching several trigger types |
+| **Soft exclusion** | `−0.25` each | Configurable "this term makes it less relevant" penalties |
+| **Hard exclusion** | **score → 0** | Vetoes an unambiguously off-topic item (still archived, with the reason) |
+
+The final score is clamped to `[0, 1]`. Keyword matching is **whole-token**, so
+`MA` won't match "Massachusetts" and `bid` won't match "forbidden", with
+singular/plural folding (`premium` matches "premiums").
+
+### Two layers of noise control
+
+The hard problem: broad news feeds (e.g. the ~50 statewide newsrooms) publish
+mostly non-Medicare content that still brushes a keyword. Two independent layers
+handle this — one at scoring time, one at read time.
+
+**1. Source-aware Medicare-context gate (scoring).** A lone generic keyword —
+`premium`, `network`, `earnings` — is strong evidence from CMS but weak from a
+general-politics firehose. So for sources **below**
+`scoring.ma_context_min_priority` (default `3`), keyword matches only count once
+the item *also* carries real Medicare context: a watched payer, or a core anchor
+from `ma_context_terms` (Medicare, Part C/D, D-SNP, CMS, …). Without an anchor,
+the item collapses to its source-priority floor and reads as noise. Dedicated MA
+sources (priority 3–5) are trusted on-topic and are never gated.
+
+**2. Archive display floor (read time).** `ARCHIVE_MIN_SCORE` (default `0.1`)
+keeps anything still scoring as pure source-priority noise out of the public
+surfaces — the feed, topic/state pages, search, and the static site. With
+default weights, anything with a genuine signal scores `≥ 0.12`, so the floor
+removes noise without hiding real signals.
+
+Nothing is ever deleted: the archive keeps **every** scored item, and the
+`/status` dashboard and `/health` endpoint report the full, unfiltered counts —
+that's where you gauge a source's yield and decide whether to prune it in
+`sources.yaml`. The gate and floor only shape what the *public* views show.
+
+### Two thresholds, two audiences
+
+- **`MIN_RELEVANCE_SCORE`** (default `0.3`) — the bar to fire an **alert** to
+  your webhook. Higher = fewer, higher-confidence pushes.
+- **`ARCHIVE_MIN_SCORE`** (default `0.1`) — the bar to appear on the **public
+  browsable site**. Lower, because the archive is meant to be richer than the
+  alert stream.
+
+An item can be archived-and-browsable (`≥ 0.1`) without being alert-worthy
+(`< 0.3`).
+
+### Worked example
+
+*"Humana flags rising medical loss ratio in its Medicare Advantage business"* —
+Fierce Healthcare (priority 3):
+
+- `medical loss ratio` in the title [Financial, weight 1.0] → `0.15 × 1.0 × 1.5` = **0.225**
+- `Humana` entity → **0.20**
+- source priority 3 → `(3 ÷ 5) × 0.10` = **0.06**
+- **score ≈ 0.49** → above both thresholds → alerted *and* browsable.
+
+Contrast *"County debates premium gas tax"* from a priority-2 state feed: it
+brushes `premium`, but names no payer and no Medicare term, so the **gate**
+suppresses the keyword → the score falls to the **0.04** priority floor → the
+**display floor** hides it from the site.
+
+### Closing the loop
+
+Readers tune the filter over time. Story pages carry a 👍/👎 widget (giscus on
+the static site), and ntfy alerts can carry feedback buttons. Those verdicts
+feed three advisory tools — keyword mining, source-yield review, and a
+scorer-vs-reader disagreement digest — that *suggest* edits to `sources.yaml` /
+`taxonomy.yaml`. Owner verdicts are ground truth; crowd reactions are advisory
+and never auto-change scoring on their own. See
+[Reader feedback](#reader-feedback).
+
 ## Quick Start
 
 ### 1. Prerequisites
