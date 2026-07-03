@@ -26,17 +26,13 @@ Per iteration:
 Stopping conditions: owner says stop; backlog exhausted above the value bar; or
 two consecutive blocked iterations (surface instead of thrashing).
 
-## Scorecard snapshot (2026-07-03, after iteration 5)
+## Scorecard snapshot (2026-07-03, after iteration 6)
 
 See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 
 | S1 | S2 (P/R) | S3 floors | C1 | C2 | C3 | F1 | F2 | F3 low-yield | Q1 | Q2 | U1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 86 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | 41 of 63 | 0 / 8 | absent | 2/4 |
-
-S2 dropped from 1.00/1.00 by design: the expanded set contains six documented
-KNOWN-GAP entries the scorer currently misclassifies (see the fixture header).
-Fixing those gaps — not adding easy cases — is how S2 climbs back toward 1.0.
+| 88 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | reviewed — verdicts below | 0 / 7 | absent | 2/4 |
 
 ## Iteration log
 
@@ -49,16 +45,16 @@ Fixing those gaps — not adding easy cases — is how S2 climbs back toward 1.0
 | 4 | 2026-07-03 | #38 | Parallel source fetching (ThreadPoolExecutor in `main._fetch_all_sources`, `FETCH_WORKERS` env, default 8, 1 = sequential; config-order results, per-source error isolation preserved) + cadence tightened: Pages 4h → 2h, alerts 6h → 3h | F1 47–105 s → ~20 s measured on a live fetch of all 91 sources; F2 4h/6h → 2h/3h | Live run confirmed the SEC root cause: **every SEC EDGAR feed returns 403 Forbidden** under the default User-Agent (no contact info). Fix moved to a decision point — needs an owner-chosen contact email for the UA. |
 | 5 | 2026-07-03 | #39 | Scoring gap fixes, informed by the iteration-2 labeled data: removed noise keywords (ACA-marketplace set, bare `bid`/`regulation`/`regulatory`/`provider`/`commission`), added M&A vocabulary (`divestiture`/`divest`/`sale`/`sell`), oversight/legal vocabulary (`OIG`/`overpayment`/`upcoding`/`fraud`/`settlement`), `8-K`, network-dispute phrases, `broker/agent commission`; 7 soft exclusions (FFS payment machinery, Medicaid work requirements, rural-health grants, abortion/mifepristone); new **`ma_boost_terms`** scoring mechanism (+0.15 once for core MA vocabulary — "Medicare Advantage", "D-SNP", …); Optum added as watched entity + UnitedHealthcare alias; golden set 83 → 86 with new guards; CI floors 0.9 → 0.95 | S2 0.914/0.914 → **1.000/1.000** (all six documented gaps fixed); S3 0.9 → 0.95; Q1 0/0 → 0/7 | Whole-archive rescore of 7,970 production stories: alert-grade 462 → 275 (+70 genuine signals up incl. GoHealth Chapter 11 at 0.06→0.48, −257 noise down), public-grade 1,490 → 595. Spot-checked every dropped Medicare-titled story — all FFS/PSA/off-domain. |
 | — | 2026-07-03 | #40 | **User-requested** (out of loop order): integrate Georgetown Law's Health Care Litigation Tracker. Generic `SourceConfig.context` field + new `litigation` fetcher (`fetchers/litigation.py`) that injects the source's guaranteed topic into each case's boilerplate summary; 4 MA-subtopic feeds added (star ratings, coding practices, coverage denials, enrollment practices) at priority 4; golden set 86 → 88 with two litigation guards | S1 86 → 88; new source class | Case summaries are boilerplate, so without context injection named-payer cases scored 0.28 (sub-alert) and unwatched-plaintiff cases 0.08 (hidden). With injection: named-payer 0.61, unwatched 0.41. Live end-to-end: all 34 cases ingest, 31 alert-grade, landing on 9 payer pages (Elevance Star Ratings suit → `/payers/elevance`). |
+| 6 | 2026-07-03 | #41 | Low-yield source review under the new scoring + a blank-item guard in `normalize_items` (a malformed feed had left 30 title-less, summary-less rows in the production archive; such entries are now dropped at normalization with a warning) | F3: reviewed, zero prunes needed — verdicts below | Review verdicts: (1) the 14 "dead" SEC EDGAR feeds are the known 403/User-Agent issue — keep, awaiting the UA decision point; (2) "Managed Healthcare Executive" is a ghost (not in `sources.yaml` or `candidate_sources`); its 30 blank rows are below the display floor and the new guard prevents recurrence; (3) ACHP feed is alive but posts below the 7-day window — keep; (4) MedPAC's RSS is their blog, correctly scoring ~0 — keep; (5) the p2 statewide newsrooms' low yield is by design (MA-context gate). |
 
 ## Backlog (ordered, next-up first)
 
 | Item | Dimension | Impact | Effort | Status | Notes |
 |---|---|---|---|---|---|
-| 1. Low-yield source review | Coverage | med | low | next | 41 flagged sources incl. "Managed Healthcare Executive" (30 items, 0 public, max 0.06). SEC-feed 403 fix is a decision point (owner contact email for the UA), tracked below. |
-| 2. Near-duplicate alert suppression | Signal quality / UX | med | med | queued | Title-similarity clustering at draft time; `duplicate_of` column via guarded migration (Guardrail 3). Answers `docs/assumptions.md` open questions. |
-| 3. Historical trend views | Intel depth / UX | med | med | queued | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
-| 4. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
-| 5. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). |
+| 1. Near-duplicate alert suppression | Signal quality / UX | med | med | next | Title-similarity clustering at draft time; `duplicate_of` column via guarded migration (Guardrail 3). Answers `docs/assumptions.md` open questions. |
+| 2. Historical trend views | Intel depth / UX | med | med | queued | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
+| 3. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
+| 4. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). |
 
 ## Blocked / parked
 

@@ -207,3 +207,45 @@ class TestNormalizeItems:
     def test_handles_empty_list(self):
         """Empty input returns empty output."""
         assert normalize_items([]) == []
+
+
+def test_blank_items_are_dropped():
+    """Entries with no title and no summary (malformed feeds) are skipped."""
+    blank = RawFeedItem(
+        source_name="Broken Feed",
+        source_type="rss",
+        source_url="https://example.com/feed",
+        source_priority=3,
+        source_tags=[],
+        title="",
+        link="https://example.com/blank",
+        published="Mon, 01 Jan 2024 12:00:00 +0000",
+        summary="",
+    )
+    titled = RawFeedItem(
+        source_name="Broken Feed",
+        source_type="rss",
+        source_url="https://example.com/feed",
+        source_priority=3,
+        source_tags=[],
+        title="A real headline",
+        link="https://example.com/real",
+        published="Mon, 01 Jan 2024 12:00:00 +0000",
+        summary="",
+    )
+    summary_only = RawFeedItem(
+        source_name="Broken Feed",
+        source_type="rss",
+        source_url="https://example.com/feed",
+        source_priority=3,
+        source_tags=[],
+        title="",
+        link="https://example.com/summary-only",
+        published="Mon, 01 Jan 2024 12:00:00 +0000",
+        summary="Some description without a headline.",
+    )
+    result = normalize_items([blank, titled, summary_only])
+    assert [i.link for i in result] == [
+        "https://example.com/real",
+        "https://example.com/summary-only",
+    ]
