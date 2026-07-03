@@ -46,6 +46,6 @@
 
 4. **Should alerts be batched or sent individually?** Currently each alert is sent as a separate webhook POST. Batching into a single message would reduce noise but make individual signals harder to track.
 
-5. **Is there a need for alert suppression rules?** For example, "don't alert on UnitedHealthcare more than once per day" or "suppress membership movement signals during open enrollment." Not implemented but could be added.
+5. **Is there a need for alert suppression rules?** *(Partly addressed.)* Near-duplicate suppression is now built in: the same story republished by multiple sources fires a single alert (headline-similarity dedup, within-run and against recently-delivered alerts — see `delivery.dedup` in `app.yaml`). Entity- or category-scoped rate limits ("don't alert on UnitedHealthcare more than once per day", "suppress membership movement during open enrollment") are still not implemented but could be added.
 
 6. **What is the expected volume?** With ~90 sources checking every few hours, expect a handful to a few dozen alerts per day depending on news volume and threshold settings. High-volume periods (CMS rulemaking, earnings season) will produce more.

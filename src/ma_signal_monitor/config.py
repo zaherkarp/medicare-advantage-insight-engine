@@ -122,6 +122,16 @@ class AppConfig:
     delivery_timeout: int = 30
     delivery_batch_size: int = 1
 
+    # Near-duplicate alert suppression (delivery.dedup in app.yaml). Suppresses
+    # duplicate webhook firings for the same story republished by multiple
+    # sources — within a run, and against alerts fired in the last
+    # ``dedup_lookback_days``. Only the webhook stream is trimmed; every scored
+    # item is still archived. Similarity is title-token Jaccard (see
+    # similarity.py); a title at/above ``dedup_similarity_threshold`` is a dup.
+    dedup_enabled: bool = True
+    dedup_similarity_threshold: float = 0.6
+    dedup_lookback_days: int = 3
+
     # Processing settings
     max_item_age_days: int = 7
     max_summary_length: int = 500
@@ -439,6 +449,13 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     )
     config.delivery_timeout = delivery.get("timeout", config.delivery_timeout)
     config.delivery_batch_size = delivery.get("batch_size", config.delivery_batch_size)
+
+    dedup = delivery.get("dedup", {})
+    config.dedup_enabled = dedup.get("enabled", config.dedup_enabled)
+    config.dedup_similarity_threshold = dedup.get(
+        "similarity_threshold", config.dedup_similarity_threshold
+    )
+    config.dedup_lookback_days = dedup.get("lookback_days", config.dedup_lookback_days)
 
     processing = data.get("processing", {})
     config.min_relevance_score = processing.get(
