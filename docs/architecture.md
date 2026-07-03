@@ -42,9 +42,9 @@
 
 ## Source Ingestion
 
-RSS/Atom feeds via `feedparser`. Each source is configured in `config/sources.yaml` with a name, URL, type (`rss`, `sec`, or `cms`), priority (1-5), and tags. The fetcher uses `requests` for HTTP and `feedparser` for parsing, with HTML stripping for summaries.
+RSS/Atom feeds via `feedparser`. Each source is configured in `config/sources.yaml` with a name, URL, type (`rss`, `sec`, `cms`, or `litigation`), priority (1-5), and tags. The fetcher uses `requests` for HTTP and `feedparser` for parsing, with HTML stripping for summaries.
 
-**SEC EDGAR and CMS fetchers are live**: `fetchers/sec.py` consumes SEC EDGAR Atom feeds (8-K filings for watched payers/brokerages) and `fetchers/cms.py` consumes CMS newsroom/bulletin feeds; both delegate to the shared feed fetcher. The fetcher interface is standardized: `fetch_*(source, timeout, user_agent, max_items) -> list[RawFeedItem]`, so adding new source types requires only implementing this function and registering it in the dispatcher.
+**SEC EDGAR, CMS, and litigation fetchers are live**: `fetchers/sec.py` consumes SEC EDGAR Atom feeds (8-K filings for watched payers/brokerages), `fetchers/cms.py` consumes CMS newsroom/bulletin feeds, and `fetchers/litigation.py` consumes the Georgetown Health Care Litigation Tracker's per-issue feeds. All delegate to the shared feed fetcher. The litigation fetcher additionally injects the source's `context` field into each item's summary — those feeds carry the topic only in the feed title, so this makes the guaranteed Medicare/MA context visible to scoring. The fetcher interface is standardized: `fetch_*(source, timeout, user_agent, max_items) -> list[RawFeedItem]`, so adding new source types requires only implementing this function and registering it in the dispatcher.
 
 **Error handling**: Each source is fetched independently. A failure in one source (network error, parse error) is logged and skipped — the pipeline continues with the remaining sources.
 

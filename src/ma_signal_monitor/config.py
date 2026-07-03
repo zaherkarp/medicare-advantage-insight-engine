@@ -27,6 +27,12 @@ class SourceConfig:
     cadence: str = ""  # human ingestion cadence; "" -> use global default
     description: str = ""  # one-line "what this source covers"
     homepage: str = ""  # public landing page (distinct from the feed url)
+    # Topic context the source guarantees but its entries don't restate. Some
+    # feeds (e.g. a litigation tracker's per-issue feed) carry the subject only
+    # in the feed title, leaving each entry's summary as boilerplate. Fetchers
+    # that honor this (see fetchers/litigation.py) prepend it to each item's
+    # summary so the scorer sees the real context. Empty = no injection.
+    context: str = ""
 
 
 @dataclass
@@ -375,6 +381,7 @@ def _load_sources(path: Path) -> list[SourceConfig]:
                 cadence=item.get("cadence", ""),
                 description=item.get("description", ""),
                 homepage=item.get("homepage", ""),
+                context=item.get("context", ""),
             )
         )
     return sources

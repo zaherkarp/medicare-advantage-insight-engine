@@ -122,6 +122,17 @@ relevant:
   - title: '8-K: UnitedHealth Group Incorporated - Results of Operations and Financial Condition'
     source_priority: 4
 
+  # -- litigation-tracker feeds (fetchers/litigation.py injects the source's
+  #    guaranteed topic into each case's boilerplate summary; these guard that
+  #    both payer-named and unwatched-plaintiff cases stay alert-grade) --
+  - title: Elevance Health Inc. et al. v. Department of Health and Human Services et al.
+    summary: Medicare Advantage Star Ratings litigation. The post appeared first on Health
+      Care Litigation Tracker.
+    source_priority: 4
+  - title: Zing Health Inc. et al. v. Department of Health and Human Services et al.
+    summary: Medicare Advantage Star Ratings litigation.
+    source_priority: 4
+
 irrelevant:
   # -- original easy cases --
   - title: Local high school football team wins state championship

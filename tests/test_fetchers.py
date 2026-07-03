@@ -85,3 +85,69 @@ def test_fetcher_handles_http_error_gracefully():
     responses.add(responses.GET, url, status=500)
     source = SourceConfig(name="SEC EDGAR - Bad", type="sec", url=url)
     assert fetch_sec(source) == []  # error isolated, returns empty
+
+
+_LITIGATION_RSS = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Star Ratings Archives - Health Care Litigation Tracker</title>
+  <item>
+    <title>Elevance Health Inc. et al. v. Department of Health and Human Services</title>
+    <link>https://litigationtracker.law.georgetown.edu/litigation/elevance-v-hhs/</link>
+    <pubDate>Thu, 02 Jul 2026 16:00:46 +0000</pubDate>
+    <description>The post appeared first on Health Care Litigation Tracker.</description>
+  </item>
+  <item>
+    <title>Zing Health Inc. et al. v. Department of Health and Human Services</title>
+    <link>https://litigationtracker.law.georgetown.edu/litigation/zing-v-hhs/</link>
+    <pubDate>Sun, 18 Jan 2026 05:00:00 +0000</pubDate>
+    <description></description>
+  </item>
+</channel></rss>
+"""
+
+
+def _litigation_source(context="Medicare Advantage Star Ratings litigation."):
+    return SourceConfig(
+        name="Georgetown Litigation Tracker - MA Star Ratings",
+        type="litigation",
+        url="https://litigationtracker.law.georgetown.edu/issues/star-ratings/feed/",
+        priority=4,
+        tags=["litigation", "enforcement"],
+        context=context,
+    )
+
+
+@responses.activate
+def test_fetch_litigation_injects_context_into_summaries():
+    from ma_signal_monitor.fetchers.litigation import fetch_litigation
+
+    source = _litigation_source()
+    responses.add(responses.GET, source.url, body=_LITIGATION_RSS, status=200)
+    items = fetch_litigation(source)
+
+    assert len(items) == 2
+    # Context is prepended to a boilerplate summary...
+    assert items[0].summary.startswith("Medicare Advantage Star Ratings litigation.")
+    assert "appeared first on" in items[0].summary
+    # ...and becomes the whole summary when the entry had none.
+    assert items[1].summary == "Medicare Advantage Star Ratings litigation."
+
+
+@responses.activate
+def test_fetch_litigation_without_context_is_plain_rss():
+    from ma_signal_monitor.fetchers.litigation import fetch_litigation
+
+    source = _litigation_source(context="")
+    responses.add(responses.GET, source.url, body=_LITIGATION_RSS, status=200)
+    items = fetch_litigation(source)
+
+    assert len(items) == 2
+    assert "Medicare Advantage" not in items[0].summary
+    assert items[1].summary == ""
+
+
+def test_litigation_type_is_dispatched():
+    from ma_signal_monitor.fetchers.litigation import fetch_litigation
+    from ma_signal_monitor.main import _FETCHERS
+
+    assert _FETCHERS["litigation"] is fetch_litigation
