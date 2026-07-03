@@ -4,49 +4,281 @@
 # tests/test_golden_set.py asserts precision/recall stay above floors, so a
 # taxonomy or scoring change that would regress past judgments fails CI.
 #
-# Keep examples unambiguous and well-separated from the threshold; this guards
-# against regressions, it is not a knife-edge benchmark.
+# Entries default to source_priority 3 (trusted, ungated MA source); an entry
+# may set source_priority to exercise priority-dependent behavior such as the
+# MA-context gate for broad priority-2 feeds.
+#
+# The set mixes easy, well-separated cases with hard near-threshold cases mined
+# from the production archive (labelled with adversarial double-review), plus a
+# few deliberate KNOWN-GAP entries the scorer currently misclassifies. Known
+# gaps document real scorer weaknesses (M&A sale/divestiture vocabulary, dry
+# SEC 8-K titles, provider network drops, CMS/rule keywords with no MA angle)
+# and are the targets for future scoring iterations: fixing them raises
+# measured precision/recall toward 1.0. The CI floors tolerate them.
+
 
 relevant:
-  - title: "CMS finalizes 2025 Star Ratings methodology for Medicare Advantage"
-    summary: "The final rule changes risk adjustment and cut points affecting plan bonuses."
-  - title: "Humana reports Medicare Advantage enrollment growth in Q3"
-    summary: "Membership rose as the insurer expanded its service area into new counties."
-  - title: "UnitedHealthcare flags rising medical loss ratio in MA business"
-    summary: "Executives cited utilization and cost trend pressure on margins."
-  - title: "Aetna exits several Medicare Advantage counties for 2025"
-    summary: "The disenrollment will shift membership amid benefit reductions."
-  - title: "CMS proposed rule targets prior authorization in Medicare Advantage"
-    summary: "The proposed rule would tighten risk adjustment and audit practices."
-  - title: "Humana and CVS Health expand value-based care partnership"
-    summary: "The joint venture targets dual-eligible special needs plan members."
-  - title: "Brokers warn of lead generation crackdown on MA marketing"
-    summary: "New CMS marketing rules hit field marketing organizations and FMO agents."
-  - title: "Centene posts Medicare Advantage margin pressure on benefit cuts"
-    summary: "The insurer trimmed supplemental benefits as premium increases loomed."
-  - title: "Star Ratings drop costs Elevance millions in MA bonus payments"
-    summary: "Lower Stars reduce quality bonus revenue across the membership base."
-  - title: "D-SNP enrollment surges among dual eligible seniors"
-    summary: "The special needs plan growth reflects an aging population shift."
+  # -- original easy cases --
+  - title: CMS finalizes 2025 Star Ratings methodology for Medicare Advantage
+    summary: The final rule changes risk adjustment and cut points affecting plan bonuses.
+  - title: Humana reports Medicare Advantage enrollment growth in Q3
+    summary: Membership rose as the insurer expanded its service area into new counties.
+  - title: UnitedHealthcare flags rising medical loss ratio in MA business
+    summary: Executives cited utilization and cost trend pressure on margins.
+  - title: Aetna exits several Medicare Advantage counties for 2025
+    summary: The disenrollment will shift membership amid benefit reductions.
+  - title: CMS proposed rule targets prior authorization in Medicare Advantage
+    summary: The proposed rule would tighten risk adjustment and audit practices.
+  - title: Humana and CVS Health expand value-based care partnership
+    summary: The joint venture targets dual-eligible special needs plan members.
+  - title: Brokers warn of lead generation crackdown on MA marketing
+    summary: New CMS marketing rules hit field marketing organizations and FMO agents.
+  - title: Centene posts Medicare Advantage margin pressure on benefit cuts
+    summary: The insurer trimmed supplemental benefits as premium increases loomed.
+  - title: Star Ratings drop costs Elevance millions in MA bonus payments
+    summary: Lower Stars reduce quality bonus revenue across the membership base.
+  - title: D-SNP enrollment surges among dual eligible seniors
+    summary: The special needs plan growth reflects an aging population shift.
+
+  # -- synthetic cases (SEC/rate-notice/D-SNP/brokerage/Stars/gate-pass) --
+  - title: Humana reports third quarter results as Medicare Advantage membership declines
+    summary: The insurer cut its earnings guidance, citing higher utilization and benefit expense
+      pressure in its MA plans.
+  - title: CMS releases 2027 Advance Notice with Medicare Advantage payment updates
+    summary: The advance notice proposes changes to risk adjustment and benchmark growth for
+      Part C plans.
+  - title: Molina expands D-SNP footprint into two new states
+    summary: The dual eligible special needs plan expansion targets the next annual enrollment
+      period.
+  - title: GoHealth restructures Medicare broker commissions ahead of AEP
+    summary: The e-broker cited CMS marketing rules and lead generation costs.
+  - title: Kaiser tops Medicare Advantage star ratings as industry average slips
+    summary: Quality bonus payments hinge on the 2027 Stars cut points.
+  - title: State audit finds Medicare Advantage marketing violations by brokers
+    summary: Investigators cited high-pressure enrollment tactics targeting dual eligible seniors.
+    source_priority: 2
+
+  # -- mined from the production archive (labelled, double-reviewed) --
+  - title: 'Advancing Choice, Competition, and Fiscal Sustainability in Medicare: A Roadmap
+      for CMS'
+  - title: CMS launches the Medicare GLP-1 Bridge — but 4 questions linger
+  - title: Medicare Advantage Insurers Will See Higher Payments as CMS Backs Off a Key Payment
+      Update
+    summary: The Trump administration this week backed off a key element of its Medicare Advantage
+      rate proposal, resulting in billions of dollars in additional payments to private insurers.
+  - title: Better Medicare Alliance Statement on CY2027 Medicare Advantage and Part D Final
+      Rate Announcement
+  - title: Medicare Advantage Company Pays $342M to Government in Midst of Billing Probe
+    summary: The payment by Elevance Health to the Centers for Medicare & Medicaid Services
+      comes as the agency threatened to bar new enrollments in the company’s plans.
+  - title: GoHealth files for Chapter 11 bankruptcy reorganization
+    summary: GoHealth will go private as a result of its reorganization plan.
+  - title: AHA cautions against the interpretation of MedPAC report on Medicare Advantage enrollment
+      and provider finances
+    summary: The Medicare Payment Advisory Commission June 15 released its June report to Congress
+      that estimated the association between Medicare Advantage enrollment and hospital and
+      post-acute care provider finances. The...
+  - title: Blue Cross Blue Shield plans ranked by 2025 profits
+  - title: Elevance sues CMS after Medicare Advantage stars recalculation
+    summary: Regulators recalculated plans’ quality scores last month after losing a lawsuit
+      to Clover Health. But they used a different methodology for Clover than its peers, causing
+      Elevance to lose out on $115 million, the...
+  - title: Major Medicare Advantage insurers appear to deny care for profit, federal watchdog
+      finds
+    summary: MA insurers commonly deny requests for post-acute care — but none more frequently
+      than UnitedHealth, Humana and CVS, the HHS OIG said. Insurers were not happy about the
+      findings.
+  - title: UnitedHealth, FTC reach proposed settlement in insulin case
+    summary: The tentative deal comes months after CVS Health reached a proposed settlement
+      in the lawsuit alleging major pharmacy benefit managers are inflating insulin costs.
+  - title: More Than 100 Organizations Urge CMS to Ensure Stability for Medicare Advantage Beneficiaries
+      in Final Rate Notice
+    summary: WASHINGTON — A coalition of 110 organizations representing physicians, nurses,
+      health systems, community-based organizations, employer groups, supplemental benefit partners,
+      and beneficiary advocates is urging the...
+  - title: Centene offers employee buyouts amid membership losses
+    summary: Most of Centene’s 61,000 employees will be eligible to apply for voluntary separation.
+      But the program doesn’t amount to a complete overhaul of the company, a spokesperson said.
+  - title: Elevance avoids Medicare Advantage enrollment freeze, for now
+    summary: The Centers for Medicare and Medicaid Services notified Elevance Health it will
+      not impose intermediate sanctions on the company.
+  - title: Humana to sell off minority stake in end-of-life care provider Gentiva
+    summary: Humana announced this week that it intends to divest its minority stake in Gentiva,
+      the largest provider of end-of-life care in the country.
+  - title: Alignment Health CEO 'very confident' in Q2 guidance as insurer eyes market expansion
+    summary: Alignment Health CEO John Kao reiterated Tuesday that the company's strong revenue
+      and membership growth in the first quarter would continue in Q2 despite the Medicare Advantage
+      headwinds confronting many other insurers.
+
+  # -- KNOWN GAPS: genuine MA signals the scorer currently misses (< 0.3) --
+  - title: Fairview to drop UnitedHealthcare Medicare Advantage in 2027
+    summary: Fairview Health Services will stop scheduling patients with UnitedHealthcare Medicare
+      Advantage plans effective Jan. 1, 2027. The Minneapolis-based health system said frequent
+      coverage changes, denials and payment...
+  - title: Optum prepares to sell some New York specialties
+  - title: '8-K: UnitedHealth Group Incorporated - Results of Operations and Financial Condition'
+    source_priority: 4
 
 irrelevant:
-  - title: "Local high school football team wins state championship"
-    summary: "The Friday night game drew a record crowd to the stadium."
-  - title: "City council approves new downtown parking garage"
-    summary: "The multi-level structure adds 400 spaces for visitors."
-  - title: "Five easy weeknight pasta recipes for busy families"
-    summary: "These quick dinners come together in under thirty minutes."
-  - title: "Tech startup raises Series A for video game streaming app"
-    summary: "The consumer entertainment platform plans to hire engineers."
-  - title: "Weather service warns of heavy snowfall across the Midwest"
-    summary: "Travel delays are expected as a winter storm moves through."
-  - title: "Museum opens new exhibit on Renaissance painting"
-    summary: "The collection features works on loan from European galleries."
-  - title: "Marathon route announced for this year's city race"
-    summary: "Organizers expect thousands of runners along the waterfront course."
-  - title: "Grocery chain recalls bagged salad over listeria concern"
-    summary: "The voluntary recall covers several states for consumer safety."
-  - title: "New blockbuster movie tops the weekend box office"
-    summary: "The superhero sequel earned a hundred million dollars in three days."
-  - title: "Airline adds direct flights between two coastal cities"
-    summary: "The new route begins next spring with daily service."
+  # -- original easy cases --
+  - title: Local high school football team wins state championship
+    summary: The Friday night game drew a record crowd to the stadium.
+  - title: City council approves new downtown parking garage
+    summary: The multi-level structure adds 400 spaces for visitors.
+  - title: Five easy weeknight pasta recipes for busy families
+    summary: These quick dinners come together in under thirty minutes.
+  - title: Tech startup raises Series A for video game streaming app
+    summary: The consumer entertainment platform plans to hire engineers.
+  - title: Weather service warns of heavy snowfall across the Midwest
+    summary: Travel delays are expected as a winter storm moves through.
+  - title: Museum opens new exhibit on Renaissance painting
+    summary: The collection features works on loan from European galleries.
+  - title: Marathon route announced for this year's city race
+    summary: Organizers expect thousands of runners along the waterfront course.
+  - title: Grocery chain recalls bagged salad over listeria concern
+    summary: The voluntary recall covers several states for consumer safety.
+  - title: New blockbuster movie tops the weekend box office
+    summary: The superhero sequel earned a hundred million dollars in three days.
+  - title: Airline adds direct flights between two coastal cities
+    summary: The new route begins next spring with daily service.
+
+  # -- synthetic hard negatives (priority-2 gate traps, health-adjacent noise) --
+  - title: Homeowners insurance premiums rise across the state
+    summary: Regulators approved double-digit premium increases for property insurers.
+    source_priority: 2
+  - title: School district network upgrade wins county approval
+    summary: The bond-funded project will modernize classroom technology infrastructure.
+    source_priority: 2
+  - title: Utility earnings beat expectations on electricity rate hikes
+    summary: The power company raised full-year revenue guidance.
+    source_priority: 2
+  - title: State awards Medicaid managed care contracts to three insurers
+    summary: The five-year agreements cover low-income adults and children statewide.
+  - title: Regional hospital system opens new cancer treatment center
+    summary: The facility adds proton therapy and 120 clinical jobs.
+  - title: FDA approves new weight-loss drug for adolescents
+    summary: The approval expands the market for obesity treatments.
+  - title: Employers shift workers into high-deductible health plans
+    summary: Benefits consultants cite rising commercial healthcare costs.
+
+  # -- mined near-threshold noise from the production archive --
+  - title: Ascension closes AmSurg deal following FTC scrutiny
+    summary: Regulators cleared the nonprofit’s $3.9 billion AmSurg acquisition — but with conditions.
+  - title: Drug plan middlemen face new oversight push as Pa. pharmacies close
+    summary: HARRISBURG — Some Pennsylvania lawmakers want to give the state's top prosecutor
+      more power to take on pharmacy benefit managers, the corporate middlemen that are frequently
+      blamed for pharmacy closures across the...
+  - title: States face tight timeline as feds unveil new Medicaid work requirement rules
+    summary: The federal government released new guidance this week on how states should roll
+      out the Medicaid work requirements that will affect healthcare coverage for millions of
+      Americans. The new interim rule, issued by the...
+  - title: Capital gains tax surge eases but doesn’t solve WA budget woes
+    summary: A windfall of capital gains tax payments is providing temporary relief for Washington’s
+      budget, but other collections are down, and lawmakers still expect to face financial difficulties
+      next year. A revenue forecast...
+  - title: Could waves become power for Beaver Island? Researchers deploy new tech to find out
+    summary: This coverage is made possible in part through a partnership between IPR and Grist,
+      a nonprofit environmental media organization. A group of University of Michigan researchers
+      will test devices that convert wave...
+  - title: ‘Deliverable’ tops ‘Medicare for All’ as Dem message in ’26 races
+    summary: Medicare for All backer Graham Platner's Senate primary win in Maine seems an outlier
+      as Democratic leaders favor centrists in a bid to take Congress.
+  - title: After criticism, Virginia proposes two-year delay in raising school standards
+    summary: The Virginia Board of Education may delay the full implementation of the state’s
+      plan to raise academic benchmarks for reading and math by two years, rather than gradually
+      increasing them over a four-year period...
+  - title: New CEO named for North Dakota Mill and Elevator
+    summary: The North Dakota Industrial Commission on Friday appointed Cathy Dub as president
+      and CEO of the North Dakota Mill and Elevator. Dub has worked for the state mill since
+      2014, first as controller and later as chief...
+  - title: Come on down to the Great American State Fair — there’s plenty of room
+    summary: 'WASHINGTON — The Great American State Fair on the National Mall has all the trappings
+      of a classic state fair: food vendors, merchandise, a Ferris wheel and scores of activities.
+      But on Tuesday, just days before the...'
+  - title: Congress eyes boost to direct contracting, cutting out insurers
+    summary: Employers are forming the Direct Care Coalition to push Congress to facilitate
+      direct contracting arrangements with providers.
+  - title: A Union for Home Care Workers? Many Are Wary.
+    summary: New York’s biggest health care union wants 200,000 home health aides to join up.
+  - title: Millions of Kids Could Lose Insurance as GOP Healthcare Cuts Start To Bite
+    summary: 'Big cuts to healthcare programs in the 2025 GOP budget law are creating an affordability
+      crunch for many Americans: Higher health insurance premiums. Confusion about who Medicaid
+      will cover under the new rules. KFF...'
+  - title: 'Michigan Data Centers: The Weekly Download'
+    summary: Judge Avery Rose of the Kent County Election Commission approved recall petitions
+      for three Lowell Township Board members who voted against imposing a six-month moratorium
+      on data center applications, MLive’s Ehren...
+  - title: Standout stats from Louisiana’s US Senate party runoffs
+    summary: The victory margins Congresswoman Julia Letlow and Jaime Davis posted in their
+      respective U.S. Senate party runoffs Saturday were indeed eye-catching. But a closer look
+      at the results reveals some telling trends...
+  - title: Flexing influence, Ayotte helps defeat two Republican bills
+    summary: Gov. Kelly Ayotte strolled into the Secretary of State’s Office Thursday morning
+      flanked by dozens of supporters and officially filed her bid for reelection, kicking off
+      five months of official campaigning. But the...
+  - title: Justice Department sues Virginia over ‘unconstitutional’ assault weapons ban and
+      more headlines
+    summary: • “Justice Department sues Virginia over ‘unconstitutional’ assault weapons ban.”
+      — WJLA • “Virginia rejoins regional carbon emissions marketplace.” — VPM • “Vice President
+      JD Vance speaks to service members at NAS...
+  - title: Tennessee pharmacies sell potent Ivermectin, led by anti-vaccine doctor who’s taken
+      ‘bucketloads’
+    summary: NASHVILLE, Tenn. — Four years ago, Tennessee became the first state to allow adults
+      to buy the antiparasitic drug ivermectin from a pharmacy without first seeing a doctor.
+      Pharmacies can use a pre-written, blanket...
+  - title: States that won’t obey Trump order will have their mail ballots halted, postmaster
+      says
+    summary: The U.S. Postal Service won’t deliver mail ballots in states that refuse to turn
+      over lists of voters under a proposed rule, the agency’s chief executive said Wednesday,
+      angering Democrats who warn the decision will...
+  - title: Prevailing PSC candidates say campaign work not done with Dem opponents on horizon
+    summary: The candidates who vied for a pair of seats on the commission that regulates utilities
+      in North Dakota have vowed to continue their work, but in different ways. The two Republican
+      incumbents on the Public Service...
+  - title: How climate change is reshaping trails in the White Mountains
+    summary: 'Steep, rocky, and unforgiving: Among hikers, New Hampshire’s trail network has
+      a reputation. “When the trails … in New Hampshire were laid out, they were laid out to
+      maximize adventure, challenge,” said Matt Moore,...'
+  - title: States starting to see major ObamaCare coverage losses
+    summary: Newly released state enrollment data show ObamaCare coverage losses could be even
+      more severe than initially anticipated, due to Congress's unwillingness to renew enhanced
+      subsidies. Monthly enrollment data through...
+
+  # -- mined health-adjacent easy negatives --
+  - title: House, Senate health chairs Creekmore and Bryan say rural health program, spending
+      need more transparency
+    summary: Senate Public Health Chairman Hob Bryan said the lack of transparency around the
+      governor's program to spend millions in federal rural health dollars in Mississippi is
+      "almost the Saturday Night Live parody of...
+  - title: Medicaid again to cover non-abortion care at Planned Parenthood as GOP ban ends
+    summary: WASHINGTON — Republicans celebrated last year when they barred Medicaid payments
+      from going to Planned Parenthood for one year, predicting the financial impact would hollow
+      out the organization. A year later, with...
+  - title: Do Californians Trust the Health Care System?
+  - title: Journalists Discuss Healthcare Costs’ Political Fallout, Concerns About Canceled
+      ICE Facility
+    summary: KFF Health News journalists made the rounds on national and local media recently
+      to discuss topical stories. Here’s a collection of their appearances.
+  - title: States gird for new Medicaid ‘medically frail’ rule
+    summary: State Medicaid agencies are concerned that many sick and disabled enrollees will
+      lose their coverage because the Trump administration is narrowing the definition of who
+      is “medically frail” enough to get an exemption...
+  - title: CT’s Medicaid income limits for disabled are illegal, lawsuit alleges
+    summary: Advocates argued CT’s lower HUSKY C income limits discriminate against residents
+      with disabilities and violate the state constitution.
+  - title: Illinois receives over $69 million in federal funds to support health centers, university
+      programs
+    summary: Twenty-eight health centers and organizations are set to receive just over $69
+      million in federal grants, Illinois’ two senators said this week.
+
+  # -- KNOWN GAPS: noise the scorer currently passes (>= 0.3) --
+  - title: CMS approves budget for GO-NORTH, the state’s federally funded rural health program
+    summary: The Centers for Medicare and Medicaid Services approved New Hampshire’s spending
+      plan for a large tranche of federal money that will go toward rural health initiatives,
+      state officials announced Thursday. New...
+  - title: Final rules for Medicaid work requirements are out. Here’s what you need to know.
+    summary: The Trump administration has issued final rules on how states should ensure that
+      millions of Medicaid enrollees prove they’re working or completing other activities, such
+      as job training, volunteering, or being...
+  - title: ACA marketplace premiums climb for 2027 coverage
+    summary: Insurers blamed subsidy uncertainty for the double-digit individual market increases.

@@ -18,17 +18,23 @@ from ma_signal_monitor.scoring import score_item
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _FIXTURE = Path(__file__).parent / "fixtures" / "golden_set.yaml"
 
-# Conservative floors — this guards against regressions, not a knife-edge bench.
-_PRECISION_FLOOR = 0.8
-_RECALL_FLOOR = 0.8
+# Floors guard against regressions; they tolerate the documented KNOWN-GAP
+# entries in the fixture (currently 3 misses + 3 false positives out of 83,
+# i.e. ~0.914/0.914) but fail if a change misclassifies even one more case.
+# Per docs/goal.md these floors may only ever be raised, never lowered.
+_PRECISION_FLOOR = 0.9
+_RECALL_FLOOR = 0.9
 
 
 def _item(entry: dict) -> NormalizedItem:
+    # Entries default to priority 3 (a trusted, ungated MA source). Entries may
+    # set source_priority: 2 to exercise the MA-context gate that broad,
+    # low-priority feeds are subject to (scoring.ma_context_min_priority).
     return NormalizedItem(
         item_id="golden",
         source_name="Golden Set",
         source_type="rss",
-        source_priority=3,
+        source_priority=entry.get("source_priority", 3),
         source_tags=[],
         title=entry["title"],
         link="https://example.com/golden",
