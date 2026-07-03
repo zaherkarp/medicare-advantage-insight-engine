@@ -18,12 +18,12 @@ from ma_signal_monitor.scoring import score_item
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _FIXTURE = Path(__file__).parent / "fixtures" / "golden_set.yaml"
 
-# Floors guard against regressions; they tolerate the documented KNOWN-GAP
-# entries in the fixture (currently 3 misses + 3 false positives out of 83,
-# i.e. ~0.914/0.914) but fail if a change misclassifies even one more case.
-# Per docs/goal.md these floors may only ever be raised, never lowered.
-_PRECISION_FLOOR = 0.9
-_RECALL_FLOOR = 0.9
+# Floors guard against regressions. The scorer currently classifies the whole
+# fixture correctly (1.00/1.00 after the iteration-5 gap fixes), so these
+# floors allow at most one misclassified case per side before CI fails.
+# Per docs/goal.md they may only ever be raised, never lowered.
+_PRECISION_FLOOR = 0.95
+_RECALL_FLOOR = 0.95
 
 
 def _item(entry: dict) -> NormalizedItem:
