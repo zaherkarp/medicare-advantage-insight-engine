@@ -49,7 +49,8 @@ Each run walks one linear pipeline (`main.run`), and one bad feed never stops
 the run:
 
 1. **Fetch** — every enabled source in `config/sources.yaml` is pulled (RSS,
-   plus SEC EDGAR and CMS fetchers), sequentially.
+   plus SEC EDGAR and CMS fetchers), concurrently on a small thread pool
+   (`FETCH_WORKERS`, default 8).
 2. **Normalize** — raw entries become a uniform `NormalizedItem` (title,
    summary, link, published date, source + priority), HTML stripped.
 3. **Deduplicate** — a stable `item_id` (hash of source + link) is checked
@@ -432,7 +433,7 @@ The delivery system supports four modes:
 - **No live Teams validation**: Teams rendering is validated structurally, not against a live endpoint (unless you provide one).
 - **English only**: Keywords and content processing assume English-language sources.
 - **No authentication**: RSS fetching does not support authenticated feeds.
-- **Single-threaded**: Sources are fetched sequentially, not in parallel.
+- **Thread-pool fetching**: Sources are fetched concurrently (`FETCH_WORKERS`, default 8; set 1 for strictly sequential).
 
 ## Roadmap
 
@@ -449,7 +450,7 @@ Phase 4 (done): SEC EDGAR + CMS feed fetchers activated, expanded sources
 Phase 5 (done): static-site export + GitHub Pages deploy workflow (free hosting,
 client-side search).
 
-- Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,
+- Other ideas: semantic/NLP scoring, Slack renderer,
   historical trend analysis
 
 ## Project Structure

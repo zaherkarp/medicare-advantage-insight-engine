@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
   schedule:
-    # Run every 6 hours at minutes 15
-    - cron: "15 */6 * * *"
+    # Run every 3 hours at minute 15
+    - cron: "15 */3 * * *"
   workflow_dispatch:
     inputs:
       log_level:

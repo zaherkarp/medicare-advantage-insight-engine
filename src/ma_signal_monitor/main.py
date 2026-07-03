@@ -6,6 +6,7 @@ fetch → normalize → dedupe → score → classify → draft → deliver → 
 
 import logging
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from dataclasses import asdict
@@ -35,30 +36,49 @@ _FETCHERS = {
 }
 
 
+def _fetch_one_source(source, config: AppConfig) -> list[RawFeedItem]:
+    """Fetch a single source, returning [] on any error (logged, never raised)."""
+    fetcher = _FETCHERS.get(source.type)
+    if not fetcher:
+        logger.warning(
+            "Unknown source type '%s' for '%s', skipping", source.type, source.name
+        )
+        return []
+    try:
+        return fetcher(
+            source,
+            timeout=config.request_timeout,
+            user_agent=config.user_agent,
+            max_items=config.max_items_per_source,
+        )
+    except Exception as e:
+        logger.error("Error fetching '%s': %s", source.name, e)
+        # Continue with other sources — one bad feed shouldn't stop the run
+        return []
+
+
 def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
-    """Fetch items from all enabled sources, handling errors per-source."""
+    """Fetch items from all enabled sources, handling errors per-source.
+
+    Sources are fetched concurrently (``fetch_workers`` threads; each fetch is
+    an independent HTTP request + parse, so run time is dominated by network
+    waits). Results keep the ``sources.yaml`` order regardless of completion
+    order. Set ``FETCH_WORKERS=1`` to fall back to strictly sequential
+    fetching.
+    """
     all_items: list[RawFeedItem] = []
     enabled_sources = [s for s in config.sources if s.enabled]
 
-    for source in enabled_sources:
-        fetcher = _FETCHERS.get(source.type)
-        if not fetcher:
-            logger.warning(
-                "Unknown source type '%s' for '%s', skipping", source.type, source.name
+    if config.fetch_workers <= 1:
+        results = (_fetch_one_source(s, config) for s in enabled_sources)
+    else:
+        workers = min(config.fetch_workers, max(1, len(enabled_sources)))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(
+                pool.map(lambda s: _fetch_one_source(s, config), enabled_sources)
             )
-            continue
-
-        try:
-            items = fetcher(
-                source,
-                timeout=config.request_timeout,
-                user_agent=config.user_agent,
-                max_items=config.max_items_per_source,
-            )
-            all_items.extend(items)
-        except Exception as e:
-            logger.error("Error fetching '%s': %s", source.name, e)
-            # Continue with other sources — one bad feed shouldn't stop the run
+    for items in results:
+        all_items.extend(items)
 
     logger.info(
         "Fetched %d total items from %d sources", len(all_items), len(enabled_sources)

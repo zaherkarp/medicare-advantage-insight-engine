@@ -80,6 +80,9 @@ class AppConfig:
     # Set to 0.0 to disable and surface everything, as before.
     archive_min_score: float = 0.1
     request_timeout: int = 30
+    # Concurrent source fetches (each is an independent HTTP request + parse).
+    # 1 = strictly sequential, the pre-parallel behavior.
+    fetch_workers: int = 8
     user_agent: str = "MA-Signal-Monitor/1.0 (Educational/Research)"
 
     # From YAML configs
@@ -212,6 +215,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         min_relevance_score=float(os.getenv("MIN_RELEVANCE_SCORE", "0.3")),
         archive_min_score=float(os.getenv("ARCHIVE_MIN_SCORE", "0.1")),
         request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
+        fetch_workers=max(1, int(os.getenv("FETCH_WORKERS", "8"))),
         user_agent=os.getenv(
             "USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"
         ),
