@@ -432,7 +432,7 @@ The delivery system supports four modes:
 - **No live Teams validation**: Teams rendering is validated structurally, not against a live endpoint (unless you provide one).
 - **English only**: Keywords and content processing assume English-language sources.
 - **No authentication**: RSS fetching does not support authenticated feeds.
-- **Single-threaded**: Sources are fetched sequentially, not in parallel.
+- **Thread-pool fetching**: Sources are fetched concurrently (`FETCH_WORKERS`, default 8; set 1 for strictly sequential).
 
 ## Roadmap
 
@@ -449,7 +449,7 @@ Phase 4 (done): SEC EDGAR + CMS feed fetchers activated, expanded sources
 Phase 5 (done): static-site export + GitHub Pages deploy workflow (free hosting,
 client-side search).
 
-- Other ideas: semantic/NLP scoring, parallel source fetching, Slack renderer,
+- Other ideas: semantic/NLP scoring, Slack renderer,
   historical trend analysis
 
 ## Project Structure
