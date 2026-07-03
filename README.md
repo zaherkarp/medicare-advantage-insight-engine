@@ -18,8 +18,9 @@ On each run, the monitor:
 8. **Persists** every scored item into a browsable **story archive**, plus state, delivery logs, and run metadata locally
 
 A bundled **web frontend** then renders that archive as a browsable, paginated
-site with topic verticals, a public Sources directory, and a State Intelligence
-section. See [Web Frontend & Self-Hosting](#web-frontend--self-hosting).
+site with topic verticals, per-payer intelligence pages, a public Sources
+directory, and a State Intelligence section. See
+[Web Frontend & Self-Hosting](#web-frontend--self-hosting).
 
 ## Architecture Overview
 
@@ -216,7 +217,8 @@ Jinja web app renders it as a browsable site. Pages:
 | Route | Purpose |
 |---|---|
 | `/` | Paginated, reverse-chronological signal feed |
-| `/topics/{category}` | One of the five trigger verticals (e.g. `policy_regulatory`) |
+| `/topics/{category}` | One of the six trigger verticals (e.g. `policy_regulatory`) |
+| `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with signal mix, state footprint, and SEC filings |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
 | `/search?q=` | Full-text search across the archive (SQLite FTS5) |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
@@ -298,7 +300,7 @@ still send from the workflow if you add the `SMTP_*` / `DIGEST_*` secrets.
 ### Daily Briefing
 
 The **Daily Briefing** is a curated digest of the day's top signals — the
-fastest way to get insight in front of people. It's grouped into the five topic
+fastest way to get insight in front of people. It's grouped into the six topic
 verticals, scored, and always viewable at `/briefing` (with a dated archive).
 
 Generate one on demand:
@@ -375,14 +377,18 @@ Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `MIN_RELEVANCE_SCORE` | `0.3` | Threshold for alert generation (0.0-1.0) |
 | `ARCHIVE_MIN_SCORE` | `0.1` | Public display floor — hides sub-floor "noise" from the site (0.0-1.0; 0 disables) |
+| `FETCH_WORKERS` | `8` | Concurrent source fetches per run (1 = strictly sequential) |
 
 ### `config/sources.yaml` — Feed sources
 
-Add/remove/disable RSS sources. Each source has a name, URL, priority (1-5), and tags.
+Add/remove/disable sources. Each source has a name, URL, `type` (`rss`, `sec`,
+`cms`, or `litigation`), priority (1-5), and tags. Litigation-tracker sources
+also carry a `context` string that the fetcher injects into each item's summary
+(their entries are case names with boilerplate summaries).
 
 ### `config/taxonomy.yaml` — Trigger categories
 
-Configure the five trigger categories, their keywords, weights, and the list of watched payer entities. Also contains scoring tuning parameters.
+Configure the six trigger categories, their keywords, weights, and the list of watched payer entities. Also contains the core-MA-term boost list (`ma_boost_terms`), soft/hard exclusion keywords, and scoring tuning parameters.
 
 ### `config/app.yaml` — Application settings
 
@@ -394,8 +400,8 @@ Delivery retry behavior, processing limits, and storage retention settings.
 
 ```bash
 crontab -e
-# Add:
-0 */4 * * * cd /path/to/project && /path/to/.venv/bin/python -m ma_signal_monitor.main >> logs/cron.log 2>&1
+# Add (every 3 hours, matching the repo's scheduled-monitor workflow):
+0 */3 * * * cd /path/to/project && /path/to/.venv/bin/python -m ma_signal_monitor.main >> logs/cron.log 2>&1
 ```
 
 ### Windows (Task Scheduler)
@@ -430,7 +436,7 @@ The delivery system supports four modes:
 ## Limitations
 
 - **No NLP/ML**: Scoring is keyword-based, not semantic. High-quality but not perfect.
-- **Feed-based only**: All ingestion (RSS/Atom, SEC EDGAR, CMS) consumes public feeds — no scraping, APIs, or document parsing.
+- **Feed-based only**: All ingestion (RSS/Atom, SEC EDGAR, CMS, and litigation-tracker feeds) consumes public feeds — no scraping, APIs, or document parsing.
 - **No live Teams validation**: Teams rendering is validated structurally, not against a live endpoint (unless you provide one).
 - **English only**: Keywords and content processing assume English-language sources.
 - **No authentication**: RSS fetching does not support authenticated feeds.
@@ -451,8 +457,12 @@ Phase 4 (done): SEC EDGAR + CMS feed fetchers activated, expanded sources
 Phase 5 (done): static-site export + GitHub Pages deploy workflow (free hosting,
 client-side search).
 
+Phase 6 (done): Payer Intelligence pages (`/payers`), concurrent source
+fetching, and a litigation-tracker fetcher (Georgetown Health Care Litigation
+Tracker).
+
 - Other ideas: semantic/NLP scoring, Slack renderer,
-  historical trend analysis
+  historical trend analysis, CMS enrollment/market-share data on payer pages
 
 ## Project Structure
 
@@ -475,12 +485,14 @@ client-side search).
 │   ├── dedupe.py           # Deduplication
 │   ├── scoring.py          # Relevance scoring
 │   ├── classify.py         # Trigger classification
+│   ├── payers.py           # Canonical payer grouping (Payer Intelligence pages)
 │   ├── drafting.py         # Alert generation
 │   ├── delivery.py         # Webhook delivery
 │   ├── fetchers/
 │   │   ├── rss.py          # RSS feed fetcher
-│   │   ├── sec.py          # SEC EDGAR (stub)
-│   │   └── cms.py          # CMS files (stub)
+│   │   ├── sec.py          # SEC EDGAR filings fetcher
+│   │   ├── cms.py          # CMS feeds fetcher
+│   │   └── litigation.py   # Litigation-tracker fetcher (context injection)
 │   └── renderers/
 │       ├── ntfy.py             # ntfy.sh push notification renderer
 │       ├── generic_webhook.py  # Generic JSON renderer

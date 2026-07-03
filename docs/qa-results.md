@@ -78,5 +78,5 @@ tests/test_storage.py     —  7 tests (seen items, delivery log, run metadata, 
 ## Known Issues
 
 1. **Environment variable pollution in tests**: Resolved by adding autouse fixture to clean env vars between test cases.
-2. **Sequential source fetching**: Sources are fetched one at a time. Not a problem for 5-10 sources but could be slow with many feeds.
+2. **Sequential source fetching**: Sources are fetched one at a time. Not a problem for 5-10 sources but could be slow with many feeds. *(Since resolved: fetching is now concurrent via `FETCH_WORKERS`, default 8.)*
 3. **No semantic understanding**: Keyword-based scoring catches domain vocabulary well but will miss signals expressed in novel language.

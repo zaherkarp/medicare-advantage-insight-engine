@@ -14,7 +14,7 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 - **Full pipeline**: Fetch → Normalize → Dedupe → Score → Classify → Draft → Render → Deliver → Persist
 - **RSS feed fetcher** with HTML stripping, multi-format date parsing, and per-source error isolation
 - **Transparent scoring model** with keyword matching, entity detection, source priority weighting, and explainable reasons
-- **Five-category trigger taxonomy** configurable via YAML (membership, demographics, policy, financial, competitive)
+- **Five-category trigger taxonomy** configurable via YAML (membership, demographics, policy, financial, competitive) *(since expanded to six — brokerage/distribution added)*
 - **Two-section alert format**: Internal analytic alert + Draft public insight angle
 - **Webhook delivery** with four modes (ntfy.sh push notifications, generic JSON, Teams Adaptive Card, test), retry with exponential backoff
 - **SQLite persistence** for deduplication, delivery logs, and run metadata
@@ -80,7 +80,7 @@ Complete end-to-end implementation of a local Medicare Advantage news insight mo
 1. **Keyword-based scoring**: Effective for domain vocabulary but will miss signals expressed in novel language. No NLP/ML — by design for Phase 1.
 2. **Teams webhook format fragility**: Microsoft is migrating from Incoming Webhooks to Workflow webhooks. If your tenant only supports Workflows, the Teams renderer needs adaptation.
 3. **No live Teams validation**: Structural verification only. First deployment should use webhook.site before switching to Teams.
-4. **Single-threaded fetching**: Sequential source processing. Fine for 5-10 sources.
+4. **Single-threaded fetching**: Sequential source processing. Fine for 5-10 sources. *(Since resolved: fetching is now concurrent via `FETCH_WORKERS`, default 8.)*
 5. **Entity matching is substring-based**: May occasionally match partial words in non-health contexts.
 
 ## Follow-ups

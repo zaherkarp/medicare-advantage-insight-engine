@@ -42,10 +42,10 @@
 
 2. **Are there specific sources you want prioritized?** The defaults are general MA-relevant feeds. If there are specific payer investor relations pages, state DOI feeds, or niche sources you want included, they can be added.
 
-3. **Is there a preferred schedule frequency?** The current recommendation is every 4 hours. More frequent runs are safe (dedup handles it) but increase network requests.
+3. **Is there a preferred schedule frequency?** The repo workflows run alerts every 3 hours and rebuild the Pages site every 2 hours. More frequent runs are safe (dedup handles it) but increase network requests.
 
 4. **Should alerts be batched or sent individually?** Currently each alert is sent as a separate webhook POST. Batching into a single message would reduce noise but make individual signals harder to track.
 
 5. **Is there a need for alert suppression rules?** For example, "don't alert on UnitedHealthcare more than once per day" or "suppress membership movement signals during open enrollment." Not implemented but could be added.
 
-6. **What is the expected volume?** With 5-6 RSS sources checking every 4 hours, expect 0-10 alerts per day depending on news volume and threshold settings. High-volume periods (CMS rulemaking, earnings season) will produce more.
+6. **What is the expected volume?** With ~90 sources checking every few hours, expect a handful to a few dozen alerts per day depending on news volume and threshold settings. High-volume periods (CMS rulemaking, earnings season) will produce more.
