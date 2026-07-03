@@ -424,6 +424,18 @@ The delivery system supports four modes:
 
 **Recommendation**: Start with `ntfy` mode for the fastest setup. Use `test` mode with a webhook inspector if you need to debug payloads before switching to `teams`.
 
+### Near-duplicate alert suppression
+
+The same story is often carried by several sources (e.g. a payer's insulin
+settlement covered by Healthcare Dive *and* Becker's). Because each item's ID is
+`hash(source + link)`, those are distinct items that would each fire an alert.
+Before delivery, alerts are de-duplicated by headline similarity (title-token
+Jaccard): within a run, only the highest-scoring member of a near-duplicate
+cluster is kept; across runs, an alert whose headline matches one delivered in
+the last few days is suppressed. Only the **webhook stream** is trimmed — every
+scored item is still written to the archive. Tune under `delivery.dedup` in
+`config/app.yaml` (`enabled`, `similarity_threshold`, `lookback_days`).
+
 ## Teams Compatibility Notes
 
 - Uses Adaptive Card schema v1.4 wrapped in the Teams message format

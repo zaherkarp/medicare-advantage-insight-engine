@@ -15,6 +15,15 @@ delivery:
   timeout: 30
   # Batch size: how many alerts per webhook message (0 = all in one)
   batch_size: 1
+  # Near-duplicate alert suppression. Stops the same story republished by
+  # several sources from firing multiple webhook alerts. Only the alert
+  # stream is trimmed — every scored item is still archived.
+  dedup:
+    enabled: true
+    # Title-token Jaccard at/above this is treated as the same story (0.0-1.0).
+    similarity_threshold: 0.6
+    # Also suppress vs. alerts delivered in the last N days (0 = within-run only).
+    lookback_days: 3
 
 # Processing settings
 processing:

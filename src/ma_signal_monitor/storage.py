@@ -819,6 +819,24 @@ class StateStore:
         )
         conn.commit()
 
+    def recent_alert_titles(self, since_days: int) -> list[str]:
+        """Titles of alerts successfully delivered in the last ``since_days``.
+
+        Used by near-duplicate alert suppression to avoid re-firing a story
+        that a prior run already alerted. ``delivery_log`` is retained ~30 days
+        (``delivery_log_retention_days``), so a small lookback is always
+        available. Returns [] for a non-positive lookback (cross-run check off).
+        """
+        if since_days <= 0:
+            return []
+        conn = self._get_conn()
+        cutoff = (datetime.utcnow() - timedelta(days=since_days)).isoformat()
+        rows = conn.execute(
+            "SELECT alert_title FROM delivery_log WHERE success = 1 AND timestamp >= ?",
+            (cutoff,),
+        ).fetchall()
+        return [r["alert_title"] for r in rows]
+
     # --- Run Metadata ---
 
     def start_run(self) -> int:

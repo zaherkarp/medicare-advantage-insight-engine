@@ -13,7 +13,11 @@ from dataclasses import asdict
 
 from ma_signal_monitor.classify import classify_item
 from ma_signal_monitor.config import AppConfig, load_config
-from ma_signal_monitor.dedupe import filter_new_items, mark_items_seen
+from ma_signal_monitor.dedupe import (
+    filter_new_items,
+    mark_items_seen,
+    suppress_duplicate_alerts,
+)
 from ma_signal_monitor.delivery import deliver_alerts
 from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.fetchers.cms import fetch_cms
@@ -178,6 +182,7 @@ def run(
         "items_fetched": 0,
         "items_new": 0,
         "items_relevant": 0,
+        "alerts_suppressed": 0,
         "alerts_sent": 0,
         "alerts_failed": 0,
         "errors": 0,
@@ -224,9 +229,16 @@ def run(
 
         # 5b. Persist all scored items to the browsable story archive
         #     (richer than the alert stream, which is threshold-gated).
+        #     Persist BEFORE dedup so the archive keeps every scored item —
+        #     dedup only trims the webhook stream, not the archive.
         _persist_stories(scored, alerts, config, store)
 
-        # 5c. Harvest outbound domains for source discovery (opt-in). Never let
+        # 5c. Suppress near-duplicate alert firings (same story from multiple
+        #     sources, within this run and vs. recently-delivered alerts).
+        alerts, suppressed = suppress_duplicate_alerts(alerts, store, config)
+        summary["alerts_suppressed"] = suppressed
+
+        # 5d. Harvest outbound domains for source discovery (opt-in). Never let
         #     a discovery failure break ingestion.
         if config.discovery_enabled:
             try:
@@ -272,10 +284,12 @@ def run(
         store.close()
 
     logger.info(
-        "=== Run complete: fetched=%d, new=%d, relevant=%d, sent=%d, failed=%d ===",
+        "=== Run complete: fetched=%d, new=%d, relevant=%d, "
+        "suppressed=%d, sent=%d, failed=%d ===",
         summary["items_fetched"],
         summary["items_new"],
         summary["items_relevant"],
+        summary["alerts_suppressed"],
         summary["alerts_sent"],
         summary["alerts_failed"],
     )

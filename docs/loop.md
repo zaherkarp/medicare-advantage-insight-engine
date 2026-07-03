@@ -26,13 +26,13 @@ Per iteration:
 Stopping conditions: owner says stop; backlog exhausted above the value bar; or
 two consecutive blocked iterations (surface instead of thrashing).
 
-## Scorecard snapshot (2026-07-03, after iteration 7)
+## Scorecard snapshot (2026-07-03, after iteration 8)
 
 See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 
 | S1 | S2 (P/R) | S3 floors | C1 | C2 | C3 | F1 | F2 | F3 low-yield | Q1 | Q2 | U1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 88 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | reviewed — verdicts below | 0 / 7 | absent | 2/4 |
+| 88 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | reviewed — verdicts below | 0 / 7 | **present** (alert firings) | 2/4 |
 
 ## Iteration log
 
@@ -47,14 +47,15 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 | — | 2026-07-03 | #40 | **User-requested** (out of loop order): integrate Georgetown Law's Health Care Litigation Tracker. Generic `SourceConfig.context` field + new `litigation` fetcher (`fetchers/litigation.py`) that injects the source's guaranteed topic into each case's boilerplate summary; 4 MA-subtopic feeds added (star ratings, coding practices, coverage denials, enrollment practices) at priority 4; golden set 86 → 88 with two litigation guards | S1 86 → 88; new source class | Case summaries are boilerplate, so without context injection named-payer cases scored 0.28 (sub-alert) and unwatched-plaintiff cases 0.08 (hidden). With injection: named-payer 0.61, unwatched 0.41. Live end-to-end: all 34 cases ingest, 31 alert-grade, landing on 9 payer pages (Elevance Star Ratings suit → `/payers/elevance`). |
 | 6 | 2026-07-03 | #41 | Low-yield source review under the new scoring + a blank-item guard in `normalize_items` (a malformed feed had left 30 title-less, summary-less rows in the production archive; such entries are now dropped at normalization with a warning) | F3: reviewed, zero prunes needed — verdicts below | Review verdicts: (1) the 14 "dead" SEC EDGAR feeds are the known 403/User-Agent issue — keep, awaiting the UA decision point; (2) "Managed Healthcare Executive" is a ghost (not in `sources.yaml` or `candidate_sources`); its 30 blank rows are below the display floor and the new guard prevents recurrence; (3) ACHP feed is alive but posts below the 7-day window — keep; (4) MedPAC's RSS is their blog, correctly scoring ~0 — keep; (5) the p2 statewide newsrooms' low yield is by design (MA-context gate). |
 | 7 | 2026-07-03 | #42 | Documentation correctness sweep after the 7 feature PRs: README routes table gains `/payers`; five→six categories (README, pr-summary); concurrent-not-sequential fetching + `FETCH_WORKERS` in the `.env` table and architecture.md design row; 2h/3h cadence reconciled (README/operations/assumptions crons); litigation fetcher + `context` source field documented; scoring-factor list in architecture.md expanded (ma_term_boost, exclusions, MA-context gate); project-structure tree updated (`payers.py`, `fetchers/litigation.py`, drop "(stub)") | docs re-synced to shipped state (U1 "accurate docs" restored) | Docs-only; verified by grep sweep for residual "five categor" / "*/4 * * *" / unannotated "sequential". |
+| 8 | 2026-07-03 | #43 | Near-duplicate **alert** suppression (no schema change): new `similarity.py` (title-token Jaccard, reusing `keyword_mining._tokens`); `dedupe.suppress_duplicate_alerts` runs between drafting and delivery — within-run it keeps the highest-scoring member of a near-dup cluster, cross-run it drops alerts whose headline matches one delivered in the last `dedup_lookback_days` (via the existing `delivery_log`, no `stories` migration); `storage.recent_alert_titles`; `delivery.dedup` config knobs (enabled/threshold 0.6/lookback 3d); `alerts_suppressed` in the run summary | Q2 absent → **present** | Verified end-to-end across two runs: run 1 drafted 3 → kept 2 (1 within-run dup), run 2's third-outlet repeat → kept 0 (1 cross-run dup); the archive kept every scored item (only the webhook stream is trimmed). 12 new tests; `draft_alerts` gets its first coverage. The `duplicate_of` feed-grouping column is deferred (would need the first `ALTER TABLE` migration idiom) — see backlog. |
 
 ## Backlog (ordered, next-up first)
 
 | Item | Dimension | Impact | Effort | Status | Notes |
 |---|---|---|---|---|---|
-| 1. Near-duplicate alert suppression | Signal quality / UX | med | med | next | Title-similarity clustering at draft time; `duplicate_of` column via guarded migration (Guardrail 3). Answers `docs/assumptions.md` open questions. |
-| 2. Historical trend views | Intel depth / UX | med | med | queued | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
-| 3. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
+| 1. Historical trend views | Intel depth / UX | med | med | next | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
+| 2. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
+| 3. Feed near-duplicate grouping | Signal quality / UX | med | med | queued | Collapse near-dup stories *in the browsable feed* (the alert-stream half shipped in #43). Needs a `duplicate_of` column on `stories` — the codebase has **no** `ALTER TABLE` idiom yet, so this introduces the first guarded column migration (`PRAGMA table_info` check in a `_migrate` method off `_init_db`); then `_story_filters` gains a `duplicate_of IS NULL` clause. Guardrail 3. |
 | 4. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). |
 
 ## Blocked / parked
