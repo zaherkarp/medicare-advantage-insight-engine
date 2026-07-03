@@ -148,9 +148,10 @@ def normalize_items(
         List of NormalizedItem objects.
     """
     normalized = []
+    blank = 0
     for raw in raw_items:
         try:
-            normalized.append(normalize_item(raw, max_summary_length))
+            item = normalize_item(raw, max_summary_length)
         except Exception as e:
             logger.warning(
                 "Failed to normalize item '%s' from %s: %s",
@@ -158,5 +159,16 @@ def normalize_items(
                 raw.source_name,
                 e,
             )
+            continue
+        # A malformed feed can emit entries with no readable text at all
+        # (observed in production: 30 title-less, summary-less stories from
+        # one broken feed). There is nothing to score, display, or alert on —
+        # drop them here instead of polluting the archive.
+        if not item.title and not item.summary:
+            blank += 1
+            continue
+        normalized.append(item)
+    if blank:
+        logger.warning("Dropped %d blank items (no title or summary)", blank)
     logger.info("Normalized %d / %d items", len(normalized), len(raw_items))
     return normalized
