@@ -171,3 +171,35 @@ class TestConfigValidation:
         os.environ.pop("ARCHIVE_MIN_SCORE", None)
         with pytest.raises(ValueError, match="archive_min_score"):
             load_config(project_root_with_config)
+
+
+def test_source_context_round_trips(tmp_path):
+    """A source's `context` field is parsed from sources.yaml."""
+    import yaml
+
+    from ma_signal_monitor.config import _load_sources
+
+    path = tmp_path / "sources.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "sources": [
+                    {
+                        "name": "Litigation Feed",
+                        "type": "litigation",
+                        "url": "https://example.com/feed/",
+                        "priority": 4,
+                        "context": "Medicare Advantage Star Ratings litigation.",
+                    },
+                    {
+                        "name": "Plain Feed",
+                        "type": "rss",
+                        "url": "https://example.com/rss/",
+                    },
+                ]
+            }
+        )
+    )
+    sources = _load_sources(path)
+    assert sources[0].context == "Medicare Advantage Star Ratings litigation."
+    assert sources[1].context == ""  # default when omitted

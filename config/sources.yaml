@@ -186,6 +186,54 @@ sources:
     homepage: "https://www.courtlistener.com/"
     description: "Court opinions in False Claims Act cases involving MA plans, risk-adjustment fraud, and qui tam relators."
 
+  # Georgetown Law (O'Neill Institute) Health Care Litigation Tracker — one RSS
+  # feed per issue topic. Entries are case names with boilerplate summaries, so
+  # each source declares the topic it guarantees via `context`; the litigation
+  # fetcher injects it into every item's summary (see fetchers/litigation.py).
+  - name: "Georgetown Litigation Tracker - MA Star Ratings"
+    type: litigation
+    url: "https://litigationtracker.law.georgetown.edu/issues/star-ratings/feed/"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement"]
+    state: "national"
+    homepage: "https://litigationtracker.law.georgetown.edu/issues/star-ratings/"
+    description: "Lawsuits challenging CMS Medicare Advantage Star Ratings methodology and cut-point calculations."
+    context: "Medicare Advantage Star Ratings litigation."
+
+  - name: "Georgetown Litigation Tracker - MA Coding Practices"
+    type: litigation
+    url: "https://litigationtracker.law.georgetown.edu/issues/coding-practices/feed/"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement"]
+    state: "national"
+    homepage: "https://litigationtracker.law.georgetown.edu/issues/coding-practices/"
+    description: "Lawsuits over Medicare Advantage risk-adjustment coding and diagnosis practices."
+    context: "Medicare Advantage risk adjustment coding litigation."
+
+  - name: "Georgetown Litigation Tracker - MA Coverage Denials"
+    type: litigation
+    url: "https://litigationtracker.law.georgetown.edu/issues/coverage-denials/feed/"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement"]
+    state: "national"
+    homepage: "https://litigationtracker.law.georgetown.edu/issues/coverage-denials/"
+    description: "Lawsuits over Medicare Advantage coverage denials, prior authorization, and post-acute care."
+    context: "Medicare Advantage coverage denial litigation."
+
+  - name: "Georgetown Litigation Tracker - MA Enrollment Practices"
+    type: litigation
+    url: "https://litigationtracker.law.georgetown.edu/issues/enrollment-practices/feed/"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement"]
+    state: "national"
+    homepage: "https://litigationtracker.law.georgetown.edu/issues/enrollment-practices/"
+    description: "Lawsuits over Medicare Advantage marketing and enrollment practices."
+    context: "Medicare Advantage enrollment and marketing litigation."
+
   # --- Congress / Legislation ---
   - name: "Congress.gov - Bills Presented to the President"
     type: rss

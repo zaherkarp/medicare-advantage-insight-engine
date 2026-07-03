@@ -17,6 +17,7 @@ from ma_signal_monitor.dedupe import filter_new_items, mark_items_seen
 from ma_signal_monitor.delivery import deliver_alerts
 from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.fetchers.cms import fetch_cms
+from ma_signal_monitor.fetchers.litigation import fetch_litigation
 from ma_signal_monitor.fetchers.rss import fetch_rss
 from ma_signal_monitor.fetchers.sec import fetch_sec
 from ma_signal_monitor.geo import detect_states
@@ -33,6 +34,7 @@ _FETCHERS = {
     "rss": fetch_rss,
     "sec": fetch_sec,
     "cms": fetch_cms,
+    "litigation": fetch_litigation,
 }
 
 
