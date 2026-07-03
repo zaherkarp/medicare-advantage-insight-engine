@@ -18,9 +18,12 @@ from ma_signal_monitor.scoring import score_item
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _FIXTURE = Path(__file__).parent / "fixtures" / "golden_set.yaml"
 
-# Conservative floors — this guards against regressions, not a knife-edge bench.
-_PRECISION_FLOOR = 0.8
-_RECALL_FLOOR = 0.8
+# Floors guard against regressions; they tolerate the documented KNOWN-GAP
+# entries in the fixture (currently 3 misses + 3 false positives out of 83,
+# i.e. ~0.914/0.914) but fail if a change misclassifies even one more case.
+# Per docs/goal.md these floors may only ever be raised, never lowered.
+_PRECISION_FLOOR = 0.9
+_RECALL_FLOOR = 0.9
 
 
 def _item(entry: dict) -> NormalizedItem:

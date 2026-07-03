@@ -26,34 +26,38 @@ Per iteration:
 Stopping conditions: owner says stop; backlog exhausted above the value bar; or
 two consecutive blocked iterations (surface instead of thrashing).
 
-## Scorecard snapshot (2026-07-03)
+## Scorecard snapshot (2026-07-03, after iteration 2)
 
 See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 
 | S1 | S2 (P/R) | S3 floors | C1 | C2 | C3 | F1 | F2 | F3 low-yield | Q1 | Q2 | U1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 20 | 1.00 / 1.00 | 0.80 / 0.80 | 0/31 | 8/10 | absent | 47–105 s | 4 h / 6 h | 41 of 63 | 0 / 0 | absent | 1/4 |
+| 83 | 0.914 / 0.914 | 0.90 / 0.90 | 0/31 | 8/10 | absent | 47–105 s | 4 h / 6 h | 41 of 63 | 0 / 0 | absent | 1/4 |
+
+S2 dropped from 1.00/1.00 by design: the expanded set contains six documented
+KNOWN-GAP entries the scorer currently misclassifies (see the fixture header).
+Fixing those gaps — not adding easy cases — is how S2 climbs back toward 1.0.
 
 ## Iteration log
 
 | # | Date | PR | Shipped | Scorecard delta | Notes |
 |---|---|---|---|---|---|
 | 0 | 2026-07-03 | — | Baseline measurement (tests, golden set, published archive, run durations) | established baselines | Feedback table is empty → exclusion mining (backlog #4) must use archive score distributions, not owner verdicts. |
-| 1 | 2026-07-03 | (this PR) | Docs truth pass (SEC/CMS fetchers live, 6 categories, 8 tables, historical banners on pr-summary/qa-results) + `docs/goal.md` + `docs/loop.md` | U1 0/4 → 1/4 | Proves the PR → CI → merge → restart loop end to end. |
+| 1 | 2026-07-03 | #35 | Docs truth pass (SEC/CMS fetchers live, 6 categories, 8 tables, historical banners on pr-summary/qa-results) + `docs/goal.md` + `docs/loop.md` | U1 0/4 → 1/4 | Proved the PR → CI → merge → restart loop end to end. |
+| 2 | 2026-07-03 | #36 | Golden set 20 → 83 (production stories labeled with adversarial double-review + synthetic gate traps + 6 documented known-gap entries), CI floors 0.8 → 0.9, per-entry `source_priority` in the harness, `scripts/scorecard.py` | S1 20 → 83; S3 0.8 → 0.9; S2 1.00 → 0.914 (honest hard-set measurement) | Labeling found real scorer gaps — recall: M&A sale/divestiture vocabulary, dry SEC 8-K titles, provider systems dropping MA plans, Optum absent from watched_entities; precision: ACA-marketplace/Medicaid-rule/CMS-grant stories with no MA angle score ≥ 0.33. 61 labeled false-positive examples banked for the exclusions iteration. |
 
 ## Backlog (ordered, next-up first)
 
 | Item | Dimension | Impact | Effort | Status | Notes |
 |---|---|---|---|---|---|
-| 1. Golden set 20 → 80+ and `scripts/scorecard.py` | Signal quality | high | med | next | Hard negatives (Medicaid-only, non-payer earnings, "premium"/"network" traps for the MA-context gate); mine candidates from published archive; raise floors to 0.9/0.9 if margin allows. Must precede exclusions + dedup work. |
-| 2. Per-payer pages `/payers` + `/payers/{slug}` | Intel depth | high | med | queued | `stories.entities` already persisted as JSON; mirror the `/states` pattern; canonical alias map (UHC/UnitedHealth → one page); signals, category mix, SEC filings, state footprint; add to static-export crawl. |
-| 3. Parallel source fetching + cadence bump | Freshness | high | low | queued | ThreadPoolExecutor in `main._fetch_all_sources`, `fetch_workers` escape hatch, per-source error isolation preserved; then crons 4h→2h (Pages), 6h→3h (alerts). |
-| 4. Populate `exclusions.hard`/`.soft` | Signal quality | med | med | queued | Feedback table empty → mine from archive score distributions + low-yield source review instead of owner verdicts; every exclusion guarded by a golden-set entry. |
-| 5. Near-duplicate alert suppression | Signal quality / UX | med | med | queued | Title-similarity clustering at draft time; `duplicate_of` column via guarded migration (Guardrail 3). Answers `docs/assumptions.md` open questions. |
-| 6. Historical trend views | Intel depth / UX | med | med | queued | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
-| 7. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
-| 8. Low-yield source review | Coverage | med | low | queued | 41 flagged sources incl. "Managed Healthcare Executive" (30 items, 0 public, max 0.06 — likely title-only feed or gate issue; investigate before pruning). |
-| 9. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). Only after items 1 and 4 prove out. |
+| 1. Per-payer pages `/payers` + `/payers/{slug}` | Intel depth | high | med | next | `stories.entities` already persisted as JSON; mirror the `/states` pattern; canonical alias map (UHC/UnitedHealth → one page); signals, category mix, SEC filings, state footprint; add to static-export crawl. |
+| 2. Parallel source fetching + cadence bump | Freshness | high | low | queued | ThreadPoolExecutor in `main._fetch_all_sources`, `fetch_workers` escape hatch, per-source error isolation preserved; then crons 4h→2h (Pages), 6h→3h (alerts). |
+| 3. Scoring gap fixes + `exclusions.hard`/`.soft` | Signal quality | high | med | queued | Concrete targets from iteration 2: add sale/divestiture/exit M&A vocabulary, consider Optum in watched_entities and an SEC-source boost (dry 8-K titles), and exclusions for ACA-marketplace/Medicaid-rule noise (61 labeled FP examples banked). Every change guarded by golden-set entries; fixes should lift S2 toward 1.0. |
+| 4. Near-duplicate alert suppression | Signal quality / UX | med | med | queued | Title-similarity clustering at draft time; `duplicate_of` column via guarded migration (Guardrail 3). Answers `docs/assumptions.md` open questions. |
+| 5. Historical trend views | Intel depth / UX | med | med | queued | Signal volume by payer/category/week; inline SVG sparklines (static-export safe) on `/status` + payer pages. |
+| 6. CMS MA enrollment data | Intel depth | high | high | queued | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
+| 7. Low-yield source review | Coverage | med | low | queued | 41 flagged sources incl. "Managed Healthcare Executive" (30 items, 0 public, max 0.06 — likely title-only feed or gate issue; investigate before pruning). |
+| 8. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). Only after item 3 proves out. |
 
 ## Blocked / parked
 
