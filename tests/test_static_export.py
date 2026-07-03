@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from ma_signal_monitor.digest import generate_digest
 from ma_signal_monitor.models import NormalizedItem, ScoredItem
+from ma_signal_monitor.payers import PAYER_GROUPS
 from ma_signal_monitor.static_export import _map_path, build_site
 
 
@@ -258,3 +259,42 @@ def test_topic_and_state_feeds_paginate(tmp_path, sample_config, temp_db):
     assert "/myrepo/topics/policy_regulatory-2.html" in topic
     state = (out / "states" / "TX.html").read_text()
     assert "/myrepo/states/TX-2.html" in state
+
+
+def test_payer_pages_exported(tmp_path, sample_config, temp_db):
+    item = NormalizedItem(
+        item_id="p1",
+        source_name="Healthcare Dive",
+        source_type="rss",
+        source_priority=3,
+        source_tags=["industry"],
+        title="Humana flags Medicare Advantage margin pressure",
+        link="https://example.com/p1",
+        published_date=datetime(2024, 1, 1, 12, 0),
+        summary="Humana margin summary.",
+    )
+    temp_db.upsert_story(
+        ScoredItem(
+            item=item,
+            relevance_score=0.7,
+            matched_categories=["financial_pressure"],
+            matched_entities=["Humana"],
+        ),
+        primary_category="financial_pressure",
+        states=[],
+    )
+
+    out, counts = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    assert (out / "payers.html").exists()
+    assert (out / "payers" / "humana.html").exists()
+    detail = (out / "payers" / "humana.html").read_text()
+    assert "margin pressure" in detail
+    overview = (out / "payers.html").read_text()
+    assert "/myrepo/payers/humana.html" in overview
+    assert counts["payers"] == len(PAYER_GROUPS)
+    # Route-to-file mapping covers payer paths.
+    assert _map_path("/payers", "/myrepo") == "/myrepo/payers.html"
+    assert (
+        _map_path("/payers/humana?page=2", "/myrepo") == "/myrepo/payers/humana-2.html"
+    )

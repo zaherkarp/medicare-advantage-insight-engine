@@ -15,7 +15,10 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from ma_signal_monitor.geo import STATE_NAMES, state_name
+from ma_signal_monitor.payers import KIND_LABELS, PAYER_GROUPS, get_group
 from ma_signal_monitor.storage import VALID_VERDICTS
+
+SEC_SOURCE_PREFIX = "SEC EDGAR"
 
 
 class FeedbackIn(BaseModel):
@@ -287,6 +290,100 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             subtitle="Signals referencing this state across all sources.",
             base_path=f"/states/{code}",
             state=code,
+        )
+
+    @app.get("/payers", response_class=HTMLResponse)
+    def payers(request: Request) -> HTMLResponse:
+        store = request.app.state.store
+        config = request.app.state.config
+        alias_counts = store.get_entity_counts(min_score=config.archive_min_score)
+        sections = []
+        for kind, kind_label in KIND_LABELS.items():
+            groups = [
+                {
+                    "slug": g.slug,
+                    "name": g.name,
+                    "story_count": sum(alias_counts.get(a, 0) for a in g.aliases),
+                }
+                for g in PAYER_GROUPS
+                if g.kind == kind
+            ]
+            groups.sort(key=lambda g: g["story_count"], reverse=True)
+            sections.append({"label": kind_label, "groups": groups})
+        return templates.TemplateResponse(
+            request, "payers.html", {"sections": sections}
+        )
+
+    @app.get("/payers/{slug}", response_class=HTMLResponse)
+    def payer_detail(request: Request, slug: str) -> HTMLResponse:
+        group = get_group(slug)
+        if group is None:
+            raise HTTPException(status_code=404, detail="Unknown payer")
+        store = request.app.state.store
+        config = request.app.state.config
+        floor = config.archive_min_score
+        aliases = list(group.aliases)
+
+        page_size = config.web_page_size
+        page = _page_param(request)
+        total = store.count_stories(entity_aliases=aliases, min_score=floor)
+        total_pages = max(1, math.ceil(total / page_size)) if total else 1
+        page = min(page, total_pages)
+        rows = store.get_stories(
+            entity_aliases=aliases,
+            limit=page_size,
+            offset=(page - 1) * page_size,
+            min_score=floor,
+        )
+
+        from ma_signal_monitor.classify import get_category_label
+
+        stats = store.get_entity_stats(aliases, min_score=floor)
+        category_mix = sorted(
+            (
+                {
+                    "key": key,
+                    "label": get_category_label(key, config),
+                    "count": count,
+                }
+                for key, count in stats["categories"].items()
+                if key != "uncategorized"
+            ),
+            key=lambda c: c["count"],
+            reverse=True,
+        )
+        state_footprint = sorted(
+            (
+                {"code": code, "name": state_name(code), "count": count}
+                for code, count in stats["states"].items()
+            ),
+            key=lambda s: s["count"],
+            reverse=True,
+        )[:10]
+        sec_filings = [
+            _story_view(r)
+            for r in store.get_stories(
+                entity_aliases=aliases,
+                source_prefix=SEC_SOURCE_PREFIX,
+                limit=5,
+                min_score=floor,
+            )
+        ]
+        return templates.TemplateResponse(
+            request,
+            "payer.html",
+            {
+                "payer": {"slug": group.slug, "name": group.name},
+                "aliases": aliases,
+                "stories": [_story_view(r) for r in rows],
+                "total": total,
+                "page": page,
+                "total_pages": total_pages,
+                "base_path": f"/payers/{group.slug}",
+                "category_mix": category_mix,
+                "state_footprint": state_footprint,
+                "sec_filings": sec_filings,
+            },
         )
 
     def _render_briefing(request: Request, digest_row) -> HTMLResponse:

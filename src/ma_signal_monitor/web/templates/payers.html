@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Payer Intelligence — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>Payer Intelligence</h1>
+    <p class="subtitle">Signals by watched Medicare Advantage organization —
+      payers, brokerage/distribution players, and people. Counts fold every
+      detected alias into its canonical organization.</p>
+  </section>
+
+  {% for section in sections %}
+    <section class="payer-section">
+      <h2>{{ section.label }}</h2>
+      <div class="state-grid">
+        {% for g in section.groups %}
+          <a class="state-card" href="/payers/{{ g.slug }}">
+            <span class="state-name">{{ g.name }}</span>
+            <span class="state-count">{{ g.story_count }}
+              signal{{ '' if g.story_count == 1 else 's' }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+{% endblock %}
