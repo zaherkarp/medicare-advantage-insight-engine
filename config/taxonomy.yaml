@@ -156,6 +156,32 @@ categories:
       - "AEP"
       - "marketing organization"
 
+# Medicare Advantage context anchors. For broad, low-priority sources (see
+# scoring.ma_context_min_priority), an item must contain a watched payer OR one
+# of these core Medicare/MA terms before its taxonomy-keyword matches count as
+# signal. This stops generic keyword hits ("premium", "network", "earnings")
+# from statewide-news firehoses scoring as MA relevance while they say nothing
+# about Medicare. Whole-token matched (same matcher as keywords). High-priority
+# MA sources (CMS, KFF, Fierce, …) are exempt and stay fully sensitive.
+ma_context_terms:
+  - "Medicare"
+  - "Medicare Advantage"
+  - "Medicare Part"
+  - "Part C"
+  - "Part D"
+  - "MA plan"
+  - "dual eligible"
+  - "dual-eligible"
+  - "D-SNP"
+  - "C-SNP"
+  - "I-SNP"
+  - "special needs plan"
+  - "Medigap"
+  - "risk adjustment"
+  - "star rating"
+  - "CMS"
+  - "Centers for Medicare"
+
 # Named entities (payers) to watch for - boosts relevance when detected
 watched_entities:
   - "UnitedHealthcare"
@@ -209,3 +235,7 @@ scoring:
   multi_category_boost: 0.10
   title_keyword_multiplier: 1.5
   exclusion_penalty: 0.25
+  # Sources with priority below this must carry Medicare/MA context (a watched
+  # payer or an ma_context_terms match) before keyword matches count. Dedicated
+  # MA sources are priority 3-5 and stay fully sensitive. 0 disables the gate.
+  ma_context_min_priority: 3
