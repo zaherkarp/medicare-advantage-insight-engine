@@ -17,7 +17,7 @@
 - **The archive keeps everything; the public site does not.** Every scored item is persisted (so source-yield review and the feedback loops see the full picture and nothing is silently dropped), but the browsable surfaces — feed, topic/state pages, search, and the static Pages export — apply a display floor (`ARCHIVE_MIN_SCORE`, default `0.1`). This hides pure source-priority "noise": items that matched no taxonomy keyword and no watched entity, whose entire score is the source-priority floor. With default weights any real signal scores `≥ 0.12` while pure-priority items top out at `0.10`, so the floor trades no recall for a much cleaner public feed. Preferring false positives over false negatives still governs *relevance detection* (the scorer stays sensitive); the floor only suppresses items with *zero* detected relevance. The `/status` dashboard and `/health` counts intentionally report the full archive so low-yield sources remain visible for pruning.
 
 ### Taxonomy
-- **Five categories cover the primary MA signal space.** The categories (membership, demographic, policy, financial, competitive) are based on common MA industry analysis frameworks. Additional categories can be added in `taxonomy.yaml`.
+- **Six categories cover the primary MA signal space.** The categories (membership, demographic, policy, financial, competitive, brokerage/distribution) are based on common MA industry analysis frameworks. Additional categories can be added in `taxonomy.yaml`.
 - **Category weights reflect relative analytic importance.** Policy/regulatory is weighted slightly higher (1.2) because regulatory signals tend to have outsized market impact. This is adjustable.
 
 ### Delivery

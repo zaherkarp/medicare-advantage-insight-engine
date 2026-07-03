@@ -428,7 +428,7 @@ The delivery system supports four modes:
 ## Limitations
 
 - **No NLP/ML**: Scoring is keyword-based, not semantic. High-quality but not perfect.
-- **RSS only (Phase 1)**: SEC EDGAR and CMS public file fetchers are stubbed for Phase 2.
+- **Feed-based only**: All ingestion (RSS/Atom, SEC EDGAR, CMS) consumes public feeds — no scraping, APIs, or document parsing.
 - **No live Teams validation**: Teams rendering is validated structurally, not against a live endpoint (unless you provide one).
 - **English only**: Keywords and content processing assume English-language sources.
 - **No authentication**: RSS fetching does not support authenticated feeds.

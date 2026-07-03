@@ -1,5 +1,10 @@
 # PR Summary: MA Signal Monitor — Initial Implementation
 
+> **Historical snapshot.** This describes the initial implementation PR and is
+> kept for reference. The project has grown since (SEC EDGAR/CMS fetchers live,
+> six taxonomy categories, story archive + web frontend, 227 tests). See
+> `README.md` and `docs/architecture.md` for the current state.
+
 ## Summary
 
 Complete end-to-end implementation of a local Medicare Advantage news insight monitor. The system fetches public RSS feeds, scores items for MA relevance using a transparent keyword/entity/priority model, classifies them into a configurable trigger taxonomy, and delivers structured two-section alerts (internal analytic + draft public insight) to a webhook endpoint.

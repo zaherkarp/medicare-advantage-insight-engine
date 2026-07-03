@@ -37,6 +37,12 @@ The SQLite database contains:
 | `seen_items` | Deduplication records |
 | `delivery_log` | Webhook delivery attempts |
 | `run_metadata` | Start/end times and counts per run |
+| `stories` | Browsable archive of every scored item |
+| `stories_fts` | FTS5 full-text index over `stories` |
+| `digests` | Saved Daily Briefing digests |
+| `candidate_domains` | Source-discovery domain harvest |
+| `candidate_sources` | Ranked candidate feeds for review/promotion |
+| `feedback` | Reader/owner verdicts (append-only, weighted) |
 
 ## Delivery Modes
 
