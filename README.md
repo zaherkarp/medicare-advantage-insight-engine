@@ -49,7 +49,8 @@ Each run walks one linear pipeline (`main.run`), and one bad feed never stops
 the run:
 
 1. **Fetch** — every enabled source in `config/sources.yaml` is pulled (RSS,
-   plus SEC EDGAR and CMS fetchers), sequentially.
+   plus SEC EDGAR and CMS fetchers), concurrently on a small thread pool
+   (`FETCH_WORKERS`, default 8).
 2. **Normalize** — raw entries become a uniform `NormalizedItem` (title,
    summary, link, published date, source + priority), HTML stripped.
 3. **Deduplicate** — a stable `item_id` (hash of source + link) is checked
