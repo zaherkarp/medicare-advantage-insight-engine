@@ -429,7 +429,11 @@ class StateStore:
 
     @staticmethod
     def _story_filters(
-        category: str | None, state: str | None, min_score: float = 0.0
+        category: str | None,
+        state: str | None,
+        min_score: float = 0.0,
+        entity_aliases: list[str] | None = None,
+        source_prefix: str | None = None,
     ) -> tuple[str, list]:
         """Build a shared WHERE clause for story queries.
 
@@ -438,6 +442,11 @@ class StateStore:
         taxonomy keyword and no watched entity — stays out of the public views
         while remaining in the archive. A ``min_score`` of 0.0 (the default)
         adds no clause, so unfiltered callers behave exactly as before.
+
+        ``entity_aliases`` matches stories mentioning ANY of the given watched
+        entities (the payer pages pass a canonical group's aliases).
+        ``source_prefix`` restricts to sources whose name starts with it (used
+        to pull SEC EDGAR filings for a payer).
         """
         clauses: list[str] = []
         params: list = []
@@ -448,6 +457,14 @@ class StateStore:
             # states is a JSON array of USPS codes; match the quoted token.
             clauses.append("states LIKE ?")
             params.append(f'%"{state}"%')
+        if entity_aliases:
+            # entities is a JSON array of alias strings; match any quoted token.
+            ors = " OR ".join(["entities LIKE ?"] * len(entity_aliases))
+            clauses.append(f"({ors})")
+            params.extend(f'%"{alias}"%' for alias in entity_aliases)
+        if source_prefix:
+            clauses.append("source_name LIKE ?")
+            params.append(f"{source_prefix}%")
         if min_score > 0.0:
             # NULL scores are treated as 0 so they never slip past the floor.
             clauses.append("COALESCE(relevance_score, 0) >= ?")
@@ -462,6 +479,8 @@ class StateStore:
         limit: int = 25,
         offset: int = 0,
         min_score: float = 0.0,
+        entity_aliases: list[str] | None = None,
+        source_prefix: str | None = None,
     ) -> list[sqlite3.Row]:
         """Return stories in reverse-chronological order, optionally filtered.
 
@@ -470,7 +489,9 @@ class StateStore:
         :meth:`_story_filters`).
         """
         conn = self._get_conn()
-        where, params = self._story_filters(category, state, min_score)
+        where, params = self._story_filters(
+            category, state, min_score, entity_aliases, source_prefix
+        )
         rows = conn.execute(
             f"""SELECT * FROM stories{where}
                 ORDER BY COALESCE(published_date, fetched_at) DESC
@@ -484,10 +505,14 @@ class StateStore:
         category: str | None = None,
         state: str | None = None,
         min_score: float = 0.0,
+        entity_aliases: list[str] | None = None,
+        source_prefix: str | None = None,
     ) -> int:
         """Count stories matching the given filters (for pagination)."""
         conn = self._get_conn()
-        where, params = self._story_filters(category, state, min_score)
+        where, params = self._story_filters(
+            category, state, min_score, entity_aliases, source_prefix
+        )
         row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
         return row[0]
 
@@ -728,6 +753,53 @@ class StateStore:
             for code in json.loads(row[0] or "[]"):
                 counts[code] = counts.get(code, 0) + 1
         return counts
+
+    def get_entity_counts(self, min_score: float = 0.0) -> dict[str, int]:
+        """Return a {watched_entity_alias: story_count} map across the archive.
+
+        Each story's `entities` JSON array may contain several aliases; every
+        alias is counted. Used by the payer intelligence overview (which folds
+        aliases into canonical organizations). ``min_score`` applies the
+        archive floor so tallies match the filtered feed.
+        """
+        conn = self._get_conn()
+        sql = "SELECT entities FROM stories WHERE entities IS NOT NULL"
+        params: tuple = ()
+        if min_score > 0.0:
+            sql += " AND COALESCE(relevance_score, 0) >= ?"
+            params = (min_score,)
+        counts: dict[str, int] = {}
+        for row in conn.execute(sql, params):
+            for alias in json.loads(row[0] or "[]"):
+                counts[alias] = counts.get(alias, 0) + 1
+        return counts
+
+    def get_entity_stats(
+        self, entity_aliases: list[str], min_score: float = 0.0
+    ) -> dict:
+        """Aggregate category and state footprints for one entity group.
+
+        Scans the stories mentioning any of ``entity_aliases`` once and
+        returns ``{"total", "categories": {key: n}, "states": {code: n}}``
+        for the payer intelligence page. Small result sets (hundreds of rows
+        per payer), so Python-side aggregation is fine.
+        """
+        conn = self._get_conn()
+        where, params = self._story_filters(
+            None, None, min_score, entity_aliases=entity_aliases
+        )
+        categories: dict[str, int] = {}
+        states: dict[str, int] = {}
+        total = 0
+        for row in conn.execute(
+            f"SELECT primary_category, states FROM stories{where}", params
+        ):
+            total += 1
+            cat = row["primary_category"] or "uncategorized"
+            categories[cat] = categories.get(cat, 0) + 1
+            for code in json.loads(row["states"] or "[]"):
+                states[code] = states.get(code, 0) + 1
+        return {"total": total, "categories": categories, "states": states}
 
     # --- Delivery Logging ---
 

@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 
 from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig
+from ma_signal_monitor.payers import PAYER_GROUPS
 from ma_signal_monitor.storage import StateStore
 from ma_signal_monitor.web.app import create_app
 
@@ -75,6 +76,10 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = "states.html"
     elif path.startswith("/states/"):
         tail = f"states/{path[len('/states/') :]}.html"
+    elif path == "/payers":
+        tail = "payers.html"
+    elif path.startswith("/payers/"):
+        tail = f"payers/{path[len('/payers/') :]}.html"
     elif path.startswith("/story/"):
         tail = f"story/{path[len('/story/') :]}.html"
     elif path == "/sources":
@@ -144,6 +149,7 @@ _SEARCH_HTML = """<!DOCTYPE html>
     <a href="{base}/index.html">Feed</a>
     <a href="{base}/briefing.html">Daily Briefing</a>
     <a href="{base}/sources.html">Sources</a>
+    <a href="{base}/payers.html">Payers</a>
     <a href="{base}/candidates.html">Candidates</a>
     <a href="{base}/states.html">State Intelligence</a>
     <a href="{base}/status.html">Status</a>
@@ -272,6 +278,13 @@ def build_site(
             f"states/{code}.html",
             store.count_stories(state=code, min_score=floor),
         )
+    grab("/payers", "payers.html")
+    for group in PAYER_GROUPS:
+        grab_paginated(
+            f"/payers/{group.slug}",
+            f"payers/{group.slug}.html",
+            store.count_stories(entity_aliases=list(group.aliases), min_score=floor),
+        )
     story_rows = store.get_stories(limit=_MAX_STORY_PAGES, min_score=floor)
     for row in story_rows:
         grab(f"/story/{row['item_id']}", f"story/{row['item_id']}.html")
@@ -294,6 +307,7 @@ def build_site(
         "stories": len(story_rows),
         "topics": len(config.categories),
         "states": len(store.get_state_counts(min_score=floor)),
+        "payers": len(PAYER_GROUPS),
         "digests": len(store.list_digests(limit=400)),
     }
     logger.info("Static site built at %s: %s", out_dir, counts)

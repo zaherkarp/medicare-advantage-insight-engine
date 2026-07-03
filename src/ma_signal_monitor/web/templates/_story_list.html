@@ -1,0 +1,67 @@
+{# Shared story list + inline feedback + pagination. Expects: stories, total_pages,
+   page, base_path (and the category_label/state_name globals). #}
+{% if not stories %}
+  <p class="empty">No signals yet. The archive fills as new items are
+    ingested — check back after the next run.</p>
+{% endif %}
+
+<ul class="story-list">
+  {% for s in stories %}
+    <li class="story-card">
+      <div class="story-meta">
+        <span class="badge badge-cat">{{ category_label(s.primary_category) }}</span>
+        <span class="source">{{ s.source_name }}</span>
+        {% if s.display_date %}<span class="date">{{ s.display_date }}</span>{% endif %}
+        <span class="score">score {{ '%.2f'|format(s.relevance_score) }}</span>
+      </div>
+      <h2 class="story-title"><a href="/story/{{ s.item_id }}">{{ s.title }}</a></h2>
+      {% if s.summary %}<p class="story-summary">{{ s.summary }}</p>{% endif %}
+      <div class="tag-row">
+        {% for e in s.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
+        {% for st in s.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
+      </div>
+      {% if not static_site %}
+        {# Lightweight fire-and-forget rating; the story page has the full widget. #}
+        <div class="card-feedback" data-item-id="{{ s.item_id }}">
+          <button type="button" class="card-fb" data-verdict="relevant" aria-label="Mark relevant">👍</button>
+          <button type="button" class="card-fb" data-verdict="irrelevant" aria-label="Mark not relevant">👎</button>
+        </div>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+{% if not static_site %}
+<script>
+document.querySelectorAll(".card-feedback").forEach(function (box) {
+  box.querySelectorAll(".card-fb").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: box.dataset.itemId, verdict: btn.dataset.verdict }),
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad status");
+          box.innerHTML = '<span class="card-fb-done">✓ thanks</span>';
+        })
+        .catch(function () {
+          btn.textContent = "⚠";
+        });
+    });
+  });
+});
+</script>
+{% endif %}
+
+{% if total_pages > 1 %}
+  <nav class="pagination">
+    {% if page > 1 %}
+      <a href="{{ base_path }}?page={{ page - 1 }}">← Newer</a>
+    {% else %}<span class="disabled">← Newer</span>{% endif %}
+    <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a href="{{ base_path }}?page={{ page + 1 }}">Older →</a>
+    {% else %}<span class="disabled">Older →</span>{% endif %}
+  </nav>
+{% endif %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ payer.name }} — Payer Intelligence — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>{{ payer.name }}</h1>
+    <p class="subtitle">Signals mentioning
+      {% for a in aliases %}{{ a }}{{ ", " if not loop.last }}{% endfor %}.</p>
+    <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }}</p>
+  </section>
+
+  {% if category_mix or state_footprint or sec_filings %}
+    <section class="payer-overview">
+      {% if category_mix %}
+        <div class="payer-panel">
+          <h2>Signal mix</h2>
+          <ul class="stat-list">
+            {% for c in category_mix %}
+              <li><a href="/topics/{{ c.key }}">{{ c.label }}</a>
+                <span class="muted">{{ c.count }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      {% if state_footprint %}
+        <div class="payer-panel">
+          <h2>State footprint</h2>
+          <ul class="stat-list">
+            {% for st in state_footprint %}
+              <li><a href="/states/{{ st.code }}">{{ st.name }}</a>
+                <span class="muted">{{ st.count }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      {% if sec_filings %}
+        <div class="payer-panel">
+          <h2>Recent SEC filings</h2>
+          <ul class="stat-list">
+            {% for f in sec_filings %}
+              <li><a href="/story/{{ f.item_id }}">{{ f.title }}</a>
+                {% if f.display_date %}<span class="muted">{{ f.display_date[:10] }}</span>{% endif %}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% include "_story_list.html" %}
+{% endblock %}
