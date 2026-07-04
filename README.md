@@ -218,13 +218,13 @@ Jinja web app renders it as a browsable site. Pages:
 |---|---|
 | `/` | Paginated, reverse-chronological signal feed |
 | `/topics/{category}` | One of the six trigger verticals (e.g. `policy_regulatory`) |
-| `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with signal mix, state footprint, and SEC filings |
+| `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with a signal-volume trend sparkline, signal mix, state footprint, and SEC filings |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
 | `/search?q=` | Full-text search across the archive (SQLite FTS5) |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
 | `/story/{id}` | Story detail with the draft insight angle |
-| `/status` | System status dashboard (last run, coverage by topic/source) |
+| `/status` | System status dashboard (last run, 12-week signal-volume trend, coverage by topic/source) |
 | `/health` | JSON health/counts (stories, sources, last run, categories) |
 
 #### Archive noise floor
@@ -497,6 +497,7 @@ Tracker).
 │   ├── dedupe.py           # Deduplication
 │   ├── scoring.py          # Relevance scoring
 │   ├── classify.py         # Trigger classification
+│   ├── trends.py           # Weekly-volume bucketing + inline-SVG sparklines
 │   ├── payers.py           # Canonical payer grouping (Payer Intelligence pages)
 │   ├── drafting.py         # Alert generation
 │   ├── delivery.py         # Webhook delivery

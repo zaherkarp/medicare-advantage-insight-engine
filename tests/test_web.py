@@ -176,6 +176,9 @@ def test_status_page(client):
     assert "Stories by topic" in resp.text
     assert "Test Feed" in resp.text  # source listed
     assert "Source relevance yield" in resp.text
+    # Signal-volume sparkline renders (inline SVG, no JS).
+    assert "Signal volume" in resp.text
+    assert "<svg" in resp.text and "spark-line" in resp.text
 
 
 def test_status_flags_low_yield_source(sample_config, temp_db):

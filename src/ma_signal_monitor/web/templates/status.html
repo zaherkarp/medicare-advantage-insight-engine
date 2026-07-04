@@ -26,6 +26,12 @@
   </div>
 
   <section class="status-section">
+    <h2>Signal volume (last {{ spark.weeks }} weeks)</h2>
+    {% set spark_caption = "%d signals archived over %d weeks"|format(spark.total, spark.weeks) %}
+    {% include "_sparkline.html" %}
+  </section>
+
+  <section class="status-section">
     <h2>Last ingestion run</h2>
     {% if last_run %}
       <table class="status-table">

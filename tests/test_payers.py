@@ -1,6 +1,6 @@
 """Tests for the payer intelligence pages and canonical entity grouping."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -129,6 +129,34 @@ def test_entity_stats(temp_db):
     assert stats["states"] == {"TX": 2, "CA": 1}
 
 
+def test_weekly_counts_buckets_by_entity(temp_db):
+    now = datetime(2024, 3, 20, 12, 0)  # a Wednesday
+    _seed_story(temp_db, "w1", "UHG A", entities=["UnitedHealth"], published=now)
+    _seed_story(
+        temp_db,
+        "w2",
+        "UHG B",
+        entities=["UHC"],
+        published=now - timedelta(days=1),  # same week
+    )
+    _seed_story(
+        temp_db,
+        "w3",
+        "UHG old",
+        entities=["UnitedHealth"],
+        published=now - timedelta(weeks=2),
+    )
+    _seed_story(temp_db, "h1", "Humana", entities=["Humana"], published=now)
+
+    series = temp_db.get_weekly_counts(
+        weeks=4, entity_aliases=["UnitedHealth", "UHC"], now=now
+    )
+    assert len(series) == 4
+    assert [w["count"] for w in series] == [0, 1, 0, 2]  # oldest → newest
+    # Humana story is excluded by the entity filter.
+    assert sum(w["count"] for w in series) == 3
+
+
 # --- Web routes ---
 
 
@@ -194,3 +222,27 @@ def test_payer_detail_without_sec_filings(client):
     assert resp.status_code == 200
     assert "Humana update" in resp.text
     assert "Recent SEC filings" not in resp.text
+
+
+def test_payer_detail_shows_recent_signal_volume(sample_config, temp_db):
+    # A story within the 12-week window drives the sparkline panel.
+    _seed_story(
+        temp_db,
+        "recent",
+        "Cigna reprices its Medicare Advantage plans",
+        entities=["Cigna"],
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/payers/cigna")
+    assert resp.status_code == 200
+    assert "Signal volume" in resp.text
+    assert "<svg" in resp.text and "spark-line" in resp.text
+
+
+def test_payer_detail_no_signal_volume_when_stale(client):
+    # UnitedHealthcare's seeded stories are dated 2024 — outside the window,
+    # so the Signal volume panel is absent (other panels still render).
+    resp = client.get("/payers/unitedhealthcare")
+    assert "Signal mix" in resp.text  # other panels present
+    assert "Signal volume" not in resp.text

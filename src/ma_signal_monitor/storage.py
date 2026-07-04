@@ -801,6 +801,44 @@ class StateStore:
                 states[code] = states.get(code, 0) + 1
         return {"total": total, "categories": categories, "states": states}
 
+    def get_weekly_counts(
+        self,
+        weeks: int = 12,
+        entity_aliases: list[str] | None = None,
+        min_score: float = 0.0,
+        now: datetime | None = None,
+    ) -> list[dict]:
+        """Story volume per week over the last ``weeks`` weeks (oldest→newest).
+
+        Powers the signal-volume sparklines on ``/status`` (all stories) and
+        the payer pages (``entity_aliases`` scoping). Buckets on
+        ``COALESCE(published_date, fetched_at)`` — the same dateless-item
+        fallback the feed uses. Returns ``[{"week_start": iso, "count": n}, …]``
+        with every week present (zero-filled), so quiet weeks show as dips.
+        """
+        from ma_signal_monitor.trends import week_start, weekly_series
+
+        now = now or datetime.utcnow()
+        conn = self._get_conn()
+        where, params = self._story_filters(
+            None, None, min_score, entity_aliases=entity_aliases
+        )
+        cutoff = (week_start(now) - timedelta(weeks=weeks - 1)).isoformat()
+        clause = " AND " if where else " WHERE "
+        sql = (
+            f"SELECT published_date, fetched_at FROM stories{where}"
+            f"{clause}COALESCE(published_date, fetched_at) >= ?"
+        )
+        dates: list[datetime] = []
+        for row in conn.execute(sql, (*params, cutoff)):
+            raw = row["published_date"] or row["fetched_at"]
+            try:
+                dates.append(datetime.fromisoformat(raw))
+            except (ValueError, TypeError):
+                continue
+        series = weekly_series(dates, weeks, now)
+        return [{"week_start": s.isoformat(), "count": c} for s, c in series]
+
     # --- Delivery Logging ---
 
     def log_delivery(self, result: DeliveryResult) -> None:

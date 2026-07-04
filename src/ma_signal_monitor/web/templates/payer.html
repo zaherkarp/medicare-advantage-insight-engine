@@ -8,8 +8,15 @@
     <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }}</p>
   </section>
 
-  {% if category_mix or state_footprint or sec_filings %}
+  {% if category_mix or state_footprint or sec_filings or (spark and spark.total) %}
     <section class="payer-overview">
+      {% if spark and spark.total %}
+        <div class="payer-panel">
+          <h2>Signal volume</h2>
+          {% set spark_caption = "%d signals in the last %d weeks"|format(spark.total, spark.weeks) %}
+          {% include "_sparkline.html" %}
+        </div>
+      {% endif %}
       {% if category_mix %}
         <div class="payer-panel">
           <h2>Signal mix</h2>

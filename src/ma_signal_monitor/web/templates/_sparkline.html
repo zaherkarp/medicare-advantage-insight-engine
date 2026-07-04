@@ -1,0 +1,20 @@
+{# Inline-SVG sparkline for a weekly signal-volume trend. Static-export safe
+   (no JS, geometry only). Expects `spark` (a trends.Sparkline) and optional
+   `spark_caption`. Single series → no legend; the surrounding heading names it. #}
+<figure class="sparkline">
+  <svg viewBox="0 0 {{ spark.width }} {{ spark.height }}" class="spark-svg"
+       role="img" preserveAspectRatio="none"
+       aria-label="Weekly signal volume over the last {{ spark.weeks }} weeks; {{ spark.total }} total, {{ spark.latest }} in the most recent week">
+    {% if spark.area_points %}
+      <polygon class="spark-area" points="{{ spark.area_points }}" />
+    {% endif %}
+    <polyline class="spark-line" points="{{ spark.points }}" />
+    {% if spark.points %}
+      <circle class="spark-end" cx="{{ spark.end_x }}" cy="{{ spark.end_y }}" r="3" />
+    {% endif %}
+  </svg>
+  <figcaption class="spark-caption">
+    {{ spark_caption if spark_caption else "%d signals over %d weeks"|format(spark.total, spark.weeks) }}
+    · latest week: {{ spark.latest }}
+  </figcaption>
+</figure>
