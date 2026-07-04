@@ -4,6 +4,23 @@ Read this first. Update it in every PR. This file is the loop's durable memory
 across sessions: a fresh session resumes by reading [`docs/goal.md`](goal.md)
 and this file, then entering the protocol at step (a).
 
+## Status: PAUSED (2026-07-04, after iteration 10 / PR #45)
+
+Owner paused the loop after 11 merged PRs (#35–#45). The self-contained,
+clear-cut backlog items are done; what remains is decision-gated (see
+**Decision points awaiting owner** below) or needs a feasibility spike (CMS
+enrollment). Nothing is in flight — `main` is clean, no open loop PR.
+
+**To resume:** re-enter the protocol at step (a) and pick the top **Backlog**
+item — currently *Advisory→config automation* (a small internal item that needs
+no owner input). To unblock the higher-value work, an owner decision is needed:
+a SEC contact email (lights up SEC filings), a CMS download feasibility spike,
+or a yes/no on LLM scoring / a Slack webhook.
+
+Scorecard highlights vs. the Iteration-0 baseline: golden-set P/R 1.00/1.00 over
+88 cases (floors 0.95); payer pages 0→31; run time ~105s→~20s; cadence 4h/6h→
+2h/3h; near-duplicate suppression on alerts **and** feed; UX checklist 3/4.
+
 ## Protocol (short form)
 
 Per iteration:
