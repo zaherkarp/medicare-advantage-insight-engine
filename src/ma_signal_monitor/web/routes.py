@@ -369,6 +369,12 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 min_score=floor,
             )
         ]
+        from ma_signal_monitor.trends import sparkline
+
+        trend = store.get_weekly_counts(
+            weeks=12, entity_aliases=aliases, min_score=floor
+        )
+        spark = sparkline([w["count"] for w in trend])
         return templates.TemplateResponse(
             request,
             "payer.html",
@@ -383,6 +389,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "category_mix": category_mix,
                 "state_footprint": state_footprint,
                 "sec_filings": sec_filings,
+                "spark": spark,
             },
         )
 
@@ -487,11 +494,16 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         source_yield = store.get_source_yield(config.min_relevance_score)
         flagged = flag_low_yield_sources(source_yield, config)
         flagged_names = {f["source"] for f in flagged}
+        from ma_signal_monitor.trends import sparkline
+
+        trend = store.get_weekly_counts(weeks=12, min_score=config.archive_min_score)
+        spark = sparkline([w["count"] for w in trend])
         return templates.TemplateResponse(
             request,
             "status.html",
             {
                 "total_stories": store.count_stories(),
+                "spark": spark,
                 "category_stats": category_stats,
                 "uncategorized": cat_counts.get("uncategorized", 0),
                 "source_counts": store.get_source_counts(),

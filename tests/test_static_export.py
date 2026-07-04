@@ -298,3 +298,17 @@ def test_payer_pages_exported(tmp_path, sample_config, temp_db):
     assert (
         _map_path("/payers/humana?page=2", "/myrepo") == "/myrepo/payers/humana-2.html"
     )
+
+
+def test_status_sparkline_survives_export(tmp_path, sample_config, temp_db):
+    """The inline-SVG trend renders to static HTML (no JS, no rewritten attrs)."""
+    _seed(temp_db, "a1", "CMS Star Ratings rule", category="policy_regulatory")
+
+    out, _ = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    status = (out / "status.html").read_text()
+    assert "Signal volume" in status
+    assert "<polyline" in status and 'class="spark-line"' in status
+    # The polyline geometry uses `points`, not href/src/action, so the export
+    # link-rewriter leaves it untouched (no /myrepo prefix injected into it).
+    assert "points=" in status
