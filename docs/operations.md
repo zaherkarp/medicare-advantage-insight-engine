@@ -146,6 +146,48 @@ categories:
 
 Add payer/organization names to `watched_entities` in `config/taxonomy.yaml`.
 
+### Reduce noise (the MA-context gate and display floor)
+
+Two independent controls keep off-topic items off the public site without losing
+genuine signals. Both are on by default.
+
+**Source-aware MA-context gate.** For sources below
+`scoring.ma_context_min_priority` (default `3`), a taxonomy-keyword match only
+counts if the item *also* names a watched payer or one of the `ma_context_terms`
+anchors (Medicare, Part C/D, D-SNP, CMS, …). This stops broad, low-priority
+feeds (e.g. the statewide newsrooms) from scoring a generic keyword brush
+(`premium`, `network`) as an MA signal. Dedicated MA sources (priority 3–5) are
+never gated. Set the threshold to `0` to disable.
+
+```yaml
+# config/taxonomy.yaml
+ma_context_terms:             # anchors that satisfy the gate
+  - "Medicare"
+  - "Medicare Advantage"
+  - "D-SNP"
+  # …
+scoring:
+  ma_context_min_priority: 3  # gate sources below this priority; 0 = off
+```
+
+**Core-MA-term boost.** Strong MA vocabulary earns a one-time
+`scoring.ma_term_boost` (default `0.15`), so a clear MA story scores as a signal
+even when no category keyword happens to match. Its list is `ma_boost_terms`,
+deliberately narrower than `ma_context_terms` — bare "Medicare"/"CMS" establishes
+context but isn't by itself an MA-market signal.
+
+**Archive display floor.** `ARCHIVE_MIN_SCORE` (`.env`, or
+`processing.archive_min_score` in `config/app.yaml`; default `0.1`) hides
+anything still scoring as pure source-priority noise from the public surfaces
+(feed, topics, states, search, static site) while keeping it in the archive.
+`/status` and `/health` always report the full, unfiltered archive — that's where
+you gauge a source's yield. Set to `0.0` to surface everything.
+
+```ini
+# .env
+ARCHIVE_MIN_SCORE=0.1   # public display floor; 0.0 disables
+```
+
 ## Monitoring Run Health
 
 Check the last few runs:
