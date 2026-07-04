@@ -265,3 +265,74 @@ def test_wrong_category_requires_valid_category(client):
         },
     )
     assert good.status_code == 200
+
+
+def test_feed_hides_duplicates_but_status_counts_them(sample_config, temp_db):
+    """The feed shows one representative; /status reports the full archive."""
+    from ma_signal_monitor.models import NormalizedItem, ScoredItem
+
+    def seed(item_id, title, source, dup_of=None):
+        item = NormalizedItem(
+            item_id=item_id,
+            source_name=source,
+            source_type="rss",
+            source_priority=4,
+            source_tags=[],
+            title=title,
+            link=f"https://example.com/{item_id}",
+            published_date=datetime(2024, 1, 1, 12, 0),
+            summary="",
+        )
+        temp_db.upsert_story(
+            ScoredItem(
+                item=item, relevance_score=0.6, matched_categories=["policy_regulatory"]
+            ),
+            primary_category="policy_regulatory",
+            duplicate_of=dup_of,
+        )
+
+    seed("rep", "UnitedHealth reaches insulin settlement", "Healthcare Dive")
+    seed("dup", "UnitedHealth reaches insulin settlement", "Beckers", dup_of="rep")
+    client = TestClient(create_app(sample_config, temp_db))
+
+    feed = client.get("/")
+    assert "Healthcare Dive" in feed.text  # representative shown
+    assert "Beckers" not in feed.text  # duplicate hidden from the feed
+
+    status = client.get("/status")
+    assert "2" in status.text  # full archive count includes the duplicate
+    assert client.get("/health").json()["stories"] == 2
+
+
+def test_story_page_shows_also_reported_by(sample_config, temp_db):
+    from ma_signal_monitor.models import NormalizedItem, ScoredItem
+
+    def seed(item_id, source, dup_of=None):
+        item = NormalizedItem(
+            item_id=item_id,
+            source_name=source,
+            source_type="rss",
+            source_priority=4,
+            source_tags=[],
+            title="Same story",
+            link=f"https://example.com/{item_id}",
+            published_date=datetime(2024, 1, 1, 12, 0),
+            summary="",
+        )
+        temp_db.upsert_story(
+            ScoredItem(
+                item=item, relevance_score=0.6, matched_categories=["policy_regulatory"]
+            ),
+            primary_category="policy_regulatory",
+            duplicate_of=dup_of,
+        )
+
+    seed("rep", "Healthcare Dive")
+    seed("dup", "Beckers Payer Issues", dup_of="rep")
+    client = TestClient(create_app(sample_config, temp_db))
+
+    rep_page = client.get("/story/rep")
+    assert "Also reported by" in rep_page.text
+    assert "Beckers Payer Issues" in rep_page.text
+    # The duplicate's own page has no "also reported by" block.
+    assert "Also reported by" not in client.get("/story/dup").text

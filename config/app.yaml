@@ -38,6 +38,13 @@ processing:
   max_item_age_days: 7
   # Maximum summary length in characters
   max_summary_length: 500
+  # Feed near-duplicate grouping. Labels the same story carried by several
+  # sources so the browsable feed shows one representative (the archive keeps
+  # every row; /status and /health report the full counts). Shares the
+  # similarity threshold with delivery.dedup.
+  story_dedup:
+    enabled: true
+    lookback_days: 3
 
 # Storage settings
 storage:

@@ -114,6 +114,17 @@ Nothing is ever deleted: the archive keeps **every** scored item, and the
 that's where you gauge a source's yield and decide whether to prune it in
 `sources.yaml`. The gate and floor only shape what the *public* views show.
 
+### Near-duplicate grouping
+
+The same story is often carried by several sources at once. At persist time,
+each new story's headline is compared (title-token similarity) against the ones
+already archived; a near-match is labelled a **duplicate** of the
+highest-scoring representative (`processing.story_dedup` in `app.yaml`). The
+browsable surfaces — feed, topic/state/payer pages, search, briefing — then
+show **one** representative per story, and its story page lists the other
+sources under *"Also reported by …"*. As with the floor, nothing is deleted:
+every row stays in the archive and `/status` and `/health` count them all.
+
 ### Two thresholds, two audiences
 
 - **`MIN_RELEVANCE_SCORE`** (default `0.3`) — the bar to fire an **alert** to

@@ -113,13 +113,15 @@ SQLite (`storage.py`) provides eight tables plus a full-text index:
 - `seen_items`: Deduplication records (item_id, source, title, link, timestamp)
 - `delivery_log`: Record of every delivery attempt (success/failure, status code, error)
 - `run_metadata`: Start/end times and counts for each pipeline run
-- `stories`: The browsable archive — every scored item, with score, reasons, category, entities, and states
+- `stories`: The browsable archive — every scored item, with score, reasons, category, entities, states, and `duplicate_of` (the representative it near-duplicates, for feed grouping)
 - `stories_fts`: FTS5 full-text index over the archive (powers `/search`)
 - `digests`: Saved Daily Briefing digests
 - `candidate_domains` / `candidate_sources`: Source-discovery harvest and ranked feed candidates
 - `feedback`: Reader/owner verdicts (append-only, weighted)
 
 **Why SQLite**: Durable, zero-config, single-file, works on all platforms. No server needed. Retention-based cleanup prevents unbounded growth.
+
+**Schema evolution**: new tables are `CREATE TABLE IF NOT EXISTS` in `SCHEMA_SQL`. Adding a *column* to an existing table (the published Pages DB is carried forward) needs a guarded, idempotent `ALTER TABLE` — `_ensure_column` checks `PRAGMA table_info` before adding, run from `_migrate` in the store constructor. `duplicate_of` was the first such migration.
 
 ## Key Design Choices
 

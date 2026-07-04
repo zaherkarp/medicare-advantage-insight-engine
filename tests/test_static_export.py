@@ -312,3 +312,39 @@ def test_status_sparkline_survives_export(tmp_path, sample_config, temp_db):
     # The polyline geometry uses `points`, not href/src/action, so the export
     # link-rewriter leaves it untouched (no /myrepo prefix injected into it).
     assert "points=" in status
+
+
+def test_export_hides_duplicate_stories(tmp_path, sample_config, temp_db):
+    """The static feed shows the representative; the duplicate is not a feed row."""
+    _seed(
+        temp_db, "rep", "UnitedHealth insulin settlement", category="policy_regulatory"
+    )
+    # A duplicate of the representative (different source), marked via upsert.
+    dup_item = NormalizedItem(
+        item_id="dup",
+        source_name="Beckers",
+        source_type="rss",
+        source_priority=3,
+        source_tags=[],
+        title="UnitedHealth insulin settlement reached",
+        link="https://example.com/dup",
+        published_date=datetime(2024, 1, 1, 12, 0),
+        summary="dup summary.",
+    )
+    temp_db.upsert_story(
+        ScoredItem(
+            item=dup_item, relevance_score=0.7, matched_categories=["policy_regulatory"]
+        ),
+        primary_category="policy_regulatory",
+        duplicate_of="rep",
+    )
+
+    out, counts = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    index = (out / "index.html").read_text()
+    assert "Healthcare Dive" in index  # representative in the feed
+    assert "Beckers" not in index  # duplicate hidden from the feed
+    assert counts["stories"] == 1  # only representatives are page-rendered as feed
+    # The representative's own page lists the duplicate.
+    rep_page = (out / "story" / "rep.html").read_text()
+    assert "Also reported by" in rep_page and "Beckers" in rep_page

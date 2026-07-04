@@ -132,6 +132,13 @@ class AppConfig:
     dedup_similarity_threshold: float = 0.6
     dedup_lookback_days: int = 3
 
+    # Feed near-duplicate grouping (processing.story_dedup in app.yaml). Labels
+    # the same story carried by several sources so the browsable feed shows one
+    # representative (the archive keeps every row). Shares
+    # ``dedup_similarity_threshold`` with alert dedup.
+    story_dedup_enabled: bool = True
+    story_dedup_lookback_days: int = 3
+
     # Processing settings
     max_item_age_days: int = 7
     max_summary_length: int = 500
@@ -469,6 +476,12 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     )
     config.max_summary_length = processing.get(
         "max_summary_length", config.max_summary_length
+    )
+
+    story_dedup = processing.get("story_dedup", {})
+    config.story_dedup_enabled = story_dedup.get("enabled", config.story_dedup_enabled)
+    config.story_dedup_lookback_days = story_dedup.get(
+        "lookback_days", config.story_dedup_lookback_days
     )
 
     storage = data.get("storage", {})
