@@ -14,6 +14,7 @@ from dataclasses import asdict
 from ma_signal_monitor.classify import classify_item
 from ma_signal_monitor.config import AppConfig, load_config
 from ma_signal_monitor.dedupe import (
+    assign_story_duplicates,
     filter_new_items,
     mark_items_seen,
     suppress_duplicate_alerts,
@@ -99,6 +100,9 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
     threshold get an alert/draft) and detects referenced U.S. states.
     """
     drafts_by_id = {a.scored_item.item.item_id: a.public_draft for a in alerts}
+    # Label near-duplicate stories (same story from several sources) so the
+    # browsable feed shows one representative; the archive still keeps every row.
+    dup_map = assign_story_duplicates(scored, store, config)
     persisted = 0
     for s in scored:
         try:
@@ -109,6 +113,7 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
                 primary_category=primary,
                 public_draft=asdict(draft) if draft else None,
                 states=detect_states(s),
+                duplicate_of=dup_map.get(s.item.item_id),
             )
             persisted += 1
         except Exception as e:

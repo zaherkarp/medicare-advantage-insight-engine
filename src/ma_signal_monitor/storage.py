@@ -65,7 +65,11 @@ CREATE TABLE IF NOT EXISTS stories (
     categories TEXT,
     entities TEXT,
     states TEXT,
-    public_draft TEXT
+    public_draft TEXT,
+    -- item_id of the representative story this one near-duplicates (same story
+    -- carried by another source); NULL = this row IS the representative/unique.
+    -- Added to existing DBs by _ensure_column (see _init_db).
+    duplicate_of TEXT
 );
 
 -- Generated Daily Briefing digests, archived for the /briefing page and so
@@ -164,9 +168,43 @@ class StateStore:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA_SQL)
         conn.commit()
+        self._migrate()
         self._init_fts()
         self._clean_story_titles()
         logger.debug("Database initialized at %s", self.db_path)
+
+    def _ensure_column(self, table: str, column: str, decl: str) -> bool:
+        """Add ``column`` to ``table`` if it's missing. Returns True if added.
+
+        ``CREATE TABLE IF NOT EXISTS`` never alters an existing table, so a new
+        column on a carried-forward production DB needs an explicit, guarded
+        ``ALTER TABLE``. Idempotent: a PRAGMA check makes re-running a no-op.
+        Table/column/decl are code-controlled constants (never user input).
+        """
+        conn = self._get_conn()
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column in existing:
+            return False
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+        conn.commit()
+        logger.info("Migrated: added %s.%s column", table, column)
+        return True
+
+    def _migrate(self) -> None:
+        """Apply in-place column migrations to a carried-forward DB.
+
+        Each step is guarded/idempotent (see :meth:`_ensure_column`), so this
+        runs safely on every open. Indexes on migrated columns are created here
+        (not in SCHEMA_SQL) because the column may not exist yet when the schema
+        script runs against an old DB.
+        """
+        conn = self._get_conn()
+        self._ensure_column("stories", "duplicate_of", "TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_stories_duplicate_of "
+            "ON stories(duplicate_of)"
+        )
+        conn.commit()
 
     def _clean_story_titles(self) -> None:
         """Strip HTML from any already-stored titles (one-time self-heal).
@@ -297,11 +335,14 @@ class StateStore:
         primary_category: str,
         public_draft: dict | None = None,
         states: list[str] | None = None,
+        duplicate_of: str | None = None,
     ) -> None:
         """Persist a scored item into the browsable story archive.
 
         Reuses the fields already computed on the ScoredItem. List/dict fields
         are stored as JSON. Idempotent via INSERT OR REPLACE on item_id.
+        ``duplicate_of`` is the item_id of the representative story this one
+        near-duplicates (None = it is a representative / unique).
         """
         conn = self._get_conn()
         item = scored.item
@@ -309,8 +350,8 @@ class StateStore:
             """INSERT OR REPLACE INTO stories
                (item_id, title, link, source_name, source_priority, summary,
                 published_date, fetched_at, relevance_score, primary_category,
-                categories, entities, states, public_draft)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                categories, entities, states, public_draft, duplicate_of)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 item.item_id,
                 item.title,
@@ -326,6 +367,7 @@ class StateStore:
                 json.dumps(scored.matched_entities),
                 json.dumps(states or []),
                 json.dumps(public_draft) if public_draft else None,
+                duplicate_of,
             ),
         )
         if self.fts_enabled:
@@ -434,6 +476,7 @@ class StateStore:
         min_score: float = 0.0,
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
+        include_duplicates: bool = False,
     ) -> tuple[str, list]:
         """Build a shared WHERE clause for story queries.
 
@@ -447,6 +490,11 @@ class StateStore:
         entities (the payer pages pass a canonical group's aliases).
         ``source_prefix`` restricts to sources whose name starts with it (used
         to pull SEC EDGAR filings for a payer).
+
+        ``include_duplicates`` defaults to False, which hides near-duplicate
+        stories (``duplicate_of IS NOT NULL``) from the browsable views so the
+        same story carried by several sources shows once. Full-archive callers
+        (``/status``, ``/health``) pass True.
         """
         clauses: list[str] = []
         params: list = []
@@ -469,6 +517,8 @@ class StateStore:
             # NULL scores are treated as 0 so they never slip past the floor.
             clauses.append("COALESCE(relevance_score, 0) >= ?")
             params.append(min_score)
+        if not include_duplicates:
+            clauses.append("duplicate_of IS NULL")
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         return where, params
 
@@ -481,16 +531,22 @@ class StateStore:
         min_score: float = 0.0,
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
+        include_duplicates: bool = False,
     ) -> list[sqlite3.Row]:
         """Return stories in reverse-chronological order, optionally filtered.
 
         Dateless items (no published_date) fall back to fetched_at so they
-        still sort sensibly. ``min_score`` hides sub-floor stories (see
-        :meth:`_story_filters`).
+        still sort sensibly. ``min_score`` hides sub-floor stories and, by
+        default, near-duplicates are hidden too (see :meth:`_story_filters`).
         """
         conn = self._get_conn()
         where, params = self._story_filters(
-            category, state, min_score, entity_aliases, source_prefix
+            category,
+            state,
+            min_score,
+            entity_aliases,
+            source_prefix,
+            include_duplicates,
         )
         rows = conn.execute(
             f"""SELECT * FROM stories{where}
@@ -507,11 +563,17 @@ class StateStore:
         min_score: float = 0.0,
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
+        include_duplicates: bool = False,
     ) -> int:
         """Count stories matching the given filters (for pagination)."""
         conn = self._get_conn()
         where, params = self._story_filters(
-            category, state, min_score, entity_aliases, source_prefix
+            category,
+            state,
+            min_score,
+            entity_aliases,
+            source_prefix,
+            include_duplicates,
         )
         row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
         return row[0]
@@ -522,6 +584,39 @@ class StateStore:
         return conn.execute(
             "SELECT * FROM stories WHERE item_id = ?", (item_id,)
         ).fetchone()
+
+    def recent_story_reps(self, since_days: int) -> list[tuple[str, str]]:
+        """Representative stories (``duplicate_of IS NULL``) from the last N days.
+
+        Used by feed near-duplicate detection to point a newly-seen story at an
+        already-archived representative when their titles near-match. Returns
+        ``[(item_id, title), …]``. Only representatives are returned, so a new
+        duplicate always attaches to a root, never to another duplicate.
+        """
+        if since_days <= 0:
+            return []
+        conn = self._get_conn()
+        cutoff = (datetime.utcnow() - timedelta(days=since_days)).isoformat()
+        rows = conn.execute(
+            "SELECT item_id, title FROM stories "
+            "WHERE duplicate_of IS NULL "
+            "AND COALESCE(published_date, fetched_at) >= ?",
+            (cutoff,),
+        ).fetchall()
+        return [(r["item_id"], r["title"]) for r in rows]
+
+    def get_duplicates(self, item_id: str) -> list[sqlite3.Row]:
+        """Stories that near-duplicate ``item_id`` (its 'also covered by' group).
+
+        Reverse of ``duplicate_of``: the other sources that carried the same
+        story, newest first. Empty when the story is unique.
+        """
+        conn = self._get_conn()
+        return conn.execute(
+            "SELECT * FROM stories WHERE duplicate_of = ? "
+            "ORDER BY COALESCE(published_date, fetched_at) DESC",
+            (item_id,),
+        ).fetchall()
 
     def get_recent_top_stories(
         self,
@@ -540,6 +635,7 @@ class StateStore:
             """SELECT * FROM stories
                WHERE COALESCE(published_date, fetched_at) >= ?
                  AND relevance_score >= ?
+                 AND duplicate_of IS NULL
                ORDER BY relevance_score DESC,
                         COALESCE(published_date, fetched_at) DESC
                LIMIT ?""",

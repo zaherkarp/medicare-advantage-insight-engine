@@ -420,12 +420,18 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         row = store.get_story(item_id)
         if row is None:
             raise HTTPException(status_code=404, detail="Story not found")
+        # Other sources that carried the same story (the "also covered by" set).
+        also_covered = [
+            {"source_name": d["source_name"], "link": d["link"]}
+            for d in store.get_duplicates(item_id)
+        ]
         return templates.TemplateResponse(
             request,
             "story.html",
             {
                 "story": _story_view(row),
                 "feedback": store.get_feedback_summary(item_id),
+                "also_covered": also_covered,
             },
         )
 
@@ -469,7 +475,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         last = store.get_last_run()
         return {
             "status": "ok",
-            "stories": store.count_stories(),
+            "stories": store.count_stories(include_duplicates=True),
             "sources": len(config.sources),
             "enabled_sources": sum(1 for s in config.sources if s.enabled),
             "fts_enabled": store.fts_enabled,
@@ -502,7 +508,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             request,
             "status.html",
             {
-                "total_stories": store.count_stories(),
+                "total_stories": store.count_stories(include_duplicates=True),
                 "spark": spark,
                 "category_stats": category_stats,
                 "uncategorized": cat_counts.get("uncategorized", 0),

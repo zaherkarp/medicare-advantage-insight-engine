@@ -16,6 +16,12 @@
     <p><a class="source-link" href="{{ story.link }}" target="_blank" rel="noopener">
       Read the original source →</a></p>
 
+    {% if also_covered %}
+      <p class="also-covered">Also reported by
+        {% for d in also_covered %}<a href="{{ d.link }}" target="_blank"
+          rel="noopener">{{ d.source_name }}</a>{{ ", " if not loop.last }}{% endfor %}</p>
+    {% endif %}
+
     <div class="tag-row">
       {% for e in story.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
       {% for st in story.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}

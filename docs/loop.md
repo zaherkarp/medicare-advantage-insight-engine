@@ -26,13 +26,13 @@ Per iteration:
 Stopping conditions: owner says stop; backlog exhausted above the value bar; or
 two consecutive blocked iterations (surface instead of thrashing).
 
-## Scorecard snapshot (2026-07-04, after iteration 9)
+## Scorecard snapshot (2026-07-04, after iteration 10)
 
 See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 
 | S1 | S2 (P/R) | S3 floors | C1 | C2 | C3 | F1 | F2 | F3 low-yield | Q1 | Q2 | U1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 88 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | reviewed — verdicts below | 0 / 7 | present (alert firings) | **3/4** |
+| 88 | 1.000 / 1.000 | 0.95 / 0.95 | 31/31 | 8/10 | absent | ~20 s (measured locally; confirm in run_metadata post-merge) | 2 h / 3 h | reviewed — verdicts below | 0 / 7 | present (alerts **+ feed**) | 3/4 |
 
 ## Iteration log
 
@@ -49,14 +49,14 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 | 7 | 2026-07-03 | #42 | Documentation correctness sweep after the 7 feature PRs: README routes table gains `/payers`; five→six categories (README, pr-summary); concurrent-not-sequential fetching + `FETCH_WORKERS` in the `.env` table and architecture.md design row; 2h/3h cadence reconciled (README/operations/assumptions crons); litigation fetcher + `context` source field documented; scoring-factor list in architecture.md expanded (ma_term_boost, exclusions, MA-context gate); project-structure tree updated (`payers.py`, `fetchers/litigation.py`, drop "(stub)") | docs re-synced to shipped state (U1 "accurate docs" restored) | Docs-only; verified by grep sweep for residual "five categor" / "*/4 * * *" / unannotated "sequential". |
 | 8 | 2026-07-03 | #43 | Near-duplicate **alert** suppression (no schema change): new `similarity.py` (title-token Jaccard, reusing `keyword_mining._tokens`); `dedupe.suppress_duplicate_alerts` runs between drafting and delivery — within-run it keeps the highest-scoring member of a near-dup cluster, cross-run it drops alerts whose headline matches one delivered in the last `dedup_lookback_days` (via the existing `delivery_log`, no `stories` migration); `storage.recent_alert_titles`; `delivery.dedup` config knobs (enabled/threshold 0.6/lookback 3d); `alerts_suppressed` in the run summary | Q2 absent → **present** | Verified end-to-end across two runs: run 1 drafted 3 → kept 2 (1 within-run dup), run 2's third-outlet repeat → kept 0 (1 cross-run dup); the archive kept every scored item (only the webhook stream is trimmed). 12 new tests; `draft_alerts` gets its first coverage. The `duplicate_of` feed-grouping column is deferred (would need the first `ALTER TABLE` migration idiom) — see backlog. |
 | 9 | 2026-07-04 | #44 | Historical trend views: `trends.py` (pure — Monday-bucketing `weekly_series` + `sparkline` geometry), `storage.get_weekly_counts` (12-week series, `entity_aliases`-scoped, buckets on `COALESCE(published_date, fetched_at)`, no schema change), shared `_sparkline.html` partial (inline SVG — line + area wash + end-dot, no JS), wired into `/status` (overall volume) and each payer page (that payer's volume, panel shown only with recent data); theme-aware via CSS vars per the `dataviz` skill | U1 2/4 → **3/4** ("trends" ticks) | Verified end-to-end: built the static site from the production archive and screenshotted `/status` + a payer page over HTTP — sparklines render with valid in-viewBox geometry (monotonic x, y-inverted), area fill, end-dot, and captions ("1394 signals … latest week 224"; payer "36 … latest week 6"). Inline SVG survives the export link-rewriter (only href/src/action are rewritten). 13 new tests. |
+| 10 | 2026-07-04 | #45 | Feed near-duplicate grouping — the browsable-archive half of #43's alert dedup. **First `ALTER TABLE` migration**: `_ensure_column` (PRAGMA-guarded, idempotent) adds `stories.duplicate_of`, run from a new `_migrate` in the store constructor. `dedupe.assign_story_duplicates` labels near-dups at persist time (within-run keeps the top-scored representative; cross-run points at the archived root via `recent_story_reps`, never chaining). `_story_filters` gains `include_duplicates=False` → browsable surfaces (feed, topics, states, payers, search, briefing) show one representative; `/status` + `/health` pass `include_duplicates=True` for full counts. Story page shows "Also reported by …" (`get_duplicates`). `processing.story_dedup` knobs, sharing the 0.6 threshold with alert dedup | Q2 present → **present (alerts + feed)** | **Migration verified on the real production DB** (7,970 rows preserved, all NULL, idempotent on reopen). End-to-end: 2 runs, cross-source repeats collapse to one feed row while the archive keeps all; "also reported by" reverse-lookup correct. Forward-looking (existing rows stay representatives). 10 new tests incl. the migration-on-old-schema template. |
 
 ## Backlog (ordered, next-up first)
 
 | Item | Dimension | Impact | Effort | Status | Notes |
 |---|---|---|---|---|---|
-| 1. CMS MA enrollment data | Intel depth | high | high | next | Monthly CPSC files → parent-org membership/share on payer pages; likely two PRs (fetch/store, then UI). |
-| 2. Feed near-duplicate grouping | Signal quality / UX | med | med | queued | Collapse near-dup stories *in the browsable feed* (the alert-stream half shipped in #43). Needs a `duplicate_of` column on `stories` — the codebase has **no** `ALTER TABLE` idiom yet, so this introduces the first guarded column migration (`PRAGMA table_info` check in a `_migrate` method off `_init_db`); then `_story_filters` gains a `duplicate_of IS NULL` clause. Guardrail 3. |
-| 3. Advisory→config automation | Meta | med | med | queued | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). |
+| 1. Advisory→config automation | Meta | med | med | next | Mined keywords → *draft* PR (never auto-merged; Guardrail 2). |
+| 2. CMS MA enrollment data | Intel depth | high | high | **needs feasibility spike** | Parent-org membership/share on payer pages (C3). Foundational blocker (see decision points): CMS enrollment lives in monthly ZIP-in-CSV files whose URLs 404 and can't be verified via WebFetch; needs net-new binary/CSV handling + a parent-org→slug map. Codebase reuse mapped (storage table, `payers.py`, payer panel), but do a download spike before planning. |
 
 ## Blocked / parked
 
@@ -73,6 +73,13 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 - **Semantic/LLM scoring** — would add a paid dependency to a deliberately
   free/local app (Guardrail 4). If approved: LLM as advisory re-ranker first,
   gated by the golden set.
+- **CMS enrollment data feasibility** (backlog #2): the documented CMS
+  "Monthly Enrollment by Contract" URLs 404 and `data.cms.gov` is a JS-rendered
+  SPA WebFetch can't read; the parent-org enrollment is a binary ZIP-in-CSV that
+  can't be verified without an actual download. Needs a short spike (curl a real
+  monthly file, confirm the parent-org column + format) before the feature can
+  be planned — and confirmation the file host is reachable from the deploy
+  runners.
 - **Slack renderer** — needs a Slack workspace/webhook to target.
 - **Cadence cost** — the tighter crons shipped in iteration 4 (Pages 2h,
   alerts 3h) increase GitHub Actions usage; free for public repos, but
