@@ -623,23 +623,31 @@ class StateStore:
         since: datetime,
         limit: int = 12,
         min_score: float = 0.0,
+        until: datetime | None = None,
     ) -> list[sqlite3.Row]:
         """Return the highest-scoring stories since `since` (for the digest).
 
         Ordered by relevance score, then recency. Uses
         COALESCE(published_date, fetched_at) so dateless items are still
-        windowed sensibly.
+        windowed sensibly. ``until`` (exclusive) bounds the window on the
+        right — the Post Ideas page compares two adjacent windows for its
+        momentum signal; the digest leaves it unset and stays open-ended.
         """
         conn = self._get_conn()
+        until_clause = ""
+        params: list = [since.isoformat()]
+        if until is not None:
+            until_clause = " AND COALESCE(published_date, fetched_at) < ?"
+            params.append(until.isoformat())
         rows = conn.execute(
-            """SELECT * FROM stories
-               WHERE COALESCE(published_date, fetched_at) >= ?
+            f"""SELECT * FROM stories
+               WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
                  AND relevance_score >= ?
                  AND duplicate_of IS NULL
                ORDER BY relevance_score DESC,
                         COALESCE(published_date, fetched_at) DESC
                LIMIT ?""",
-            (since.isoformat(), min_score, limit),
+            (*params, min_score, limit),
         ).fetchall()
         return rows
 

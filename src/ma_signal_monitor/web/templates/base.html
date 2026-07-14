@@ -10,22 +10,20 @@
   <header class="site-header">
     <div class="wrap">
       <a class="brand" href="/">MA&nbsp;Signal&nbsp;Monitor</a>
+      {# Streamlined nav: topics/states/payers are filters on the feed (see
+         _filter_bar.html), and the operational pages live under System. #}
       <nav class="nav">
         <a href="/">Feed</a>
         <a href="/briefing">Daily Briefing</a>
+        <a href="/post-ideas">Post Ideas</a>
         <div class="dropdown">
-          <span class="nav-label">Topics ▾</span>
+          <span class="nav-label">System ▾</span>
           <div class="dropdown-menu">
-            {% for cat in categories %}
-              <a href="/topics/{{ cat.key }}">{{ cat.label }}</a>
-            {% endfor %}
+            <a href="/sources">Sources</a>
+            <a href="/candidates">Candidates</a>
+            <a href="/status">Status</a>
           </div>
         </div>
-        <a href="/payers">Payers</a>
-        <a href="/sources">Sources</a>
-        <a href="/candidates">Candidates</a>
-        <a href="/states">State Intelligence</a>
-        <a href="/status">Status</a>
         <form class="nav-search" action="/search" method="get">
           <input type="search" name="q" placeholder="Search…" aria-label="Search signals">
         </form>

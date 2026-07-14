@@ -141,6 +141,44 @@ class TestStateStore:
         assert temp_db.count_stories() == 1
         assert temp_db.get_story("dup")["relevance_score"] == 0.9
 
+    def test_recent_top_stories_until_bounds_window(self, temp_db):
+        """``until`` (exclusive) carves adjacent windows for momentum compares."""
+        temp_db.upsert_story(
+            _make_scored("before", "Too old", published=datetime(2024, 1, 1)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("inside", "In window", published=datetime(2024, 1, 10)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("at-until", "Right edge", published=datetime(2024, 1, 20)),
+            primary_category="policy_regulatory",
+        )
+        # A near-duplicate and a sub-floor story inside the window stay hidden.
+        temp_db.upsert_story(
+            _make_scored("dup", "In window too", published=datetime(2024, 1, 11)),
+            primary_category="policy_regulatory",
+            duplicate_of="inside",
+        )
+        temp_db.upsert_story(
+            _make_scored(
+                "noise", "Sub-floor", published=datetime(2024, 1, 12), score=0.02
+            ),
+            primary_category="policy_regulatory",
+        )
+
+        rows = temp_db.get_recent_top_stories(
+            datetime(2024, 1, 5), min_score=0.1, until=datetime(2024, 1, 20)
+        )
+        # `since` inclusive, `until` exclusive, duplicates + noise excluded.
+        assert [r["item_id"] for r in rows] == ["inside"]
+
+        open_ended = temp_db.get_recent_top_stories(
+            datetime(2024, 1, 10), min_score=0.1
+        )
+        assert {r["item_id"] for r in open_ended} == {"inside", "at-until"}
+
     def test_get_stories_reverse_chronological(self, temp_db):
         """Stories are returned newest-first by published date."""
         temp_db.upsert_story(
