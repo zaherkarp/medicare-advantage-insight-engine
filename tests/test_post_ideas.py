@@ -133,3 +133,41 @@ def test_theme_stories_capped_and_score_ordered(sample_config):
     theme = build_post_ideas(current, [], sample_config)["themes"][0]
     assert [s["item_id"] for s in theme["stories"]] == ["s5", "s4", "s3"]
     assert theme["count"] == 5
+
+
+def test_authoritative_counts_override_truncated_lists(sample_config):
+    """Counts/total/momentum follow the count maps, not the (possibly
+    truncated) story lists — so a scan-limited window still reports true
+    volumes."""
+    current = [_story("a", "policy_regulatory"), _story("b", "financial_pressure")]
+    previous = [_story("p", "policy_regulatory")]
+    ideas = build_post_ideas(
+        current,
+        previous,
+        sample_config,
+        # The DB says far more stories exist than the sampled lists show.
+        current_counts={"policy_regulatory": 600, "financial_pressure": 50},
+        previous_counts={"policy_regulatory": 900, "financial_pressure": 0},
+    )
+    themes = {t["key"]: t for t in ideas["themes"]}
+    assert themes["policy_regulatory"]["count"] == 600
+    assert themes["policy_regulatory"]["prev_count"] == 900
+    # True volume fell 900 -> 600 even though the sampled list grew: momentum
+    # must read "down", which the len-based path could not have detected.
+    assert themes["policy_regulatory"]["momentum"] == "down"
+    assert themes["financial_pressure"]["momentum"] == "new"
+    # The window total is the sum of the authoritative counts, not len(current).
+    assert ideas["highlights"]["total"] == 650
+
+
+def test_theme_link_flag_tracks_configured_categories(sample_config):
+    """Configured categories link to /topics/{key}; a stale key does not."""
+    current = [
+        _story("a", "policy_regulatory"),
+        _story("b", "star_ratings_legacy"),  # not in the config taxonomy
+    ]
+    themes = {
+        t["key"]: t for t in build_post_ideas(current, [], sample_config)["themes"]
+    }
+    assert themes["policy_regulatory"]["linkable"] is True
+    assert themes["star_ratings_legacy"]["linkable"] is False

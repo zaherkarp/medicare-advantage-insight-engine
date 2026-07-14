@@ -43,7 +43,11 @@ a:hover { text-decoration: underline; }
   background: var(--card); border: 1px solid var(--border);
   border-radius: 8px; box-shadow: var(--shadow); min-width: 230px; padding: 6px 0;
 }
-.dropdown:hover .dropdown-menu { display: block; }
+/* Open on hover and on keyboard focus (:focus-within) so the trigger and its
+   menu links stay reachable by Tab, not just the mouse. */
+.dropdown:hover .dropdown-menu,
+.dropdown:focus-within .dropdown-menu { display: block; }
+.nav-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dropdown-menu a { display: block; padding: 8px 16px; color: var(--ink); }
 .dropdown-menu a:hover { background: var(--accent-soft); text-decoration: none; }
 

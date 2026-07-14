@@ -88,6 +88,9 @@ def build_post_ideas(
     current: list[dict],
     previous: list[dict],
     config: AppConfig,
+    *,
+    current_counts: dict[str, int] | None = None,
+    previous_counts: dict[str, int] | None = None,
 ) -> dict:
     """Build the Post Ideas view-model from two adjacent story windows.
 
@@ -96,11 +99,22 @@ def build_post_ideas(
     ``{"themes": [...], "highlights": {...}}`` with themes ranked by volume,
     then top score. ``uncategorized`` stories count toward the window total
     but never form a theme — they aren't a postable topic vertical.
+
+    ``current_counts`` / ``previous_counts`` are authoritative
+    ``{primary_category: count}`` maps for the two windows (from
+    :meth:`storage.StateStore.count_recent_by_category`). When supplied they
+    drive the window total, per-theme counts, and momentum, so the numbers
+    stay accurate even if the story lists were truncated by a scan limit.
+    They fall back to counting the passed-in lists when omitted, keeping the
+    builder usable without a store (e.g. in unit tests).
     """
-    prev_counts: dict[str, int] = {}
-    for s in previous:
-        key = s.get("primary_category") or "uncategorized"
-        prev_counts[key] = prev_counts.get(key, 0) + 1
+    if previous_counts is None:
+        previous_counts = {}
+        for s in previous:
+            key = s.get("primary_category") or "uncategorized"
+            previous_counts[key] = previous_counts.get(key, 0) + 1
+
+    valid_keys = {c.key for c in config.categories}
 
     by_theme: dict[str, list[dict]] = {}
     for s in current:
@@ -126,12 +140,17 @@ def build_post_ideas(
             if hook is not None and hashtags is not None:
                 break
         label = get_category_label(key, config)
-        count = len(stories)
-        prev = prev_counts.get(key, 0)
+        count = (
+            current_counts.get(key, len(stories)) if current_counts else len(stories)
+        )
+        prev = previous_counts.get(key, 0)
         themes.append(
             {
                 "key": key,
                 "label": label,
+                # Only configured categories have a /topics/{key} page; a stale
+                # key lingering on archived stories renders as plain text.
+                "linkable": key in valid_keys,
                 "count": count,
                 "prev_count": prev,
                 "momentum": _momentum(count, prev),
@@ -145,10 +164,11 @@ def build_post_ideas(
         )
     themes.sort(key=lambda t: (-t["count"], -t["top_score"], t["label"]))
 
+    total = sum(current_counts.values()) if current_counts else len(current)
     return {
         "themes": themes[:MAX_THEMES],
         "highlights": {
-            "total": len(current),
+            "total": total,
             "payers": _fold_payers(current)[:TAGS_PER_HIGHLIGHTS],
             "states": _fold_states(current)[:TAGS_PER_HIGHLIGHTS],
         },

@@ -154,7 +154,7 @@ _SEARCH_HTML = """<!DOCTYPE html>
     <a href="{base}/briefing.html">Daily Briefing</a>
     <a href="{base}/post-ideas.html">Post Ideas</a>
     <div class="dropdown">
-      <span class="nav-label">System ▾</span>
+      <span class="nav-label" tabindex="0" role="button" aria-haspopup="true">System ▾</span>
       <div class="dropdown-menu">
         <a href="{base}/sources.html">Sources</a>
         <a href="{base}/candidates.html">Candidates</a>

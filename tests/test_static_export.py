@@ -237,6 +237,24 @@ def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db
     ):
         assert f"/myrepo/{tail}" in search
     assert "System ▾" in search
+    # The System ▾ trigger stays keyboard-focusable on the static search page.
+    assert 'class="nav-label" tabindex="0"' in search
+
+
+def test_static_post_ideas_empty_state_omits_period_advice(
+    tmp_path, sample_config, temp_db
+):
+    """The static export has no period picker, so it can't tell readers to
+    'widen the period' when the window is empty."""
+    # A 2024-dated story archives (so the page builds) but falls outside the
+    # default recent window, leaving the post-ideas page in its empty state.
+    _seed(temp_db, "old", "Aged signal", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db)
+    page = (out / "post-ideas.html").read_text()
+    normalized = " ".join(page.split())
+    assert "No post-worthy signals" in normalized
+    assert "Widen the period" not in normalized
+    assert "Check back after the next ingestion run" in normalized
 
 
 def test_feed_paginates_into_numbered_files(tmp_path, sample_config, temp_db):

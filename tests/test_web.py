@@ -261,6 +261,59 @@ def test_post_ideas_days_param(client):
     assert 'href="/post-ideas?days=14"' in resp.text
 
 
+def test_post_ideas_excludes_future_dated_stories(sample_config, temp_db):
+    """A story dated in the future can't pad the current window."""
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "real",
+        "CMS rule lands",
+        category="policy_regulatory",
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "future",
+        "Misparsed future date",
+        category="policy_regulatory",
+        published=now + timedelta(days=30),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/post-ideas?days=7")
+    assert resp.status_code == 200
+    # Only the genuinely-recent story counts toward the window total.
+    assert "1 signal" in resp.text
+    assert "Misparsed future date" not in resp.text
+
+
+def test_post_ideas_unknown_category_not_linked(sample_config, temp_db):
+    """A theme on a stale/removed category renders as text, not a 404 link."""
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "stale",
+        "Legacy topic signal",
+        category="star_ratings_legacy",  # not in the config taxonomy
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/post-ideas")
+    assert resp.status_code == 200
+    # No dead link to a /topics page that doesn't exist for this key.
+    assert 'href="/topics/star_ratings_legacy"' not in resp.text
+    assert '<span class="badge badge-cat">' in resp.text
+
+
+def test_system_dropdown_trigger_is_keyboard_focusable(client):
+    """The System ▾ menu trigger must be reachable by Tab (a11y regression pin)."""
+    resp = client.get("/")
+    assert 'class="nav-label" tabindex="0"' in resp.text
+    # ...and the stylesheet must open the menu on focus, not hover alone.
+    css = client.get("/static/style.css")
+    assert css.status_code == 200
+    assert ":focus-within" in css.text
+
+
 def test_story_detail_renders_draft(client):
     resp = client.get("/story/story-a")
     assert resp.status_code == 200

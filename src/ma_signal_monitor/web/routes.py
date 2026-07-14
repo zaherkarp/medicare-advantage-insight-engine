@@ -493,24 +493,42 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
 
         now = datetime.utcnow()
         window_start = now - timedelta(days=days)
+        prev_start = now - timedelta(days=2 * days)
         floor = config.archive_min_score
+        # Bound the current window on the right (`until=now`) so it matches the
+        # previous window's shape — a future-dated story can't inflate every
+        # window and permanently bias its theme's momentum.
         current = [
             _story_view(r)
             for r in store.get_recent_top_stories(
-                window_start, limit=_POST_IDEAS_SCAN_LIMIT, min_score=floor
+                window_start, limit=_POST_IDEAS_SCAN_LIMIT, min_score=floor, until=now
             )
         ]
         # The same-length window immediately before, for the momentum labels.
         previous = [
             _story_view(r)
             for r in store.get_recent_top_stories(
-                now - timedelta(days=2 * days),
+                prev_start,
                 limit=_POST_IDEAS_SCAN_LIMIT,
                 min_score=floor,
                 until=window_start,
             )
         ]
-        ideas = build_post_ideas(current, previous, config)
+        # Authoritative per-category counts (not derived from the possibly
+        # truncated story lists) keep totals and momentum accurate at volume.
+        current_counts = store.count_recent_by_category(
+            window_start, min_score=floor, until=now
+        )
+        previous_counts = store.count_recent_by_category(
+            prev_start, min_score=floor, until=window_start
+        )
+        ideas = build_post_ideas(
+            current,
+            previous,
+            config,
+            current_counts=current_counts,
+            previous_counts=previous_counts,
+        )
         return templates.TemplateResponse(
             request,
             "post_ideas.html",

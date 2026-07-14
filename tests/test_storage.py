@@ -179,6 +179,58 @@ class TestStateStore:
         )
         assert {r["item_id"] for r in open_ended} == {"inside", "at-until"}
 
+    def test_count_recent_by_category_windows_and_dedupes(self, temp_db):
+        """True per-category counts: windowed, deduped, floor-filtered."""
+        temp_db.upsert_story(
+            _make_scored("p-old", "Before window", published=datetime(2024, 1, 1)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("p-1", "In window A", published=datetime(2024, 1, 10)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("p-2", "In window B", published=datetime(2024, 1, 12)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("f-1", "Financial in window", published=datetime(2024, 1, 11)),
+            primary_category="financial_pressure",
+        )
+        # A near-duplicate and a sub-floor story inside the window don't count.
+        temp_db.upsert_story(
+            _make_scored("p-dup", "Dup of p-1", published=datetime(2024, 1, 13)),
+            primary_category="policy_regulatory",
+            duplicate_of="p-1",
+        )
+        temp_db.upsert_story(
+            _make_scored(
+                "p-noise", "Sub-floor", published=datetime(2024, 1, 14), score=0.02
+            ),
+            primary_category="policy_regulatory",
+        )
+        # An uncategorized story in the window folds under "uncategorized".
+        temp_db.upsert_story(
+            _make_scored("u-1", "Uncategorized", published=datetime(2024, 1, 15)),
+            primary_category="uncategorized",
+        )
+
+        counts = temp_db.count_recent_by_category(
+            datetime(2024, 1, 5), min_score=0.1, until=datetime(2024, 1, 20)
+        )
+        assert (
+            counts
+            == {
+                "policy_regulatory": 2,  # p-1, p-2 (p-old out, p-dup hidden, p-noise sub-floor)
+                "financial_pressure": 1,
+                "uncategorized": 1,
+            }
+        )
+        # The right bound is exclusive; the left bound is inclusive.
+        assert temp_db.count_recent_by_category(
+            datetime(2024, 1, 12), until=datetime(2024, 1, 15), min_score=0.1
+        ) == {"policy_regulatory": 1}  # only p-2 (f-1 is 1/11, u-1 at 1/15 excluded)
+
     def test_get_stories_reverse_chronological(self, temp_db):
         """Stories are returned newest-first by published date."""
         temp_db.upsert_story(

@@ -651,6 +651,40 @@ class StateStore:
         ).fetchall()
         return rows
 
+    def count_recent_by_category(
+        self,
+        since: datetime,
+        min_score: float = 0.0,
+        until: datetime | None = None,
+    ) -> dict[str, int]:
+        """Return ``{primary_category: story_count}`` for a time window.
+
+        Same windowing and filters as :meth:`get_recent_top_stories`
+        (``since`` inclusive, optional ``until`` exclusive, ``min_score`` floor,
+        representatives only via ``duplicate_of IS NULL``) but returns true
+        per-category counts instead of a truncated top-N list. The Post Ideas
+        page uses this for its window totals and momentum so the numbers stay
+        accurate even when a window holds more stories than the display scan
+        limit. NULL/empty categories fold into ``"uncategorized"``.
+        """
+        conn = self._get_conn()
+        until_clause = ""
+        params: list = [since.isoformat()]
+        if until is not None:
+            until_clause = " AND COALESCE(published_date, fetched_at) < ?"
+            params.append(until.isoformat())
+        rows = conn.execute(
+            f"""SELECT COALESCE(NULLIF(primary_category, ''), 'uncategorized') AS cat,
+                       COUNT(*) AS n
+                  FROM stories
+                 WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
+                   AND relevance_score >= ?
+                   AND duplicate_of IS NULL
+              GROUP BY cat""",
+            (*params, min_score),
+        ).fetchall()
+        return {row["cat"]: row["n"] for row in rows}
+
     # --- Reader feedback ---
 
     def add_feedback(

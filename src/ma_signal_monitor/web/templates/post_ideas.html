@@ -36,15 +36,20 @@
   {% endif %}
 
   {% if not themes %}
-    <p class="empty">No post-worthy signals in this period yet. Widen the period,
-      or check back after the next ingestion run.</p>
+    <p class="empty">No post-worthy signals in this period yet.
+      {% if not static_site %}Widen the period, or check{% else %}Check{% endif %}
+      back after the next ingestion run.</p>
   {% endif %}
 
   <ul class="idea-list">
     {% for t in themes %}
       <li class="idea-card">
         <div class="idea-head">
-          <a class="badge badge-cat" href="/topics/{{ t.key }}">{{ t.label }}</a>
+          {% if t.linkable %}
+            <a class="badge badge-cat" href="/topics/{{ t.key }}">{{ t.label }}</a>
+          {% else %}
+            <span class="badge badge-cat">{{ t.label }}</span>
+          {% endif %}
           {% if t.momentum == 'new' %}
             <span class="momentum momentum-new">● new this period</span>
           {% elif t.momentum == 'up' %}
