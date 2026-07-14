@@ -79,8 +79,7 @@ def _fallback_hook(label: str, top_title: str, count: int) -> str:
     """
     if count > 1:
         return (
-            f"“{top_title}” — the strongest of {count} signals in "
-            f"{label} this period."
+            f"“{top_title}” — the strongest of {count} signals in {label} this period."
         )
     return f"“{top_title}” — a fresh signal in {label} worth a closer look."
 

@@ -129,9 +129,7 @@ def test_entity_fold_uses_canonical_groups_and_skips_unknown(sample_config):
 
 
 def test_theme_stories_capped_and_score_ordered(sample_config):
-    current = [
-        _story(f"s{i}", "policy_regulatory", score=0.1 * i) for i in range(1, 6)
-    ]
+    current = [_story(f"s{i}", "policy_regulatory", score=0.1 * i) for i in range(1, 6)]
     theme = build_post_ideas(current, [], sample_config)["themes"][0]
     assert [s["item_id"] for s in theme["stories"]] == ["s5", "s4", "s3"]
     assert theme["count"] == 5
