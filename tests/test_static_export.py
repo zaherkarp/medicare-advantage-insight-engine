@@ -203,6 +203,58 @@ def test_map_path_pagination():
     # Non-paginated routes are untouched by the page suffix.
     assert _map_path("/static/style.css", "/r") == "/r/static/style.css"
     assert _map_path("/story/a1", "/r") == "/r/story/a1.html"
+    # Post Ideas is a single page; any ?days= preset collapses to it.
+    assert _map_path("/post-ideas", "/r") == "/r/post-ideas.html"
+    assert _map_path("/post-ideas?days=14", "/r") == "/r/post-ideas.html"
+
+
+def test_post_ideas_exported(tmp_path, sample_config, temp_db):
+    _seed(temp_db, "a1", "CMS Star Ratings rule", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db)
+
+    page = (out / "post-ideas.html").read_text()
+    assert "Potential LinkedIn Post Topics" in page
+    # The live-only period picker is dropped from the static page.
+    assert "?days=" not in page
+    # Every page's nav link to it is rewritten to the static file.
+    index = (out / "index.html").read_text()
+    assert "/myrepo/post-ideas.html" in index
+    assert 'href="/post-ideas"' not in index
+
+
+def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db):
+    """Pins the hand-maintained _SEARCH_HTML nav to the streamlined layout."""
+    _seed(temp_db, "a1", "A story", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db)
+    search = (out / "search.html").read_text()
+    for tail in (
+        "index.html",
+        "briefing.html",
+        "post-ideas.html",
+        "sources.html",
+        "candidates.html",
+        "status.html",
+    ):
+        assert f"/myrepo/{tail}" in search
+    assert "System ▾" in search
+    # The System ▾ trigger stays keyboard-focusable on the static search page.
+    assert 'class="nav-label" tabindex="0"' in search
+
+
+def test_static_post_ideas_empty_state_omits_period_advice(
+    tmp_path, sample_config, temp_db
+):
+    """The static export has no period picker, so it can't tell readers to
+    'widen the period' when the window is empty."""
+    # A 2024-dated story archives (so the page builds) but falls outside the
+    # default recent window, leaving the post-ideas page in its empty state.
+    _seed(temp_db, "old", "Aged signal", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db)
+    page = (out / "post-ideas.html").read_text()
+    normalized = " ".join(page.split())
+    assert "No post-worthy signals" in normalized
+    assert "Widen the period" not in normalized
+    assert "Check back after the next ingestion run" in normalized
 
 
 def test_feed_paginates_into_numbered_files(tmp_path, sample_config, temp_db):

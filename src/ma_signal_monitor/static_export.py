@@ -90,6 +90,10 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = "briefing.html"
     elif path.startswith("/briefing/"):
         tail = f"briefing/{path[len('/briefing/') :]}.html"
+    elif path == "/post-ideas":
+        # Any ?days= preset collapses to the default-window page (the picker
+        # is hidden on the static site anyway).
+        tail = "post-ideas.html"
     elif path.startswith("/search"):
         tail = "search.html"
     elif path == "/status":
@@ -148,11 +152,15 @@ _SEARCH_HTML = """<!DOCTYPE html>
   <nav class="nav">
     <a href="{base}/index.html">Feed</a>
     <a href="{base}/briefing.html">Daily Briefing</a>
-    <a href="{base}/sources.html">Sources</a>
-    <a href="{base}/payers.html">Payers</a>
-    <a href="{base}/candidates.html">Candidates</a>
-    <a href="{base}/states.html">State Intelligence</a>
-    <a href="{base}/status.html">Status</a>
+    <a href="{base}/post-ideas.html">Post Ideas</a>
+    <div class="dropdown">
+      <span class="nav-label" tabindex="0" role="button" aria-haspopup="true">System ▾</span>
+      <div class="dropdown-menu">
+        <a href="{base}/sources.html">Sources</a>
+        <a href="{base}/candidates.html">Candidates</a>
+        <a href="{base}/status.html">Status</a>
+      </div>
+    </div>
   </nav>
 </div></header>
 <main class="wrap">
@@ -265,6 +273,9 @@ def build_site(
     grab("/status", "status.html")
     grab("/about-feedback", "about-feedback.html")
     grab("/briefing", "briefing.html")
+    # Frozen at the default window per build; the scheduled Pages workflow
+    # rebuilds it, so "this week" tracks the latest deploy.
+    grab("/post-ideas", "post-ideas.html")
 
     for c in config.categories:
         grab_paginated(

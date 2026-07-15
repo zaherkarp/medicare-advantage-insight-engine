@@ -7,6 +7,7 @@ app is easy to construct in tests with a seeded database.
 import json
 import math
 import sqlite3
+from datetime import datetime, timedelta
 from urllib.parse import quote_plus
 
 from fastapi import FastAPI, HTTPException, Request
@@ -15,10 +16,28 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from ma_signal_monitor.geo import STATE_NAMES, state_name
-from ma_signal_monitor.payers import KIND_LABELS, PAYER_GROUPS, get_group
+from ma_signal_monitor.payers import (
+    ALIAS_TO_GROUP,
+    KIND_LABELS,
+    PAYER_GROUPS,
+    get_group,
+)
+from ma_signal_monitor.post_ideas import build_post_ideas
 from ma_signal_monitor.storage import VALID_VERDICTS
 
 SEC_SOURCE_PREFIX = "SEC EDGAR"
+
+# Feed filter bar: keep the chip rows scannable — the /states and /payers
+# overview pages remain the exhaustive directories.
+MAX_FILTER_STATES = 8
+MAX_FILTER_PAYERS = 6
+
+# Post Ideas rolling window (days): default, hard cap, and the picker presets.
+POST_IDEAS_DEFAULT_DAYS = 7
+POST_IDEAS_MAX_DAYS = 90
+POST_IDEAS_DAY_OPTIONS = (7, 14, 30)
+# Stories scanned per window; far above a normal week's public-story volume.
+_POST_IDEAS_SCAN_LIMIT = 500
 
 
 class FeedbackIn(BaseModel):
@@ -81,6 +100,50 @@ def _page_param(request: Request) -> int:
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
     """Register all frontend routes on the app."""
 
+    def _feed_filters(
+        request: Request,
+        *,
+        active_category: str | None = None,
+        active_state: str | None = None,
+    ) -> dict:
+        """Context for the feed's filter bar (topics/states/payers as tags).
+
+        State and payer chips are trimmed to the most active so the bar stays
+        scannable. The active state is prepended when it falls outside the
+        top slice so its highlighted chip is always visible.
+        """
+        store = request.app.state.store
+        config = request.app.state.config
+        floor = config.archive_min_score
+
+        state_counts = store.get_state_counts(min_score=floor)
+        top_states = sorted(state_counts.items(), key=lambda kv: (-kv[1], kv[0]))[
+            :MAX_FILTER_STATES
+        ]
+        if active_state and active_state not in {code for code, _ in top_states}:
+            top_states.insert(0, (active_state, state_counts.get(active_state, 0)))
+
+        # Fold granular entity aliases into canonical payer groups; aliases
+        # without a group (e.g. agencies) don't have a payer page to link.
+        group_counts: dict[str, int] = {}
+        for alias, n in store.get_entity_counts(min_score=floor).items():
+            group = ALIAS_TO_GROUP.get(alias)
+            if group is not None:
+                group_counts[group.slug] = group_counts.get(group.slug, 0) + n
+        top_payers = [
+            {"slug": slug, "name": get_group(slug).name, "count": n}
+            for slug, n in sorted(group_counts.items(), key=lambda kv: (-kv[1], kv[0]))[
+                :MAX_FILTER_PAYERS
+            ]
+        ]
+
+        return {
+            "active_category": active_category,
+            "active_state": active_state,
+            "states": [{"code": code, "count": n} for code, n in top_states],
+            "payers": top_payers,
+        }
+
     def _render_feed(
         request: Request,
         *,
@@ -118,6 +181,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "page": page,
                 "total_pages": total_pages,
                 "base_path": base_path,
+                "filters": _feed_filters(
+                    request, active_category=category, active_state=state
+                ),
             },
         )
 
@@ -413,6 +479,66 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         if row is None:
             raise HTTPException(status_code=404, detail="Briefing not found")
         return _render_briefing(request, row)
+
+    @app.get("/post-ideas", response_class=HTMLResponse)
+    def post_ideas(request: Request) -> HTMLResponse:
+        """Potential LinkedIn post topics mined from a rolling signal window."""
+        store = request.app.state.store
+        config = request.app.state.config
+        try:
+            days = int(request.query_params.get("days", str(POST_IDEAS_DEFAULT_DAYS)))
+        except ValueError:
+            days = POST_IDEAS_DEFAULT_DAYS
+        days = min(max(days, 1), POST_IDEAS_MAX_DAYS)
+
+        now = datetime.utcnow()
+        window_start = now - timedelta(days=days)
+        prev_start = now - timedelta(days=2 * days)
+        floor = config.archive_min_score
+        # Bound the current window on the right (`until=now`) so it matches the
+        # previous window's shape — a future-dated story can't inflate every
+        # window and permanently bias its theme's momentum.
+        current = [
+            _story_view(r)
+            for r in store.get_recent_top_stories(
+                window_start, limit=_POST_IDEAS_SCAN_LIMIT, min_score=floor, until=now
+            )
+        ]
+        # The same-length window immediately before, for the momentum labels.
+        previous = [
+            _story_view(r)
+            for r in store.get_recent_top_stories(
+                prev_start,
+                limit=_POST_IDEAS_SCAN_LIMIT,
+                min_score=floor,
+                until=window_start,
+            )
+        ]
+        # Authoritative per-category counts (not derived from the possibly
+        # truncated story lists) keep totals and momentum accurate at volume.
+        current_counts = store.count_recent_by_category(
+            window_start, min_score=floor, until=now
+        )
+        previous_counts = store.count_recent_by_category(
+            prev_start, min_score=floor, until=window_start
+        )
+        ideas = build_post_ideas(
+            current,
+            previous,
+            config,
+            current_counts=current_counts,
+            previous_counts=previous_counts,
+        )
+        return templates.TemplateResponse(
+            request,
+            "post_ideas.html",
+            {
+                "days": days,
+                "day_options": POST_IDEAS_DAY_OPTIONS,
+                "themes": ideas["themes"],
+                "highlights": ideas["highlights"],
+            },
+        )
 
     @app.get("/story/{item_id}", response_class=HTMLResponse)
     def story(request: Request, item_id: str) -> HTMLResponse:

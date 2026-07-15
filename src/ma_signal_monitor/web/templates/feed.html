@@ -7,5 +7,7 @@
     <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }}</p>
   </section>
 
+  {% include "_filter_bar.html" %}
+
   {% include "_story_list.html" %}
 {% endblock %}

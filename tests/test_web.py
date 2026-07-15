@@ -1,6 +1,6 @@
 """Tests for the FastAPI web frontend."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -79,6 +79,38 @@ def test_feed_lists_stories(client):
     assert "California" in resp.text
 
 
+def test_feed_has_filter_bar(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert 'class="filter-bar"' in resp.text
+    # Every configured topic renders as a chip.
+    assert 'href="/topics/policy_regulatory"' in resp.text
+    assert 'href="/topics/membership_movement"' in resp.text
+    # Seeded data surfaces state and payer chips, plus the directory links.
+    assert 'href="/states/CA"' in resp.text
+    assert 'href="/payers/unitedhealthcare"' in resp.text
+    assert "All states" in resp.text and "All payers" in resp.text
+
+
+def test_topic_and_state_pages_mark_active_chip(client):
+    assert "chip-active" in client.get("/topics/policy_regulatory").text
+    state = client.get("/states/CA")
+    assert "chip-active" in state.text
+    assert "Clear filter" in state.text
+    # The unfiltered feed has no active chip.
+    assert "chip-active" not in client.get("/").text
+
+
+def test_nav_is_streamlined(client):
+    resp = client.get("/")
+    assert "System ▾" in resp.text
+    assert 'href="/post-ideas"' in resp.text
+    # Demoted sections left the top nav (they live in the filter bar and the
+    # System menu now).
+    assert "Topics ▾" not in resp.text
+    assert "State Intelligence" not in resp.text
+
+
 def test_topic_filters_by_category(client):
     resp = client.get("/topics/policy_regulatory")
     assert resp.status_code == 200
@@ -145,6 +177,141 @@ def test_feed_hides_sub_floor_noise(sample_config, temp_db):
     # remain visible for pruning).
     assert client.get("/story/noise").status_code == 200
     assert client.get("/health").json()["stories"] == 2
+
+
+def test_post_ideas_empty_state(client):
+    """The 2024-dated fixture stories fall outside any recent rolling window."""
+    resp = client.get("/post-ideas")
+    assert resp.status_code == 200
+    assert "Potential LinkedIn Post Topics This Week" in resp.text
+    assert "No post-worthy signals" in resp.text
+
+
+def test_post_ideas_groups_recent_window(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "fin-1",
+        "Humana flags MLR pressure",
+        category="financial_pressure",
+        score=0.7,
+        entities=["Humana"],
+        states=["FL"],
+        published=now - timedelta(days=1),
+        draft={
+            "opening_hook": "Margin pressure is the story of the season.",
+            "analytic_angles": ["Angle"],
+            "draft_paragraph": "[DRAFT] x",
+            "uncertainty_caution": "Early.",
+            "suggested_hashtags": ["#MLR", "#MedicareAdvantage"],
+        },
+    )
+    _seed_story(
+        temp_db,
+        "fin-2",
+        "Benefit trims ahead",
+        category="financial_pressure",
+        score=0.5,
+        published=now - timedelta(days=2),
+    )
+    _seed_story(
+        temp_db,
+        "pol-now",
+        "CMS rule lands",
+        category="policy_regulatory",
+        score=0.6,
+        published=now - timedelta(days=3),
+    )
+    # Previous-window-only story → drives the momentum comparison.
+    _seed_story(
+        temp_db,
+        "pol-prev",
+        "Older CMS rule",
+        category="policy_regulatory",
+        score=0.6,
+        published=now - timedelta(days=10),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+
+    resp = client.get("/post-ideas")
+    assert resp.status_code == 200
+    text = resp.text
+    # financial_pressure (2 signals, new) outranks policy_regulatory (1, steady).
+    assert text.index("Financial / Operating Pressure") < text.index(
+        "Policy / Regulatory Changes"
+    )
+    assert "Margin pressure is the story of the season." in text
+    assert "new this period" in text
+    assert "steady vs. last period" in text
+    assert "#MLR" in text
+    assert 'href="/story/fin-1"' in text
+    assert 'href="/payers/humana"' in text
+
+
+def test_post_ideas_days_param(client):
+    # Out-of-range values clamp to the max window.
+    resp = client.get("/post-ideas?days=9999")
+    assert resp.status_code == 200
+    assert "last 90 days" in resp.text
+    # Garbage falls back to the default.
+    resp = client.get("/post-ideas?days=abc")
+    assert resp.status_code == 200
+    assert "last 7 days" in resp.text
+    # Period presets render as links on the live app.
+    assert 'href="/post-ideas?days=14"' in resp.text
+
+
+def test_post_ideas_excludes_future_dated_stories(sample_config, temp_db):
+    """A story dated in the future can't pad the current window."""
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "real",
+        "CMS rule lands",
+        category="policy_regulatory",
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "future",
+        "Misparsed future date",
+        category="policy_regulatory",
+        published=now + timedelta(days=30),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/post-ideas?days=7")
+    assert resp.status_code == 200
+    # Only the genuinely-recent story counts toward the window total.
+    assert "1 signal" in resp.text
+    assert "Misparsed future date" not in resp.text
+
+
+def test_post_ideas_unknown_category_not_linked(sample_config, temp_db):
+    """A theme on a stale/removed category renders as text, not a 404 link."""
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "stale",
+        "Legacy topic signal",
+        category="star_ratings_legacy",  # not in the config taxonomy
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/post-ideas")
+    assert resp.status_code == 200
+    # No dead link to a /topics page that doesn't exist for this key.
+    assert 'href="/topics/star_ratings_legacy"' not in resp.text
+    assert '<span class="badge badge-cat">' in resp.text
+
+
+def test_system_dropdown_trigger_is_keyboard_focusable(client):
+    """The System ▾ menu trigger must be reachable by Tab (a11y regression pin)."""
+    resp = client.get("/")
+    assert 'class="nav-label" tabindex="0"' in resp.text
+    # ...and the stylesheet must open the menu on focus, not hover alone.
+    css = client.get("/static/style.css")
+    assert css.status_code == 200
+    assert ":focus-within" in css.text
 
 
 def test_story_detail_renders_draft(client):

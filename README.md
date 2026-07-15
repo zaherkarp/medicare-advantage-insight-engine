@@ -18,8 +18,11 @@ On each run, the monitor:
 8. **Persists** every scored item into a browsable **story archive**, plus state, delivery logs, and run metadata locally
 
 A bundled **web frontend** then renders that archive as a browsable, paginated
-site with topic verticals, per-payer intelligence pages, a public Sources
-directory, and a State Intelligence section. See
+site with a streamlined navigation: the feed carries a tag-style **filter bar**
+(topic verticals, states, and payers are filters over one archive, not separate
+sections), alongside the Daily Briefing, a **Post Ideas** page ("Potential
+LinkedIn Post Topics This Week"), and a System menu holding the Sources
+directory, discovery candidates, and status dashboard. See
 [Web Frontend & Self-Hosting](#web-frontend--self-hosting).
 
 ## Architecture Overview
@@ -231,6 +234,7 @@ Jinja web app renders it as a browsable site. Pages:
 | `/topics/{category}` | One of the six trigger verticals (e.g. `policy_regulatory`) |
 | `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with a signal-volume trend sparkline, signal mix, state footprint, and SEC filings |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
+| `/post-ideas` | Potential LinkedIn Post Topics This Week — ranked post-worthy themes from the last 7/14/30 days, with suggested hooks and hashtags |
 | `/search?q=` | Full-text search across the archive (SQLite FTS5) |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
@@ -326,6 +330,19 @@ vars (see `.env.example`). The web container's scheduler then sends it at
 `DIGEST_HOUR` (UTC) each day; email is best-effort, so the briefing is never
 blocked by SMTP being unset. Set `PUBLIC_BASE_URL` so email links resolve back
 to your site.
+
+### Post Ideas (Potential LinkedIn Post Topics This Week)
+
+`/post-ideas` turns the recent archive into a ranked list of post-worthy
+themes. Stories from the last 7 days (`?days=7|14|30` on the live app, default
+7) are grouped by topic vertical, ranked by volume and top relevance score,
+and compared against the previous window of the same length for momentum
+(new / up / down / steady). Each theme card carries a suggested opening hook
+and hashtags borrowed from the strongest story's draft insight angle, the
+stories behind the theme, and the payers/states driving it. Hooks and hashtags
+are unedited drafts — review and rewrite before posting. On the static Pages
+site the page is frozen at build time; the scheduled deploy workflow keeps it
+fresh.
 
 ### Source Discovery (opt-in)
 
@@ -510,6 +527,7 @@ Tracker).
 │   ├── classify.py         # Trigger classification
 │   ├── trends.py           # Weekly-volume bucketing + inline-SVG sparklines
 │   ├── payers.py           # Canonical payer grouping (Payer Intelligence pages)
+│   ├── post_ideas.py       # "Potential LinkedIn Post Topics" view-model
 │   ├── drafting.py         # Alert generation
 │   ├── delivery.py         # Webhook delivery
 │   ├── fetchers/
