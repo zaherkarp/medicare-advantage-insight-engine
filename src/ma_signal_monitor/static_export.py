@@ -90,10 +90,15 @@ def _map_path(path_with_q: str, base: str) -> str:
         tail = "briefing.html"
     elif path.startswith("/briefing/"):
         tail = f"briefing/{path[len('/briefing/') :]}.html"
-    elif path == "/post-ideas":
+    elif path == "/angles":
         # Any ?days= preset collapses to the default-window page (the picker
         # is hidden on the static site anyway).
-        tail = "post-ideas.html"
+        tail = "angles.html"
+    elif path == "/post-ideas":
+        # Legacy alias: the page was renamed from Post Ideas to Angles. Inbound
+        # links resolve to the same static file; the standalone post-ideas.html
+        # meta-refresh stub (written by build_site) only catches direct hits.
+        tail = "angles.html"
     elif path.startswith("/search"):
         tail = "search.html"
     elif path == "/status":
@@ -152,7 +157,7 @@ _SEARCH_HTML = """<!DOCTYPE html>
   <nav class="nav">
     <a href="{base}/index.html">Feed</a>
     <a href="{base}/briefing.html">Daily Briefing</a>
-    <a href="{base}/post-ideas.html">Post Ideas</a>
+    <a href="{base}/angles.html">Angles</a>
     <div class="dropdown">
       <span class="nav-label" tabindex="0" role="button" aria-haspopup="true">System ▾</span>
       <div class="dropdown-menu">
@@ -209,6 +214,22 @@ fetch('search-index.json').then(r => r.json()).then(d => {{
 }});
 qEl.addEventListener('input', () => search(qEl.value));
 </script>
+</body></html>
+"""
+
+
+# Legacy /post-ideas URL: the page was renamed to Angles. A static host can't
+# issue a 301, so the old path gets a self-contained meta-refresh stub that
+# bounces to angles.html (with a canonical link and a plain fallback link for
+# clients that don't auto-refresh). ``{target}`` is filled with the base-prefixed
+# angles.html URL.
+_REDIRECT_HTML = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url={target}">
+<link rel="canonical" href="{target}">
+<title>Moved to Angles — MA Signal Monitor</title></head>
+<body>
+<p>This page is now <a href="{target}">Angles</a>. Redirecting…</p>
 </body></html>
 """
 
@@ -275,7 +296,12 @@ def build_site(
     grab("/briefing", "briefing.html")
     # Frozen at the default window per build; the scheduled Pages workflow
     # rebuilds it, so "this week" tracks the latest deploy.
-    grab("/post-ideas", "post-ideas.html")
+    grab("/angles", "angles.html")
+    # Legacy /post-ideas bookmarks: static hosting has no server to 301, so drop
+    # a self-contained meta-refresh stub that bounces to the renamed Angles page.
+    (out_dir / "post-ideas.html").write_text(
+        _REDIRECT_HTML.format(target=f"{base}/angles.html"), encoding="utf-8"
+    )
 
     for c in config.categories:
         grab_paginated(

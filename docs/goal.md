@@ -18,7 +18,7 @@ goal lives in [`docs/loop.md`](loop.md).
 | **Signal quality** | High precision *and* recall against a growing hand-labelled benchmark; noise never reaches the public feed; every scoring change is regression-gated. |
 | **Competitive intel depth** | Payer-level answers: what is Humana/UHC/Centene doing, what did they file, how is their enrollment trending — not just a chronological feed. |
 | **Coverage & freshness** | Broad sources (national + all 50 states + SEC + CMS), fast pipeline, ingest cadence limited by cron rather than run time, low-yield sources reviewed and pruned. |
-| **Product & delivery UX** | Feed, topics, states, payers, trends, briefing, and search all work on the static Pages site; alerts are deduplicated and suppressible; docs stay accurate. |
+| **Product & delivery UX** | Feed, topics, states, payers, trends, briefing, angles, and search all work on the static Pages site; alerts are deduplicated and suppressible; docs stay accurate. |
 
 ## Scorecard
 

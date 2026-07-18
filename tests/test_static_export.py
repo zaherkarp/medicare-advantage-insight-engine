@@ -203,23 +203,84 @@ def test_map_path_pagination():
     # Non-paginated routes are untouched by the page suffix.
     assert _map_path("/static/style.css", "/r") == "/r/static/style.css"
     assert _map_path("/story/a1", "/r") == "/r/story/a1.html"
-    # Post Ideas is a single page; any ?days= preset collapses to it.
-    assert _map_path("/post-ideas", "/r") == "/r/post-ideas.html"
-    assert _map_path("/post-ideas?days=14", "/r") == "/r/post-ideas.html"
+    # Angles is a single page; any ?days= preset collapses to it.
+    assert _map_path("/angles", "/r") == "/r/angles.html"
+    assert _map_path("/angles?days=14", "/r") == "/r/angles.html"
+    # The legacy /post-ideas alias maps to the same static Angles file (a
+    # separate meta-refresh stub catches direct hits on post-ideas.html).
+    assert _map_path("/post-ideas", "/r") == "/r/angles.html"
+    assert _map_path("/post-ideas?days=14", "/r") == "/r/angles.html"
 
 
-def test_post_ideas_exported(tmp_path, sample_config, temp_db):
+def test_angles_exported(tmp_path, sample_config, temp_db):
     _seed(temp_db, "a1", "CMS Star Ratings rule", category="policy_regulatory")
     out, _ = _build(tmp_path, sample_config, temp_db)
 
-    page = (out / "post-ideas.html").read_text()
-    assert "Potential LinkedIn Post Topics" in page
+    page = (out / "angles.html").read_text()
+    assert "Angles" in page
     # The live-only period picker is dropped from the static page.
     assert "?days=" not in page
-    # Every page's nav link to it is rewritten to the static file.
+    # Every page's nav link to it is rewritten to the static Angles file.
     index = (out / "index.html").read_text()
-    assert "/myrepo/post-ideas.html" in index
+    assert "/myrepo/angles.html" in index
+    # No bare server-style route link to the old or new path survives.
+    assert 'href="/angles"' not in index
     assert 'href="/post-ideas"' not in index
+
+
+def test_legacy_post_ideas_redirect_stub(tmp_path, sample_config, temp_db):
+    """The renamed page leaves a meta-refresh stub at the old /post-ideas URL so
+    static-host bookmarks bounce to angles.html (no server to issue a 301)."""
+    _seed(temp_db, "a1", "CMS Star Ratings rule", category="policy_regulatory")
+    out, _ = _build(tmp_path, sample_config, temp_db)
+
+    stub = (out / "post-ideas.html").read_text()
+    assert 'http-equiv="refresh"' in stub
+    assert "url=/myrepo/angles.html" in stub
+    # A canonical link and a plain fallback anchor for clients that don't refresh.
+    assert 'rel="canonical" href="/myrepo/angles.html"' in stub
+    assert 'href="/myrepo/angles.html"' in stub
+    # It's a self-contained stub, not a rendered Angles page.
+    assert "Causal chains in motion" not in stub
+
+
+def test_angles_causal_model_survives_export(tmp_path, sample_config, temp_db):
+    """A causal-chain card plus the declared-model explainer render into flat
+    HTML. The About-this-model panel is JS-free (a <details>), so it survives the
+    static export intact."""
+    # Two recent stories that each match both policy and financial → the
+    # policy→financial edge forms a causal-chain card in the current window.
+    recent = datetime.now() - timedelta(days=1)
+    for i in range(2):
+        item = NormalizedItem(
+            item_id=f"chain{i}",
+            source_name="Healthcare Dive",
+            source_type="rss",
+            source_priority=3,
+            source_tags=["industry"],
+            title=f"CMS rate notice squeezes Medicare Advantage margins {i}",
+            link=f"https://example.com/chain{i}",
+            published_date=recent - timedelta(minutes=i),
+            summary="CMS rate notice pressures Medicare Advantage plan margins.",
+        )
+        temp_db.upsert_story(
+            ScoredItem(
+                item=item,
+                relevance_score=0.7,
+                matched_categories=["policy_regulatory", "financial_pressure"],
+            ),
+            primary_category="policy_regulatory",
+            states=[],
+        )
+
+    out, _ = _build(tmp_path, sample_config, temp_db)
+
+    page = (out / "angles.html").read_text()
+    # The causal partition heading and a chain card's model-evidence line.
+    assert "Causal chains in motion" in page
+    assert "Model evidence" in page
+    # The declared-model explainer survives export as a JS-free <details> panel.
+    assert "<details" in page
 
 
 def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db):
@@ -230,7 +291,7 @@ def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db
     for tail in (
         "index.html",
         "briefing.html",
-        "post-ideas.html",
+        "angles.html",
         "sources.html",
         "candidates.html",
         "status.html",
@@ -241,20 +302,19 @@ def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db
     assert 'class="nav-label" tabindex="0"' in search
 
 
-def test_static_post_ideas_empty_state_omits_period_advice(
+def test_static_angles_empty_state_omits_period_advice(
     tmp_path, sample_config, temp_db
 ):
-    """The static export has no period picker, so it can't tell readers to
-    'widen the period' when the window is empty."""
+    """The static export has no period picker, so its empty state can't tell
+    readers to 'widen the period' when the window is empty."""
     # A 2024-dated story archives (so the page builds) but falls outside the
-    # default recent window, leaving the post-ideas page in its empty state.
+    # default recent window, leaving the Angles page in its empty state.
     _seed(temp_db, "old", "Aged signal", category="policy_regulatory")
     out, _ = _build(tmp_path, sample_config, temp_db)
-    page = (out / "post-ideas.html").read_text()
+    page = (out / "angles.html").read_text()
     normalized = " ".join(page.split())
-    assert "No post-worthy signals" in normalized
+    assert "No signals in this period yet." in normalized
     assert "Widen the period" not in normalized
-    assert "Check back after the next ingestion run" in normalized
 
 
 def test_feed_paginates_into_numbered_files(tmp_path, sample_config, temp_db):

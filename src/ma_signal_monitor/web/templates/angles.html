@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Angles — MA Signal Monitor{% endblock %}
+{% block content %}
+  {% macro angle_card(c) %}
+    <li class="angle-card">
+      <div class="angle-head">
+        {# Decorative venn glyph: translucent overlapping circles (the overlap
+           reads darker). Variants tint the chain, mute the single-lens
+           fallback, and add a third circle for a cascade. #}
+        <span class="venn
+          {%- if c.type == 'payer_cascade' %} venn-cascade
+          {%- elif c.causal %} venn-chain
+          {%- elif c.type == 'topic' %} venn-single{% endif %}" aria-hidden="true">
+          <span></span><span></span>{% if c.type == 'payer_cascade' %}<span></span>{% endif %}
+        </span>
+        <h3 class="angle-label">
+          {% for side in c.sides %}
+            {%- if not loop.first %}
+              {%- if c.type == 'payer_cascade' and loop.index == 2 -%}
+                <span class="angle-sep" aria-hidden="true">:</span><span class="sr-only"> across </span>
+              {%- elif c.causal -%}
+                <span class="angle-sep" aria-hidden="true">→</span><span class="sr-only"> leading to </span>
+              {%- else -%}
+                <span class="angle-sep" aria-hidden="true">∩</span><span class="sr-only"> overlapping with </span>
+              {%- endif %}
+            {% endif -%}
+            {% if side.href %}<a href="{{ side.href }}">{{ side.label }}</a>{% else %}<span>{{ side.label }}</span>{% endif %}
+          {% endfor %}
+        </h3>
+      </div>
+      <div class="angle-meta">
+        <span class="badge badge-angle-type">{{ c.type_label }}</span>
+        {% if c.causal %}
+          {# One combined badge spanning the edge's upstream→downstream layers. #}
+          <span class="badge badge-layer">{{ c.layers[0].short }} → {{ c.layers[-1].short }}</span>
+        {% else %}
+          {% for ly in c.layers %}
+            <span class="badge badge-layer">{{ ly.short }}</span>
+          {% endfor %}
+        {% endif %}
+        {% if c.momentum == 'new' %}
+          <span class="momentum momentum-new">● new this period</span>
+        {% elif c.momentum == 'up' %}
+          <span class="momentum momentum-up">▲ up from {{ c.prev_count }} last period</span>
+        {% elif c.momentum == 'down' %}
+          <span class="momentum momentum-down">▼ down from {{ c.prev_count }} last period</span>
+        {% else %}
+          <span class="momentum momentum-steady">— steady vs. last period</span>
+        {% endif %}
+        <span class="muted">{{ c.count }} signal{{ '' if c.count == 1 else 's' }}</span>
+      </div>
+      <p class="angle-fact">{{ c.fact_line }}</p>
+      {% if c.causal %}
+        <p class="angle-evidence">
+          <span class="evidence-tag">Model evidence (weight {{ c.causal.weight }})</span>
+          {{ c.causal.evidence }}
+        </p>
+        {% if c.causal.sequence_consistent %}
+          <p class="angle-consistency">Sequence consistent with the model this period:
+            {{ c.causal.source_label }} active last period; {{ c.causal.target_label }} rising now.</p>
+        {% endif %}
+      {% endif %}
+      <ul class="angle-stories">
+        {% for s in c.stories %}
+          <li>
+            <a href="/story/{{ s.item_id }}">{{ s.title }}</a>
+            <span class="muted">{{ s.source_name }}{% if s.display_date %} · {{ s.display_date[:10] }}{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% endmacro %}
+
+  <section class="page-head">
+    <h1>Angles</h1>
+    <p class="subtitle">Ways of looking at the last {{ days }} day{{ '' if days == 1 else 's' }}
+       of signals — cards form where two analytical lenses overlap, weighted by how the topics
+       relate causally.</p>
+    {% if not static_site %}
+      {# Period presets need the live server (arbitrary ?days=); the static
+         site is frozen at the default window per build. #}
+      <div class="period-picker">
+        <span class="muted">Period:</span>
+        {% for d in day_options %}
+          {% if d == days %}
+            <span class="chip chip-active">{{ d }} days</span>
+          {% else %}
+            <a class="chip" href="/angles?days={{ d }}">{{ d }} days</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  {% if highlights.total %}
+    <section class="highlights">
+      <span class="muted">{{ highlights.total }} signal{{ '' if highlights.total == 1 else 's' }} this period.
+        {% if highlights.payers or highlights.states %}Most active:{% endif %}</span>
+      {% for p in highlights.payers %}
+        <a class="badge badge-entity" href="/payers/{{ p.slug }}">{{ p.name }} · {{ p.count }}</a>
+      {% endfor %}
+      {% for s in highlights.states %}
+        <a class="badge badge-state" href="/states/{{ s.code }}">{{ state_name(s.code) }} · {{ s.count }}</a>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if not angles %}
+    <p class="empty">No signals in this period yet.
+      {% if not static_site %}Widen the period, or check{% else %}Check{% endif %}
+      back after the next ingestion run.</p>
+  {% endif %}
+
+  {% set causal_cards = angles | selectattr("causal") | list %}
+  {% set other_cards = angles | rejectattr("causal") | list %}
+
+  {% if causal_cards %}
+    <h2 class="angle-section-h">Causal chains in motion</h2>
+    <ul class="angle-list">
+      {% for c in causal_cards %}{{ angle_card(c) }}{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if other_cards %}
+    {% if causal_cards %}<h2 class="angle-section-h">More angles</h2>{% endif %}
+    <ul class="angle-list">
+      {% for c in other_cards %}{{ angle_card(c) }}{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if causal_model %}
+    <details class="about-model">
+      <summary>About this model</summary>
+      <p class="muted">Overlaps are weighted by a declared, citable causal model — not a learned one.
+        The six topics are ordered into layers; each downstream edge carries a weight and a
+        source-cited rationale. Inspect or challenge it in <code>config/causal_model.yaml</code>.</p>
+      <ol class="model-layers">
+        {% for ly in causal_model.layers %}
+          <li><strong>{{ ly.label }}</strong> <span class="muted">({{ ly.short }})</span> —
+            {{ ly.categories | map(attribute='label') | join(', ') }}</li>
+        {% endfor %}
+      </ol>
+      <ul class="model-edges">
+        {% for e in causal_model.edges %}
+          <li><span class="evidence-tag">{{ e.source_label }} → {{ e.target_label }} (weight {{ e.weight }})</span>
+            {{ e.evidence }}</li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% endif %}
+{% endblock %}

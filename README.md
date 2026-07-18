@@ -20,10 +20,10 @@ On each run, the monitor:
 A bundled **web frontend** then renders that archive as a browsable, paginated
 site with a streamlined navigation: the feed carries a tag-style **filter bar**
 (topic verticals, states, and payers are filters over one archive, not separate
-sections), alongside the Daily Briefing, a **Post Ideas** page ("Potential
-LinkedIn Post Topics This Week"), and a System menu holding the Sources
-directory, discovery candidates, and status dashboard. See
-[Web Frontend & Self-Hosting](#web-frontend--self-hosting).
+sections), alongside the Daily Briefing, an **Angles** page (ways of looking at
+the week's signals — cards form where analytical lenses overlap), and a System
+menu holding the Sources directory, discovery candidates, and status dashboard.
+See [Web Frontend & Self-Hosting](#web-frontend--self-hosting).
 
 ## Architecture Overview
 
@@ -234,7 +234,7 @@ Jinja web app renders it as a browsable site. Pages:
 | `/topics/{category}` | One of the six trigger verticals (e.g. `policy_regulatory`) |
 | `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with a signal-volume trend sparkline, signal mix, state footprint, and SEC filings |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
-| `/post-ideas` | Potential LinkedIn Post Topics This Week — ranked post-worthy themes from the last 7/14/30 days, with suggested hooks and hashtags |
+| `/angles` | Ways of looking at the week's signals — cards at the intersections of analytical lenses (payer × topic, topic × topic, topic × state, payer × payer) over the last 7/14/30 days, with momentum and fact-derived summaries, weighted by the declared causal model (`/post-ideas` 301-redirects here) |
 | `/search?q=` | Full-text search across the archive (SQLite FTS5) |
 | `/sources` | Public Sources directory with coverage + ingestion cadence |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
@@ -331,18 +331,45 @@ vars (see `.env.example`). The web container's scheduler then sends it at
 blocked by SMTP being unset. Set `PUBLIC_BASE_URL` so email links resolve back
 to your site.
 
-### Post Ideas (Potential LinkedIn Post Topics This Week)
+### Angles
 
-`/post-ideas` turns the recent archive into a ranked list of post-worthy
-themes. Stories from the last 7 days (`?days=7|14|30` on the live app, default
-7) are grouped by topic vertical, ranked by volume and top relevance score,
-and compared against the previous window of the same length for momentum
-(new / up / down / steady). Each theme card carries a suggested opening hook
-and hashtags borrowed from the strongest story's draft insight angle, the
-stories behind the theme, and the payers/states driving it. Hooks and hashtags
-are unedited drafts — review and rewrite before posting. On the static Pages
-site the page is frozen at build time; the scheduled deploy workflow keeps it
-fresh.
+`/angles` reframes the recent archive as **ways of looking at the week's
+signals**: cards form where two analytical lenses overlap. Every lens is data
+already on each story — its payers, topic categories, and states — so there's no
+new scoring or ingestion. Stories from the last 7 days (`?days=7|14|30` on the
+live app, default 7) are bucketed into intersections across four angle types —
+payer × topic, topic × topic, topic × state, and payer × payer — and each
+intersection needs **at least two stories** to become a card. Cards are compared
+against the previous window of the same length for momentum
+(new / up / down / steady), and each carries a fact-derived summary line built
+only from data on the stories (signal and source counts, the momentum shift, and
+the strongest story) — no mad-libs and no borrowed drafts.
+
+**Weighted by a declared causal model.** The six topic categories are stages in
+a causal cascade — structural/policy **drivers** → economic **pressure** →
+strategic **response** → market **outcomes** — declared in
+`config/causal_model.yaml`. That file lists the four ordered layers and a set of
+**downstream-only** weighted edges (e.g. `policy → financial` at weight 1.0),
+each carrying a one-sentence, citable **evidence** rationale (MedPAC reports, KFF
+enrollment/switching analyses, CMS rule-impact analyses, payer 10-K/8-K cycles).
+It is a transparent, inspectable model — not an inferred one — and the shipped
+file is **test-enforced** (every taxonomy category in exactly one layer; edges
+known, non-self, strictly downstream, weight ∈ [0, 1], evidence non-empty).
+
+Cards rank by `count × (1 + boost × edge_weight)`: an intersection lying *along*
+a causal edge earns a boost (`CHAIN_BOOST = 0.5` for a two-topic chain,
+`CASCADE_BOOST = 0.75` for a payer moving across an edge), so a genuine causal
+chain out-ranks an incidental overlap of equal volume — yet a boost below 1
+re-ranks without steamrolling raw volume. Non-edge overlaps (same-layer or
+unrelated topics) still appear, **ranked by volume alone**. Causal cards are
+grouped under *"Causal chains in motion"* with a JS-free *About this model*
+panel; everything else falls under *"More angles"*. A greedy **subset
+suppression** pass then drops any card whose stories are a subset of a
+higher-ranked card (so a cascade absorbs its own constituent cards). When the
+archive is too sparse to yield enough intersections, the page **falls back** to
+single-lens topic cards. On the static Pages site the page is frozen at build
+time; the scheduled deploy workflow keeps it fresh, and `/post-ideas` redirects
+here.
 
 ### Source Discovery (opt-in)
 
@@ -514,7 +541,8 @@ Tracker).
 ├── config/
 │   ├── sources.yaml        # Feed source configuration
 │   ├── taxonomy.yaml       # Trigger categories and scoring
-│   └── app.yaml            # Application settings
+│   ├── app.yaml            # Application settings
+│   └── causal_model.yaml   # Declared causal layer model (Angles weighting)
 ├── src/ma_signal_monitor/
 │   ├── main.py             # Pipeline orchestrator
 │   ├── config.py           # Configuration loading
@@ -527,7 +555,7 @@ Tracker).
 │   ├── classify.py         # Trigger classification
 │   ├── trends.py           # Weekly-volume bucketing + inline-SVG sparklines
 │   ├── payers.py           # Canonical payer grouping (Payer Intelligence pages)
-│   ├── post_ideas.py       # "Potential LinkedIn Post Topics" view-model
+│   ├── angles.py           # "Angles" lens-intersection view-model
 │   ├── drafting.py         # Alert generation
 │   ├── delivery.py         # Webhook delivery
 │   ├── fetchers/

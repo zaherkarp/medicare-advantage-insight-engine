@@ -15,6 +15,7 @@ def _seed_story(
     title,
     *,
     category,
+    categories=None,
     score=0.6,
     states=None,
     entities=None,
@@ -32,10 +33,12 @@ def _seed_story(
         published_date=published,
         summary=f"Summary for {title}.",
     )
+    # ``categories`` seeds the full multi-category lens the Angles engine reads;
+    # ``category`` stays the stored primary. Defaults to a single-category story.
     scored = ScoredItem(
         item=item,
         relevance_score=score,
-        matched_categories=[category],
+        matched_categories=categories or [category],
         matched_entities=entities or [],
     )
     store.upsert_story(
@@ -104,7 +107,7 @@ def test_topic_and_state_pages_mark_active_chip(client):
 def test_nav_is_streamlined(client):
     resp = client.get("/")
     assert "System ▾" in resp.text
-    assert 'href="/post-ideas"' in resp.text
+    assert 'href="/angles"' in resp.text
     # Demoted sections left the top nav (they live in the filter bar and the
     # System menu now).
     assert "Topics ▾" not in resp.text
@@ -179,89 +182,195 @@ def test_feed_hides_sub_floor_noise(sample_config, temp_db):
     assert client.get("/health").json()["stories"] == 2
 
 
-def test_post_ideas_empty_state(client):
+def test_angles_empty_state(client):
     """The 2024-dated fixture stories fall outside any recent rolling window."""
-    resp = client.get("/post-ideas")
+    resp = client.get("/angles")
     assert resp.status_code == 200
-    assert "Potential LinkedIn Post Topics This Week" in resp.text
-    assert "No post-worthy signals" in resp.text
+    assert "<h1>Angles</h1>" in resp.text
+    assert "No signals in this period yet." in resp.text
+    # The About-this-model panel renders even with no cards (the model is
+    # declared in config, independent of the window's contents).
+    assert "About this model" in resp.text
+    assert "<details" in resp.text
 
 
-def test_post_ideas_groups_recent_window(sample_config, temp_db):
+def test_angles_end_to_end_intersection_render(sample_config, temp_db):
     now = datetime.utcnow()
+    # A Humana cascade policy → financial (the payer active on both edge ends).
     _seed_story(
         temp_db,
-        "fin-1",
-        "Humana flags MLR pressure",
-        category="financial_pressure",
-        score=0.7,
+        "h-pol1",
+        "CMS rate notice hits Humana",
+        category="policy_regulatory",
         entities=["Humana"],
-        states=["FL"],
+        score=0.9,
         published=now - timedelta(days=1),
-        draft={
-            "opening_hook": "Margin pressure is the story of the season.",
-            "analytic_angles": ["Angle"],
-            "draft_paragraph": "[DRAFT] x",
-            "uncertainty_caution": "Early.",
-            "suggested_hashtags": ["#MLR", "#MedicareAdvantage"],
-        },
     )
     _seed_story(
         temp_db,
-        "fin-2",
-        "Benefit trims ahead",
-        category="financial_pressure",
-        score=0.5,
+        "h-pol2",
+        "Final rule pressures Humana plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        score=0.85,
         published=now - timedelta(days=2),
     )
     _seed_story(
         temp_db,
-        "pol-now",
-        "CMS rule lands",
-        category="policy_regulatory",
-        score=0.6,
-        published=now - timedelta(days=3),
+        "h-fin1",
+        "Humana warns on margins in Florida",
+        category="financial_pressure",
+        entities=["Humana"],
+        states=["FL"],
+        score=0.8,
+        published=now - timedelta(days=2),
     )
-    # Previous-window-only story → drives the momentum comparison.
+    # A plain payer/topic/state overlap (no declared edge → ∩, not →).
     _seed_story(
         temp_db,
-        "pol-prev",
-        "Older CMS rule",
-        category="policy_regulatory",
+        "m1",
+        "UnitedHealthcare grows in Texas",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        states=["TX"],
+        score=0.7,
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "m2",
+        "UnitedHealthcare Texas push",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        states=["TX"],
         score=0.6,
+        published=now - timedelta(days=2),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/angles")
+    assert resp.status_code == 200
+    text = resp.text
+    # Partitioned sections, with the causal cascade up top.
+    assert "Causal chains in motion" in text
+    assert "More angles" in text
+    assert "venn-cascade" in text  # a three-circle payer cascade card rendered
+    assert "→" in text and "∩" in text  # directional + plain separators
+    # Per-card model evidence, fact line, glyph, badges, and links.
+    assert "Model evidence" in text
+    assert "CMS final-rule impact analyses" in text  # fixture evidence sentence
+    assert "Strongest:" in text
+    assert "badge-angle-type" in text and "badge-layer" in text
+    assert "aria-hidden" in text
+    assert 'class="sr-only"' in text
+    assert 'href="/payers/humana"' in text
+    assert 'href="/story/h-pol1"' in text
+    # About panel lists the fixture edge.
+    assert "About this model" in text
+    assert "Policy / Regulatory Changes → Financial / Operating Pressure" in text
+
+
+def test_angles_momentum_labels(sample_config, temp_db):
+    now = datetime.utcnow()
+    for i, day in enumerate((1, 2, 3)):
+        _seed_story(
+            temp_db,
+            f"n{i}",
+            f"Humana enrollment story {i}",
+            category="membership_movement",
+            entities=["Humana"],
+            published=now - timedelta(days=day),
+        )
+    # The same overlap had one story in the previous window → momentum "up".
+    _seed_story(
+        temp_db,
+        "o1",
+        "Humana earlier enrollment gain",
+        category="membership_movement",
+        entities=["Humana"],
         published=now - timedelta(days=10),
     )
     client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/angles")
+    assert "up from 1 last period" in resp.text
 
-    resp = client.get("/post-ideas")
-    assert resp.status_code == 200
-    text = resp.text
-    # financial_pressure (2 signals, new) outranks policy_regulatory (1, steady).
-    assert text.index("Financial / Operating Pressure") < text.index(
-        "Policy / Regulatory Changes"
+
+def test_angles_chain_seed_renders_causal_card(sample_config, temp_db):
+    now = datetime.utcnow()
+    # Two dual-category stories form a topic∩topic overlap lying along the
+    # declared policy → financial edge.
+    _seed_story(
+        temp_db,
+        "c1",
+        "CMS rate notice squeezes MA margins",
+        category="policy_regulatory",
+        categories=["policy_regulatory", "financial_pressure"],
+        published=now - timedelta(days=1),
     )
-    assert "Margin pressure is the story of the season." in text
-    assert "new this period" in text
-    assert "steady vs. last period" in text
-    assert "#MLR" in text
-    assert 'href="/story/fin-1"' in text
-    assert 'href="/payers/humana"' in text
+    _seed_story(
+        temp_db,
+        "c2",
+        "Final rule pressures plan margins",
+        category="policy_regulatory",
+        categories=["policy_regulatory", "financial_pressure"],
+        published=now - timedelta(days=2),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/angles")
+    text = resp.text
+    assert "Causal chains in motion" in text
+    # Directional chain label + the combined layer badge.
+    assert "Policy / Regulatory Changes → Financial / Operating Pressure" in text
+    assert "Drivers → Pressure" in text
+    assert "Model evidence" in text
+    assert "CMS final-rule impact analyses" in text
 
 
-def test_post_ideas_days_param(client):
+def test_angles_consistency_line_needs_upstream_previous(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "c1",
+        "CMS rule and margins",
+        category="policy_regulatory",
+        categories=["policy_regulatory", "financial_pressure"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "c2",
+        "Rate notice squeezes margins",
+        category="policy_regulatory",
+        categories=["policy_regulatory", "financial_pressure"],
+        published=now - timedelta(days=2),
+    )
+    # An upstream (policy) signal in the previous window makes the sequence
+    # consistent: source active last period, target rising now.
+    _seed_story(
+        temp_db,
+        "prev-pol",
+        "Earlier CMS proposal",
+        category="policy_regulatory",
+        published=now - timedelta(days=10),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/angles")
+    assert "Sequence consistent with the model this period" in resp.text
+
+
+def test_angles_days_param(client):
     # Out-of-range values clamp to the max window.
-    resp = client.get("/post-ideas?days=9999")
+    resp = client.get("/angles?days=9999")
     assert resp.status_code == 200
     assert "last 90 days" in resp.text
     # Garbage falls back to the default.
-    resp = client.get("/post-ideas?days=abc")
+    resp = client.get("/angles?days=abc")
     assert resp.status_code == 200
     assert "last 7 days" in resp.text
     # Period presets render as links on the live app.
-    assert 'href="/post-ideas?days=14"' in resp.text
+    assert 'href="/angles?days=14"' in resp.text
 
 
-def test_post_ideas_excludes_future_dated_stories(sample_config, temp_db):
+def test_angles_excludes_future_dated_stories(sample_config, temp_db):
     """A story dated in the future can't pad the current window."""
     now = datetime.utcnow()
     _seed_story(
@@ -279,29 +388,82 @@ def test_post_ideas_excludes_future_dated_stories(sample_config, temp_db):
         published=now + timedelta(days=30),
     )
     client = TestClient(create_app(sample_config, temp_db))
-    resp = client.get("/post-ideas?days=7")
+    resp = client.get("/angles?days=7")
     assert resp.status_code == 200
-    # Only the genuinely-recent story counts toward the window total.
-    assert "1 signal" in resp.text
+    assert "1 signal this period" in resp.text  # only the genuinely-recent story
     assert "Misparsed future date" not in resp.text
 
 
-def test_post_ideas_unknown_category_not_linked(sample_config, temp_db):
-    """A theme on a stale/removed category renders as text, not a 404 link."""
+def test_angles_fallback_topic_card(sample_config, temp_db):
+    """A sparse window (no overlaps) falls back to single-lens topic cards."""
     now = datetime.utcnow()
     _seed_story(
         temp_db,
-        "stale",
-        "Legacy topic signal",
-        category="star_ratings_legacy",  # not in the config taxonomy
+        "t1",
+        "Policy update one",
+        category="policy_regulatory",
         published=now - timedelta(days=1),
     )
+    _seed_story(
+        temp_db,
+        "t2",
+        "Policy update two",
+        category="policy_regulatory",
+        published=now - timedelta(days=2),
+    )
     client = TestClient(create_app(sample_config, temp_db))
-    resp = client.get("/post-ideas")
+    resp = client.get("/angles")
+    assert resp.status_code == 200
+    assert 'badge-angle-type">Topic<' in resp.text  # the single-lens fallback card
+    assert "Policy / Regulatory Changes" in resp.text
+    # No causal section, so no "More angles" contrast heading either.
+    assert "Causal chains in motion" not in resp.text
+    assert "More angles" not in resp.text
+
+
+def test_angles_unknown_category_not_linked(sample_config, temp_db):
+    """An overlap on a stale/removed category renders as text, not a 404 link."""
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "s1",
+        "Legacy topic signal one",
+        category="star_ratings_legacy",  # not in the config taxonomy
+        categories=["star_ratings_legacy", "financial_pressure"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "s2",
+        "Legacy topic signal two",
+        category="star_ratings_legacy",
+        categories=["star_ratings_legacy", "financial_pressure"],
+        published=now - timedelta(days=2),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/angles")
     assert resp.status_code == 200
     # No dead link to a /topics page that doesn't exist for this key.
     assert 'href="/topics/star_ratings_legacy"' not in resp.text
-    assert '<span class="badge badge-cat">' in resp.text
+    # ...but the valid side of the same overlap still links.
+    assert 'href="/topics/financial_pressure"' in resp.text
+
+
+def test_post_ideas_redirects_to_angles(client):
+    """The former ``/post-ideas`` path 301s to the renamed page."""
+    resp = client.get("/post-ideas", follow_redirects=False)
+    assert resp.status_code == 301
+    assert resp.headers["location"] == "/angles"
+    # An all-digits days preset is forwarded; the target clamps it.
+    resp = client.get("/post-ideas?days=14", follow_redirects=False)
+    assert resp.headers["location"] == "/angles?days=14"
+    # A non-numeric days value is dropped, never reflected into the new URL.
+    resp = client.get("/post-ideas?days=abc", follow_redirects=False)
+    assert resp.headers["location"] == "/angles"
+    # Following the redirect lands on the Angles page.
+    resp = client.get("/post-ideas")
+    assert resp.status_code == 200
+    assert "<h1>Angles</h1>" in resp.text
 
 
 def test_system_dropdown_trigger_is_keyboard_focusable(client):

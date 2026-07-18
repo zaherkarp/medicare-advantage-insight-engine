@@ -11,10 +11,11 @@ from datetime import datetime, timedelta
 from urllib.parse import quote_plus
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
+from ma_signal_monitor.angles import _causal_model_view, build_angles
 from ma_signal_monitor.geo import STATE_NAMES, state_name
 from ma_signal_monitor.payers import (
     ALIAS_TO_GROUP,
@@ -22,7 +23,6 @@ from ma_signal_monitor.payers import (
     PAYER_GROUPS,
     get_group,
 )
-from ma_signal_monitor.post_ideas import build_post_ideas
 from ma_signal_monitor.storage import VALID_VERDICTS
 
 SEC_SOURCE_PREFIX = "SEC EDGAR"
@@ -32,12 +32,10 @@ SEC_SOURCE_PREFIX = "SEC EDGAR"
 MAX_FILTER_STATES = 8
 MAX_FILTER_PAYERS = 6
 
-# Post Ideas rolling window (days): default, hard cap, and the picker presets.
-POST_IDEAS_DEFAULT_DAYS = 7
-POST_IDEAS_MAX_DAYS = 90
-POST_IDEAS_DAY_OPTIONS = (7, 14, 30)
-# Stories scanned per window; far above a normal week's public-story volume.
-_POST_IDEAS_SCAN_LIMIT = 500
+# Angles rolling window (days): default, hard cap, and the picker presets.
+ANGLES_DEFAULT_DAYS = 7
+ANGLES_MAX_DAYS = 90
+ANGLES_DAY_OPTIONS = (7, 14, 30)
 
 
 class FeedbackIn(BaseModel):
@@ -71,6 +69,29 @@ def _story_view(row: sqlite3.Row) -> dict:
         "public_draft": json.loads(row["public_draft"])
         if row["public_draft"]
         else None,
+    }
+
+
+def _facet_view(row: sqlite3.Row) -> dict:
+    """Turn a lean facet row into an Angles-ready dict (JSON lenses parsed).
+
+    Mirrors :func:`_story_view` for the columns the intersection engine reads,
+    minus ``summary``/``public_draft`` — the ``get_recent_story_facets`` query
+    doesn't fetch those blobs, so this view can't reference them.
+    """
+    published = row["published_date"]
+    display_date = published.replace("T", " ")[:16] if published else ""
+    return {
+        "item_id": row["item_id"],
+        "title": row["title"],
+        "link": row["link"],
+        "source_name": row["source_name"],
+        "display_date": display_date,
+        "relevance_score": row["relevance_score"] or 0.0,
+        "primary_category": row["primary_category"] or "uncategorized",
+        "categories": json.loads(row["categories"] or "[]"),
+        "entities": json.loads(row["entities"] or "[]"),
+        "states": json.loads(row["states"] or "[]"),
     }
 
 
@@ -480,16 +501,16 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             raise HTTPException(status_code=404, detail="Briefing not found")
         return _render_briefing(request, row)
 
-    @app.get("/post-ideas", response_class=HTMLResponse)
-    def post_ideas(request: Request) -> HTMLResponse:
-        """Potential LinkedIn post topics mined from a rolling signal window."""
+    @app.get("/angles", response_class=HTMLResponse)
+    def angles(request: Request) -> HTMLResponse:
+        """Lens-intersection angles mined from a rolling signal window."""
         store = request.app.state.store
         config = request.app.state.config
         try:
-            days = int(request.query_params.get("days", str(POST_IDEAS_DEFAULT_DAYS)))
+            days = int(request.query_params.get("days", str(ANGLES_DEFAULT_DAYS)))
         except ValueError:
-            days = POST_IDEAS_DEFAULT_DAYS
-        days = min(max(days, 1), POST_IDEAS_MAX_DAYS)
+            days = ANGLES_DEFAULT_DAYS
+        days = min(max(days, 1), ANGLES_MAX_DAYS)
 
         now = datetime.utcnow()
         window_start = now - timedelta(days=days)
@@ -497,48 +518,44 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         floor = config.archive_min_score
         # Bound the current window on the right (`until=now`) so it matches the
         # previous window's shape — a future-dated story can't inflate every
-        # window and permanently bias its theme's momentum.
+        # window and permanently bias an overlap's momentum. The facet query is
+        # uncapped, so counts and intersections see the whole window.
         current = [
-            _story_view(r)
-            for r in store.get_recent_top_stories(
-                window_start, limit=_POST_IDEAS_SCAN_LIMIT, min_score=floor, until=now
+            _facet_view(r)
+            for r in store.get_recent_story_facets(
+                window_start, min_score=floor, until=now
             )
         ]
         # The same-length window immediately before, for the momentum labels.
         previous = [
-            _story_view(r)
-            for r in store.get_recent_top_stories(
-                prev_start,
-                limit=_POST_IDEAS_SCAN_LIMIT,
-                min_score=floor,
-                until=window_start,
+            _facet_view(r)
+            for r in store.get_recent_story_facets(
+                prev_start, min_score=floor, until=window_start
             )
         ]
-        # Authoritative per-category counts (not derived from the possibly
-        # truncated story lists) keep totals and momentum accurate at volume.
-        current_counts = store.count_recent_by_category(
-            window_start, min_score=floor, until=now
-        )
-        previous_counts = store.count_recent_by_category(
-            prev_start, min_score=floor, until=window_start
-        )
-        ideas = build_post_ideas(
-            current,
-            previous,
-            config,
-            current_counts=current_counts,
-            previous_counts=previous_counts,
-        )
+        view = build_angles(current, previous, config)
         return templates.TemplateResponse(
             request,
-            "post_ideas.html",
+            "angles.html",
             {
                 "days": days,
-                "day_options": POST_IDEAS_DAY_OPTIONS,
-                "themes": ideas["themes"],
-                "highlights": ideas["highlights"],
+                "day_options": ANGLES_DAY_OPTIONS,
+                "angles": view["angles"],
+                "highlights": view["highlights"],
+                "causal_model": _causal_model_view(config),
             },
         )
+
+    @app.get("/post-ideas")
+    def post_ideas_redirect(request: Request) -> RedirectResponse:
+        """Permanent redirect for the page's former name (now ``/angles``).
+
+        Forwards a ``?days=`` preset only when it's all-digits — the target
+        clamps it — so a garbage value can't be reflected into the new URL.
+        """
+        days = request.query_params.get("days")
+        target = f"/angles?days={days}" if days and days.isdigit() else "/angles"
+        return RedirectResponse(target, status_code=301)
 
     @app.get("/story/{item_id}", response_class=HTMLResponse)
     def story(request: Request, item_id: str) -> HTMLResponse:
