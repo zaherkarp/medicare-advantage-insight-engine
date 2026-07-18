@@ -86,6 +86,12 @@ The score is clamped to [0.0, 1.0] and returned with a list of `ScoringReason` o
 5. Competitive / Operational Strategy
 6. Brokerage / Distribution
 
+## Angles (lens intersections weighted by a causal model)
+
+`angles.py` builds the `/angles` view ("ways of looking at the week's signals") from two adjacent story windows. Cards form at the intersections of lenses already present on every story — payer × topic, topic × topic (the full `categories` list, not just the primary), topic × state, and payer × payer co-mentions — with a minimum of 2 stories per card and fact-derived text (count, distinct sources, momentum vs. the prior window, strongest headline).
+
+Ranking is differential along a **declared causal model** (`config/causal_model.yaml`): four ordered layers (Structural & Policy Drivers → Economic Pressure → Strategic Response → Market Outcomes) and downstream-only weighted edges, each carrying a one-sentence citable `evidence` rationale. A topic-pair on an edge becomes a *causal chain* card; a payer with current signals on both sides of an edge becomes a *payer cascade*. `rank_score = count × (1 + boost × edge_weight)` with boosts 0.5 (chain) / 0.75 (cascade), so causality re-ranks without steamrolling volume; non-edge overlaps still appear, ranked by volume alone. Config load validates soundness (unknown/self/upstream/duplicate edges, weight range, blank evidence); full taxonomy coverage is test-enforced (`tests/test_causal_model.py`). Greedy subset suppression removes cards whose story set adds nothing over a higher-ranked card, and a single-lens topic fallback keeps sparse archives readable. The window fetch is an uncapped lean facet query (`get_recent_story_facets`), so counts and momentum are exact.
+
 ## Rendering and Delivery
 
 Delivery is abstracted behind a mode selector:
@@ -136,3 +142,4 @@ SQLite (`storage.py`) provides eight tables plus a full-text index:
 | Delivery abstraction | Endpoint compatibility varies; abstraction allows easy format swaps |
 | Thread-pool fetching | Sources are fetched concurrently (`FETCH_WORKERS`, default 8) with per-source error isolation and config-order results; set `FETCH_WORKERS=1` for strictly sequential fetching |
 | Per-source error isolation | One bad feed shouldn't block the entire run |
+| Declared causal model (not inference) | Layers/edges with citable evidence in `config/causal_model.yaml`; transparent differential ranking, soundness validated at load, coverage test-enforced |
