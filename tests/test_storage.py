@@ -179,25 +179,27 @@ class TestStateStore:
         )
         assert {r["item_id"] for r in open_ended} == {"inside", "at-until"}
 
-    def test_count_recent_by_category_windows_and_dedupes(self, temp_db):
-        """True per-category counts: windowed, deduped, floor-filtered."""
+    def test_recent_story_facets_windows_and_dedupes(self, temp_db):
+        """Uncapped facet fetch: windowed, deduped, floor-filtered, score-ordered."""
         temp_db.upsert_story(
-            _make_scored("p-old", "Before window", published=datetime(2024, 1, 1)),
+            _make_scored(
+                "p-old", "Before window", published=datetime(2024, 1, 1), score=0.9
+            ),
             primary_category="policy_regulatory",
         )
         temp_db.upsert_story(
-            _make_scored("p-1", "In window A", published=datetime(2024, 1, 10)),
+            _make_scored(
+                "p-1", "In window A", published=datetime(2024, 1, 10), score=0.4
+            ),
             primary_category="policy_regulatory",
         )
         temp_db.upsert_story(
-            _make_scored("p-2", "In window B", published=datetime(2024, 1, 12)),
-            primary_category="policy_regulatory",
-        )
-        temp_db.upsert_story(
-            _make_scored("f-1", "Financial in window", published=datetime(2024, 1, 11)),
+            _make_scored(
+                "f-1", "In window B", published=datetime(2024, 1, 12), score=0.8
+            ),
             primary_category="financial_pressure",
         )
-        # A near-duplicate and a sub-floor story inside the window don't count.
+        # A near-duplicate and a sub-floor story inside the window are excluded.
         temp_db.upsert_story(
             _make_scored("p-dup", "Dup of p-1", published=datetime(2024, 1, 13)),
             primary_category="policy_regulatory",
@@ -209,27 +211,68 @@ class TestStateStore:
             ),
             primary_category="policy_regulatory",
         )
-        # An uncategorized story in the window folds under "uncategorized".
+        # A story at the right edge is excluded (`until` is exclusive).
         temp_db.upsert_story(
-            _make_scored("u-1", "Uncategorized", published=datetime(2024, 1, 15)),
-            primary_category="uncategorized",
+            _make_scored("edge", "At until", published=datetime(2024, 1, 20)),
+            primary_category="policy_regulatory",
         )
 
-        counts = temp_db.count_recent_by_category(
+        rows = temp_db.get_recent_story_facets(
             datetime(2024, 1, 5), min_score=0.1, until=datetime(2024, 1, 20)
         )
-        assert (
-            counts
-            == {
-                "policy_regulatory": 2,  # p-1, p-2 (p-old out, p-dup hidden, p-noise sub-floor)
-                "financial_pressure": 1,
-                "uncategorized": 1,
-            }
+        # `since` inclusive, `until` exclusive; dup + noise gone; score-ordered.
+        assert [r["item_id"] for r in rows] == ["f-1", "p-1"]
+
+        # No LIMIT, and the left bound is inclusive.
+        open_ended = temp_db.get_recent_story_facets(
+            datetime(2024, 1, 10), min_score=0.1
         )
-        # The right bound is exclusive; the left bound is inclusive.
-        assert temp_db.count_recent_by_category(
-            datetime(2024, 1, 12), until=datetime(2024, 1, 15), min_score=0.1
-        ) == {"policy_regulatory": 1}  # only p-2 (f-1 is 1/11, u-1 at 1/15 excluded)
+        assert {r["item_id"] for r in open_ended} == {"f-1", "p-1", "edge"}
+
+    def test_recent_story_facets_lean_column_set(self, temp_db):
+        """The facet query selects exactly the lens columns `_facet_view` reads.
+
+        Guards the lean view against drift: adding/removing a column here would
+        break the web layer's ``_facet_view`` (which references these by name).
+        """
+        import json
+
+        temp_db.upsert_story(
+            _make_scored(
+                "f1",
+                "Facet story",
+                published=datetime(2024, 1, 10),
+                categories=["policy_regulatory", "financial_pressure"],
+                entities=["Humana"],
+            ),
+            primary_category="policy_regulatory",
+            states=["FL"],
+        )
+        rows = temp_db.get_recent_story_facets(datetime(2024, 1, 1), min_score=0.1)
+        assert len(rows) == 1
+        assert set(rows[0].keys()) == {
+            "item_id",
+            "title",
+            "link",
+            "source_name",
+            "published_date",
+            "fetched_at",
+            "relevance_score",
+            "primary_category",
+            "categories",
+            "entities",
+            "states",
+        }
+        # The heavy blobs the lean query deliberately skips.
+        assert "summary" not in rows[0].keys()
+        assert "public_draft" not in rows[0].keys()
+        # JSON lenses round-trip for the intersection engine.
+        assert json.loads(rows[0]["categories"]) == [
+            "policy_regulatory",
+            "financial_pressure",
+        ]
+        assert json.loads(rows[0]["entities"]) == ["Humana"]
+        assert json.loads(rows[0]["states"]) == ["FL"]
 
     def test_get_stories_reverse_chronological(self, temp_db):
         """Stories are returned newest-first by published date."""

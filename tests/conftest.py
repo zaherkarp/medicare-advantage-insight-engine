@@ -9,6 +9,8 @@ import yaml
 from ma_signal_monitor.config import (
     AppConfig,
     CategoryConfig,
+    CausalEdgeConfig,
+    CausalLayerConfig,
     ScoringConfig,
     SourceConfig,
 )
@@ -183,6 +185,78 @@ def sample_config() -> AppConfig:
         ],
         watched_entities=["UnitedHealthcare", "Humana", "Aetna", "CMS"],
         scoring=ScoringConfig(),
+        # A minimal but valid 4-layer causal model over the four fixture
+        # categories: drivers -> pressure -> response -> outcomes. Additive, so
+        # tests that ignore the model are unaffected; the Angles tests use it to
+        # exercise chains, cascades, and the About panel.
+        causal_layers=[
+            CausalLayerConfig(
+                key="drivers",
+                label="Structural & Policy Drivers",
+                short="Drivers",
+                order=1,
+                categories=["policy_regulatory"],
+            ),
+            CausalLayerConfig(
+                key="pressure",
+                label="Economic Pressure",
+                short="Pressure",
+                order=2,
+                categories=["financial_pressure"],
+            ),
+            CausalLayerConfig(
+                key="response",
+                label="Strategic Response",
+                short="Response",
+                order=3,
+                categories=["competitive_strategy"],
+            ),
+            CausalLayerConfig(
+                key="outcomes",
+                label="Market Outcomes",
+                short="Outcomes",
+                order=4,
+                categories=["membership_movement"],
+            ),
+        ],
+        causal_edges=[
+            CausalEdgeConfig(
+                source="policy_regulatory",
+                target="financial_pressure",
+                weight=1.0,
+                evidence=(
+                    "CMS final-rule impact analyses tie benchmark and "
+                    "risk-adjustment changes to MA plan margins."
+                ),
+            ),
+            CausalEdgeConfig(
+                source="financial_pressure",
+                target="competitive_strategy",
+                weight=0.9,
+                evidence=(
+                    "Payer 10-K and 8-K guidance cycles show margin pressure "
+                    "preceding strategic repositioning."
+                ),
+            ),
+            CausalEdgeConfig(
+                source="competitive_strategy",
+                target="membership_movement",
+                weight=0.9,
+                evidence=(
+                    "Payer disclosures and KFF switching analyses connect "
+                    "strategy shifts to enrollment movement."
+                ),
+            ),
+            CausalEdgeConfig(
+                source="policy_regulatory",
+                target="competitive_strategy",
+                weight=0.7,
+                evidence=(
+                    "CMS rule changes, per payer 8-K disclosures, prompt "
+                    "network and value-based-care strategy shifts."
+                ),
+            ),
+        ],
     )
 
 

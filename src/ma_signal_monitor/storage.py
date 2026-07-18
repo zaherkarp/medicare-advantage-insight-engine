@@ -630,8 +630,10 @@ class StateStore:
         Ordered by relevance score, then recency. Uses
         COALESCE(published_date, fetched_at) so dateless items are still
         windowed sensibly. ``until`` (exclusive) bounds the window on the
-        right — the Post Ideas page compares two adjacent windows for its
-        momentum signal; the digest leaves it unset and stays open-ended.
+        right for callers that need a closed window; the digest leaves it
+        unset and stays open-ended. This is the capped digest fetch — the
+        Angles page reads every windowed row through
+        :meth:`get_recent_story_facets` instead.
         """
         conn = self._get_conn()
         until_clause = ""
@@ -651,21 +653,24 @@ class StateStore:
         ).fetchall()
         return rows
 
-    def count_recent_by_category(
+    def get_recent_story_facets(
         self,
         since: datetime,
         min_score: float = 0.0,
         until: datetime | None = None,
-    ) -> dict[str, int]:
-        """Return ``{primary_category: story_count}`` for a time window.
+    ) -> list[sqlite3.Row]:
+        """Return every windowed story with just the lens facets, uncapped.
 
-        Same windowing and filters as :meth:`get_recent_top_stories`
-        (``since`` inclusive, optional ``until`` exclusive, ``min_score`` floor,
-        representatives only via ``duplicate_of IS NULL``) but returns true
-        per-category counts instead of a truncated top-N list. The Post Ideas
-        page uses this for its window totals and momentum so the numbers stay
-        accurate even when a window holds more stories than the display scan
-        limit. NULL/empty categories fold into ``"uncategorized"``.
+        Feeds the Angles page, which forms cards at lens intersections and so
+        needs the exact set of stories in the window, not a truncated top-N.
+        Selects only the narrow column set the intersection engine reads
+        (title/link/source for display, plus the ``categories``/``entities``/
+        ``states`` JSON lenses) — the heavy ``summary``/``public_draft`` blobs
+        are skipped. Same windowing and filters as
+        :meth:`get_recent_top_stories` (``since`` inclusive, optional ``until``
+        exclusive, ``min_score`` floor, representatives only via
+        ``duplicate_of IS NULL``). No LIMIT: the windows are time-bounded, so a
+        single week's public-story set stays small enough to scan whole.
         """
         conn = self._get_conn()
         until_clause = ""
@@ -674,16 +679,18 @@ class StateStore:
             until_clause = " AND COALESCE(published_date, fetched_at) < ?"
             params.append(until.isoformat())
         rows = conn.execute(
-            f"""SELECT COALESCE(NULLIF(primary_category, ''), 'uncategorized') AS cat,
-                       COUNT(*) AS n
+            f"""SELECT item_id, title, link, source_name, published_date,
+                       fetched_at, relevance_score, primary_category,
+                       categories, entities, states
                   FROM stories
                  WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
                    AND relevance_score >= ?
                    AND duplicate_of IS NULL
-              GROUP BY cat""",
+                 ORDER BY relevance_score DESC,
+                          COALESCE(published_date, fetched_at) DESC""",
             (*params, min_score),
         ).fetchall()
-        return {row["cat"]: row["n"] for row in rows}
+        return rows
 
     # --- Reader feedback ---
 
