@@ -94,6 +94,11 @@ def _map_path(path_with_q: str, base: str) -> str:
         # Any ?days= preset collapses to the default-window page (the picker
         # is hidden on the static site anyway).
         tail = "angles.html"
+    elif path == "/timeline":
+        # Like /angles, any ?days= preset collapses to the default window.
+        tail = "timeline.html"
+    elif path.startswith("/timeline/"):
+        tail = f"timeline/{path[len('/timeline/') :]}.html"
     elif path == "/post-ideas":
         # Legacy alias: the page was renamed from Post Ideas to Angles. Inbound
         # links resolve to the same static file; the standalone post-ideas.html
@@ -156,6 +161,7 @@ _SEARCH_HTML = """<!DOCTYPE html>
   <a class="brand" href="{base}/index.html">MA&nbsp;Signal&nbsp;Monitor</a>
   <nav class="nav">
     <a href="{base}/index.html">Feed</a>
+    <a href="{base}/timeline.html">Timeline</a>
     <a href="{base}/briefing.html">Daily Briefing</a>
     <a href="{base}/angles.html">Angles</a>
     <div class="dropdown">
@@ -322,6 +328,16 @@ def build_site(
             f"payers/{group.slug}.html",
             store.count_stories(entity_aliases=list(group.aliases), min_score=floor),
         )
+    # Timeline pages: story cards/pages link into the scoped variants, so every
+    # topic/payer/state timeline a link can target gets a static file. Frozen
+    # at the default window (the picker is hidden on export); never paginated.
+    grab("/timeline", "timeline.html")
+    for c in config.categories:
+        grab(f"/timeline/topics/{c.key}", f"timeline/topics/{c.key}.html")
+    for group in PAYER_GROUPS:
+        grab(f"/timeline/payers/{group.slug}", f"timeline/payers/{group.slug}.html")
+    for code in store.get_state_counts(min_score=floor):
+        grab(f"/timeline/states/{code}", f"timeline/states/{code}.html")
     story_rows = store.get_stories(limit=_MAX_STORY_PAGES, min_score=floor)
     for row in story_rows:
         grab(f"/story/{row['item_id']}", f"story/{row['item_id']}.html")
@@ -346,6 +362,10 @@ def build_site(
         "states": len(store.get_state_counts(min_score=floor)),
         "payers": len(PAYER_GROUPS),
         "digests": len(store.list_digests(limit=400)),
+        "timelines": 1
+        + len(config.categories)
+        + len(PAYER_GROUPS)
+        + len(store.get_state_counts(min_score=floor)),
     }
     logger.info("Static site built at %s: %s", out_dir, counts)
     return counts

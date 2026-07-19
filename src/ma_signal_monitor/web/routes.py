@@ -17,10 +17,12 @@ from pydantic import BaseModel, Field
 
 from ma_signal_monitor.angles import _causal_model_view, build_angles
 from ma_signal_monitor.geo import STATE_NAMES, state_name
+from ma_signal_monitor.lanes import Lane, axis_ticks, build_lane
 from ma_signal_monitor.payers import (
     ALIAS_TO_GROUP,
     KIND_LABELS,
     PAYER_GROUPS,
+    PayerGroup,
     get_group,
 )
 from ma_signal_monitor.storage import VALID_VERDICTS
@@ -38,10 +40,17 @@ ANGLES_MAX_DAYS = 90
 ANGLES_DAY_OPTIONS = (7, 14, 30)
 
 # Story-card "related coverage" timelines: rolling daily window the reader can
-# widen/narrow. Same clamp/default machinery as Angles, wider presets.
+# widen/narrow. Same clamp/default machinery as Angles, wider presets. The
+# /timeline page shares the same window presets.
 TIMELINE_DEFAULT_DAYS = 30
 TIMELINE_MAX_DAYS = 90
 TIMELINE_DAY_OPTIONS = (7, 14, 30, 90)
+
+# /timeline swimlane chart: cap the window fetch (a safety valve, cf. the
+# static export's _MAX_STORY_PAGES) and the payer-lane count under a topic
+# filter so the chart stays scannable.
+TIMELINE_MAX_STORIES = 1000
+MAX_PAYER_LANES = 7
 
 
 class FeedbackIn(BaseModel):
@@ -140,6 +149,27 @@ def _days_param(request: Request, *, default: int, max_days: int) -> int:
     return min(max(days, 1), max_days)
 
 
+def _fold_entity_groups(entities: list[str]) -> tuple[list[PayerGroup], list[str]]:
+    """Fold entity aliases into canonical payer groups (first-mention order).
+
+    Returns ``(groups, loose_aliases)``: aliases without a group (e.g. agencies
+    like CMS) are returned separately so callers can decide whether they stand
+    on their own.
+    """
+    groups: list[PayerGroup] = []
+    loose_aliases: list[str] = []
+    seen_slugs: set[str] = set()
+    for alias in entities:
+        group = ALIAS_TO_GROUP.get(alias)
+        if group is not None:
+            if group.slug not in seen_slugs:
+                seen_slugs.add(group.slug)
+                groups.append(group)
+        elif alias not in loose_aliases:
+            loose_aliases.append(alias)
+    return groups, loose_aliases
+
+
 def _attach_timelines(
     stories: list[dict], store, config, *, days: int, now: datetime
 ) -> None:
@@ -163,23 +193,15 @@ def _attach_timelines(
     floor = config.archive_min_score
     valid_categories = {c.key for c in config.categories}
     window_start = now.date() - timedelta(days=days - 1)
+    # Captions open the scope on the /timeline page at the card's own window.
+    scope_qs = f"?days={days}" if days != TIMELINE_DEFAULT_DAYS else ""
     cache: dict[tuple, list[int]] = {}
 
     for s in stories:
         # Fold this story's entity aliases into canonical payer groups (order
         # preserved); aliases without a group (e.g. agencies like CMS) stand on
         # their own so they still get a coverage series, just no payer link.
-        groups: list = []
-        loose_aliases: list[str] = []
-        seen_slugs: set[str] = set()
-        for alias in s.get("entities", []):
-            group = ALIAS_TO_GROUP.get(alias)
-            if group is not None:
-                if group.slug not in seen_slugs:
-                    seen_slugs.add(group.slug)
-                    groups.append(group)
-            elif alias not in loose_aliases:
-                loose_aliases.append(alias)
+        groups, loose_aliases = _fold_entity_groups(s.get("entities", []))
 
         if groups or loose_aliases:
             aliases: list[str] = []
@@ -189,9 +211,9 @@ def _attach_timelines(
             key: tuple = ("e", *sorted(aliases))
             label = " + ".join([g.name for g in groups] + loose_aliases)
             # Link only when the scope is exactly one payer group — a co-mention
-            # union or a lone agency alias has no single page to point at.
+            # union or a lone agency alias has no single timeline to point at.
             href = (
-                f"/payers/{groups[0].slug}"
+                f"/timeline/payers/{groups[0].slug}{scope_qs}"
                 if len(groups) == 1 and not loose_aliases
                 else None
             )
@@ -203,7 +225,11 @@ def _attach_timelines(
                 continue
             key = ("c", category)
             label = get_category_label(category, config)
-            href = f"/topics/{category}" if category in valid_categories else None
+            href = (
+                f"/timeline/topics/{category}{scope_qs}"
+                if category in valid_categories
+                else None
+            )
             query_kwargs = {"category": category}
 
         if key not in cache:
@@ -234,6 +260,75 @@ def _attach_timelines(
         }
 
 
+def _timeline_lanes(
+    stories: list[dict], config, *, mode: str, days: int, now: datetime, scope_qs: str
+) -> list[Lane]:
+    """Partition window stories into swimlanes and build their geometry.
+
+    ``mode="topics"`` gives one lane per configured category (config order, all
+    rendered even when quiet — a flat lane is signal), plus a trailing "Other"
+    lane only when uncategorized/stale-key stories exist. ``mode="payers"``
+    (used under a topic filter, where topic lanes would collapse to one) ranks
+    the canonical payer groups active in the window, caps them at
+    ``MAX_PAYER_LANES``, and absorbs below-cap groups, ungrouped aliases (e.g.
+    agencies like CMS), and entityless stories into "Other". Every story lands
+    in exactly one lane, so the chart total matches the list beneath it; a
+    multi-payer co-mention plots once, in its first-mentioned group.
+    """
+    lanes: list[Lane] = []
+    if mode == "payers":
+        by_group: dict[str, list[dict]] = {}
+        other: list[dict] = []
+        for s in stories:
+            groups, _loose = _fold_entity_groups(s.get("entities", []))
+            if groups:
+                by_group.setdefault(groups[0].slug, []).append(s)
+            else:
+                other.append(s)
+        ranked = sorted(by_group.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        for slug, bucket in ranked[:MAX_PAYER_LANES]:
+            group = get_group(slug)
+            lanes.append(
+                build_lane(
+                    slug,
+                    group.name if group else slug,
+                    f"/timeline/payers/{slug}{scope_qs}",
+                    bucket,
+                    days=days,
+                    now=now,
+                )
+            )
+        for _slug, bucket in ranked[MAX_PAYER_LANES:]:
+            other.extend(bucket)
+        if other:
+            lanes.append(build_lane("other", "Other", None, other, days=days, now=now))
+    else:
+        by_cat: dict[str, list[dict]] = {}
+        for s in stories:
+            by_cat.setdefault(s.get("primary_category", "uncategorized"), []).append(s)
+        valid = set()
+        for cat in config.categories:
+            valid.add(cat.key)
+            lanes.append(
+                build_lane(
+                    cat.key,
+                    cat.label,
+                    f"/timeline/topics/{cat.key}{scope_qs}",
+                    by_cat.get(cat.key, []),
+                    days=days,
+                    now=now,
+                )
+            )
+        leftovers = [
+            s for key, bucket in by_cat.items() if key not in valid for s in bucket
+        ]
+        if leftovers:
+            lanes.append(
+                build_lane("other", "Other", None, leftovers, days=days, now=now)
+            )
+    return lanes
+
+
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
     """Register all frontend routes on the app."""
 
@@ -242,12 +337,13 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         *,
         active_category: str | None = None,
         active_state: str | None = None,
+        active_payer: str | None = None,
     ) -> dict:
         """Context for the feed's filter bar (topics/states/payers as tags).
 
         State and payer chips are trimmed to the most active so the bar stays
-        scannable. The active state is prepended when it falls outside the
-        top slice so its highlighted chip is always visible.
+        scannable. The active state/payer is prepended when it falls outside
+        the top slice so its highlighted chip is always visible.
         """
         store = request.app.state.store
         config = request.app.state.config
@@ -273,10 +369,22 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 :MAX_FILTER_PAYERS
             ]
         ]
+        if active_payer and active_payer not in {p["slug"] for p in top_payers}:
+            group = get_group(active_payer)
+            if group is not None:
+                top_payers.insert(
+                    0,
+                    {
+                        "slug": group.slug,
+                        "name": group.name,
+                        "count": group_counts.get(group.slug, 0),
+                    },
+                )
 
         return {
             "active_category": active_category,
             "active_state": active_state,
+            "active_payer": active_payer,
             "states": [{"code": code, "count": n} for code, n in top_states],
             "payers": top_payers,
         }
@@ -698,12 +806,165 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         target = f"/angles?days={days}" if days and days.isdigit() else "/angles"
         return RedirectResponse(target, status_code=301)
 
+    def _render_timeline(
+        request: Request,
+        *,
+        heading: str,
+        subtitle: str,
+        base_path: str,
+        category: str | None = None,
+        state: str | None = None,
+        payer_group: PayerGroup | None = None,
+    ) -> HTMLResponse:
+        """Shared renderer for the swimlane timeline page and its scoped twins.
+
+        One windowed query fetches the actual story rows (not just daily
+        counts): the chart plots each story as a dot and the list below shows
+        exactly the plotted set, so the two always agree. Lanes are topics,
+        except under a topic filter — where they'd collapse to one — so the
+        dimension flips to payers.
+        """
+        store = request.app.state.store
+        config = request.app.state.config
+        days = _days_param(
+            request, default=TIMELINE_DEFAULT_DAYS, max_days=TIMELINE_MAX_DAYS
+        )
+        floor = config.archive_min_score
+        now = datetime.utcnow()
+        window_start = now.date() - timedelta(days=days - 1)
+
+        rows = store.get_stories(
+            category=category,
+            state=state,
+            entity_aliases=list(payer_group.aliases) if payer_group else None,
+            min_score=floor,
+            since=window_start.isoformat(),
+            limit=TIMELINE_MAX_STORIES,
+        )
+        stories = []
+        for r in rows:
+            s = _story_view(r)
+            # Drop rows whose event day falls outside the window (future-dated
+            # or misparsed) so the chart and the list beneath it agree — the
+            # same rule daily_series applies while bucketing.
+            try:
+                event_day = datetime.fromisoformat(s["event_date"]).date()
+            except (ValueError, TypeError):
+                continue
+            if window_start <= event_day <= now.date():
+                stories.append(s)
+
+        scope_qs = f"?days={days}" if days != TIMELINE_DEFAULT_DAYS else ""
+        lanes = _timeline_lanes(
+            stories,
+            config,
+            mode="payers" if category else "topics",
+            days=days,
+            now=now,
+            scope_qs=scope_qs,
+        )
+        return templates.TemplateResponse(
+            request,
+            "timeline.html",
+            {
+                "heading": heading,
+                "subtitle": subtitle,
+                "lanes": lanes,
+                "ticks": axis_ticks(days, now),
+                "stories": stories,
+                "total": len(stories),
+                # The page plots (and lists) the whole window, so it never
+                # paginates — total_pages=1 keeps _story_list's pager hidden.
+                "page": 1,
+                "total_pages": 1,
+                "base_path": base_path,
+                "days": days,
+                "day_options": TIMELINE_DAY_OPTIONS,
+                "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
+                "days_base": f"{base_path}?",
+                "filters": _feed_filters(
+                    request,
+                    active_category=category,
+                    active_state=state,
+                    active_payer=payer_group.slug if payer_group else None,
+                ),
+            },
+        )
+
+    @app.get("/timeline", response_class=HTMLResponse)
+    def timeline(request: Request) -> HTMLResponse:
+        return _render_timeline(
+            request,
+            heading="Signal Timeline",
+            subtitle="Related signals plotted on one shared timeline — "
+            "one lane per topic.",
+            base_path="/timeline",
+        )
+
+    @app.get("/timeline/topics/{category_key}", response_class=HTMLResponse)
+    def timeline_topic(request: Request, category_key: str) -> HTMLResponse:
+        config = request.app.state.config
+        valid = {c.key for c in config.categories}
+        if category_key not in valid:
+            raise HTTPException(status_code=404, detail="Unknown topic")
+        from ma_signal_monitor.classify import get_category_label
+
+        label = get_category_label(category_key, config)
+        return _render_timeline(
+            request,
+            heading=f"Timeline — {label}",
+            subtitle="Signals in this topic on one timeline — one lane per payer.",
+            base_path=f"/timeline/topics/{category_key}",
+            category=category_key,
+        )
+
+    @app.get("/timeline/payers/{slug}", response_class=HTMLResponse)
+    def timeline_payer(request: Request, slug: str) -> HTMLResponse:
+        group = get_group(slug)
+        if group is None:
+            raise HTTPException(status_code=404, detail="Unknown payer")
+        return _render_timeline(
+            request,
+            heading=f"Timeline — {group.name}",
+            subtitle="This organization's signals on one timeline — "
+            "one lane per topic.",
+            base_path=f"/timeline/payers/{group.slug}",
+            payer_group=group,
+        )
+
+    @app.get("/timeline/states/{code}", response_class=HTMLResponse)
+    def timeline_state(request: Request, code: str) -> HTMLResponse:
+        code = code.upper()
+        if code not in STATE_NAMES:
+            raise HTTPException(status_code=404, detail="Unknown state")
+        return _render_timeline(
+            request,
+            heading=f"Timeline — {state_name(code)}",
+            subtitle="Signals referencing this state on one timeline — "
+            "one lane per topic.",
+            base_path=f"/timeline/states/{code}",
+            state=code,
+        )
+
     @app.get("/story/{item_id}", response_class=HTMLResponse)
     def story(request: Request, item_id: str) -> HTMLResponse:
         store = request.app.state.store
+        config = request.app.state.config
         row = store.get_story(item_id)
         if row is None:
             raise HTTPException(status_code=404, detail="Story not found")
+        view = _story_view(row)
+        # Link into the scoped timeline the same way the card captions do:
+        # exactly one payer group → its payer timeline; else a real topic →
+        # its topic timeline; else no link.
+        groups, loose_aliases = _fold_entity_groups(view["entities"])
+        valid_categories = {c.key for c in config.categories}
+        if len(groups) == 1 and not loose_aliases:
+            timeline_href = f"/timeline/payers/{groups[0].slug}"
+        elif view["primary_category"] in valid_categories:
+            timeline_href = f"/timeline/topics/{view['primary_category']}"
+        else:
+            timeline_href = None
         # Other sources that carried the same story (the "also covered by" set).
         also_covered = [
             {"source_name": d["source_name"], "link": d["link"]}
@@ -713,9 +974,10 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             request,
             "story.html",
             {
-                "story": _story_view(row),
+                "story": view,
                 "feedback": store.get_feedback_summary(item_id),
                 "also_covered": also_covered,
+                "timeline_href": timeline_href,
             },
         )
 

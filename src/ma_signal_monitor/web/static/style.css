@@ -273,6 +273,55 @@ a.chip:hover { border-color: var(--accent); text-decoration: none; }
 /* The story's own day: a hollow ring, distinct from the filled "today" end dot. */
 .spark-story { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
 
+/* /timeline swimlanes: related signals as dots on one shared day axis. Dots
+   are absolutely-positioned anchors (percentage x, pixel y from lanes.py) so
+   they stay round at any width, need no JS, and survive the static export. */
+.timeline-chart {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; margin-top: 18px; box-shadow: var(--shadow);
+}
+.timeline-chart .empty { padding: 10px 0; }
+.lane-grid { display: grid; grid-template-columns: 150px 1fr; align-items: center; }
+/* Row separators: every grid child from the second row on (children pair up
+   as label+plot, so the first two are row one). */
+.lane-grid > :nth-child(n+3) { border-top: 1px solid var(--border); }
+.lane-label {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  align-self: stretch; padding-right: 12px; font-size: 0.82rem; line-height: 1.3;
+}
+.lane-count { color: var(--muted); font-size: 0.72rem; }
+.lane-plot { position: relative; }
+.lane-grid-line {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: var(--border); transform: translateX(-50%);
+}
+.lane-dot {
+  position: absolute; border-radius: 50%; background: var(--accent);
+  transform: translate(-50%, 50%);
+}
+a.lane-dot:hover { box-shadow: 0 0 0 3px var(--accent-soft); }
+.lane-dot-more { background: var(--muted); }
+.lane-axis { height: 24px; }
+.axis-tick {
+  position: absolute; top: 5px; transform: translateX(-50%);
+  font-size: 0.72rem; color: var(--muted); white-space: nowrap;
+}
+.axis-tick-end { transform: translateX(-100%); }
+.axis-tick-start { transform: none; }
+.timeline-stories-h {
+  font-size: 1.15rem; margin: 30px 0 0; border-bottom: 2px solid var(--border);
+  padding-bottom: 6px;
+}
+@media (max-width: 640px) {
+  .lane-grid { grid-template-columns: 92px 1fr; }
+  .lane-label { padding-right: 8px; }
+  /* Daily ticks crowd at phone widths; keep every other label (gridlines stay). */
+  .lane-axis .axis-tick:nth-child(even) { display: none; }
+}
+
+/* Story page: jump from one signal to its related-coverage timeline. */
+.story-timeline-link { margin: 12px 0 0; font-size: 0.9rem; font-weight: 600; }
+
 /* "Also reported by" — other sources carrying the same story */
 .also-covered { color: var(--muted); font-size: 0.88rem; margin: -6px 0 14px; }
 

@@ -1,31 +1,35 @@
 {# Tag-style navigation over the story archive: topics, states, and payers are
    filters on the feed rather than separate nav sections. Expects `filters`
-   from _render_feed: active_category, active_state, states [{code, count}],
-   payers [{slug, name, count}] (plus the `categories` global). #}
+   from _feed_filters: active_category, active_state, active_payer, states
+   [{code, count}], payers [{slug, name, count}] (plus the `categories`
+   global). Set `filter_prefix` before including to point the chips at a
+   scoped surface (the /timeline page does); it defaults to the feed. #}
+{% set fp = filter_prefix | default('') %}
 <div class="filter-bar">
   <div class="filter-group">
     <span class="filter-label">Topics</span>
     {% for cat in categories %}
       <a class="chip{% if filters.active_category == cat.key %} chip-active{% endif %}"
-         href="/topics/{{ cat.key }}">{{ cat.label }}</a>
+         href="{{ fp }}/topics/{{ cat.key }}">{{ cat.label }}</a>
     {% endfor %}
   </div>
   <div class="filter-group">
     <span class="filter-label">States</span>
     {% for s in filters.states %}
       <a class="chip{% if filters.active_state == s.code %} chip-active{% endif %}"
-         href="/states/{{ s.code }}">{{ state_name(s.code) }} <span class="chip-count">{{ s.count }}</span></a>
+         href="{{ fp }}/states/{{ s.code }}">{{ state_name(s.code) }} <span class="chip-count">{{ s.count }}</span></a>
     {% endfor %}
     <a class="chip chip-more" href="/states">All states →</a>
   </div>
   <div class="filter-group">
     <span class="filter-label">Payers</span>
     {% for p in filters.payers %}
-      <a class="chip" href="/payers/{{ p.slug }}">{{ p.name }} <span class="chip-count">{{ p.count }}</span></a>
+      <a class="chip{% if filters.active_payer == p.slug %} chip-active{% endif %}"
+         href="{{ fp }}/payers/{{ p.slug }}">{{ p.name }} <span class="chip-count">{{ p.count }}</span></a>
     {% endfor %}
     <a class="chip chip-more" href="/payers">All payers →</a>
   </div>
-  {% if filters.active_category or filters.active_state %}
-    <a class="chip chip-clear" href="/">✕ Clear filter</a>
+  {% if filters.active_category or filters.active_state or filters.active_payer %}
+    <a class="chip chip-clear" href="{{ fp or '/' }}">✕ Clear filter</a>
   {% endif %}
 </div>

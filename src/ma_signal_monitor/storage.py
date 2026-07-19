@@ -477,6 +477,7 @@ class StateStore:
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
         include_duplicates: bool = False,
+        since: str | None = None,
     ) -> tuple[str, list]:
         """Build a shared WHERE clause for story queries.
 
@@ -495,6 +496,12 @@ class StateStore:
         stories (``duplicate_of IS NOT NULL``) from the browsable views so the
         same story carried by several sources shows once. Full-archive callers
         (``/status``, ``/health``) pass True.
+
+        ``since`` (inclusive ISO8601 lower bound) windows on
+        ``COALESCE(published_date, fetched_at)`` — the same dateless-item
+        fallback the ordering uses. The right edge stays unbounded, mirroring
+        :meth:`get_daily_counts`: windowed callers drop future-dated rows
+        while bucketing instead.
         """
         clauses: list[str] = []
         params: list = []
@@ -513,6 +520,9 @@ class StateStore:
         if source_prefix:
             clauses.append("source_name LIKE ?")
             params.append(f"{source_prefix}%")
+        if since:
+            clauses.append("COALESCE(published_date, fetched_at) >= ?")
+            params.append(since)
         if min_score > 0.0:
             # NULL scores are treated as 0 so they never slip past the floor.
             clauses.append("COALESCE(relevance_score, 0) >= ?")
@@ -532,12 +542,14 @@ class StateStore:
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
         include_duplicates: bool = False,
+        since: str | None = None,
     ) -> list[sqlite3.Row]:
         """Return stories in reverse-chronological order, optionally filtered.
 
         Dateless items (no published_date) fall back to fetched_at so they
         still sort sensibly. ``min_score`` hides sub-floor stories and, by
-        default, near-duplicates are hidden too (see :meth:`_story_filters`).
+        default, near-duplicates are hidden too. ``since`` bounds the window
+        on the left (see :meth:`_story_filters` for both).
         """
         conn = self._get_conn()
         where, params = self._story_filters(
@@ -547,6 +559,7 @@ class StateStore:
             entity_aliases,
             source_prefix,
             include_duplicates,
+            since,
         )
         rows = conn.execute(
             f"""SELECT * FROM stories{where}
@@ -564,6 +577,7 @@ class StateStore:
         entity_aliases: list[str] | None = None,
         source_prefix: str | None = None,
         include_duplicates: bool = False,
+        since: str | None = None,
     ) -> int:
         """Count stories matching the given filters (for pagination)."""
         conn = self._get_conn()
@@ -574,6 +588,7 @@ class StateStore:
             entity_aliases,
             source_prefix,
             include_duplicates,
+            since,
         )
         row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
         return row[0]
