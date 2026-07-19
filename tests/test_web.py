@@ -109,6 +109,7 @@ def test_nav_is_streamlined(client):
     resp = client.get("/")
     assert "System ▾" in resp.text
     assert 'href="/angles"' in resp.text
+    assert 'href="/timeline"' in resp.text
     # Demoted sections left the top nav (they live in the filter bar and the
     # System menu now).
     assert "Topics ▾" not in resp.text
@@ -694,9 +695,13 @@ def test_feed_cards_show_related_coverage_timeline(sample_config, temp_db):
     assert resp.status_code == 200
     assert 'class="sparkline card-timeline"' in resp.text
     assert 'class="spark-svg"' in resp.text
-    # Caption names the canonical payer group and links to its page.
-    assert 'href="/payers/unitedhealthcare"' in resp.text
+    # Caption names the canonical payer group and links to its scoped timeline.
+    assert 'href="/timeline/payers/unitedhealthcare"' in resp.text
     assert "last 30 days" in resp.text
+    # A non-default window is carried into the caption's timeline link.
+    assert (
+        'href="/timeline/payers/unitedhealthcare?days=7"' in client.get("/?days=7").text
+    )
 
 
 def test_timeline_days_param_clamps(sample_config, temp_db):
@@ -770,7 +775,7 @@ def test_entityless_story_falls_back_to_category_scope(sample_config, temp_db):
     client = TestClient(create_app(sample_config, temp_db))
     resp = client.get("/")
     assert 'class="sparkline card-timeline"' in resp.text
-    assert 'href="/topics/policy_regulatory"' in resp.text
+    assert 'href="/timeline/topics/policy_regulatory"' in resp.text
     assert "Policy / Regulatory Changes" in resp.text
 
 
@@ -815,3 +820,202 @@ def test_search_results_show_timelines_and_picker_preserves_query(
     # The picker keeps both the query and the chosen window in its links
     # (the ampersand joining them is HTML-escaped in the rendered attribute).
     assert 'href="/search?q=Humana&amp;days=14"' in resp.text
+
+
+# --- Timeline page (swimlanes) ---
+
+
+def test_timeline_page_renders_topic_lanes(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "uhc-1",
+        "UnitedHealthcare adds counties",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "pol-1",
+        "CMS proposes a rule",
+        category="policy_regulatory",
+        published=now - timedelta(days=3),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline")
+    assert resp.status_code == 200
+    text = resp.text
+    assert "<h1>Signal Timeline</h1>" in text
+    assert "2 signals in the last 30 days" in text
+    # One lane per configured topic (config order), rendered even when quiet.
+    for cat in sample_config.categories:
+        assert cat.label in text
+    # Lane labels link to the scoped topic timelines.
+    assert 'href="/timeline/topics/membership_movement"' in text
+    # Stories plot as linked dots with native tooltips.
+    assert 'class="lane-dot"' in text
+    assert 'href="/story/uhc-1"' in text
+    assert "UnitedHealthcare adds counties — Test Feed" in text
+    # The plotted set is listed below the chart; the axis labels the days.
+    assert 'id="timeline-stories"' in text
+    assert 'class="axis-tick' in text
+    # The filter bar's chips point at scoped timelines, not the feed.
+    assert 'href="/timeline/states/' not in text  # no states seeded here
+    assert 'href="/timeline/payers/unitedhealthcare"' in text
+
+
+def test_timeline_topic_scope_flips_to_payer_lanes(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "h-1",
+        "Humana reacts to the rule",
+        category="policy_regulatory",
+        entities=["Humana"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "plain",
+        "CMS proposes a rule",  # entityless → lands in the "Other" lane
+        category="policy_regulatory",
+        published=now - timedelta(days=2),
+    )
+    _seed_story(
+        temp_db,
+        "other-topic",
+        "UnitedHealthcare adds counties",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/topics/policy_regulatory")
+    assert resp.status_code == 200
+    text = resp.text
+    # Under a topic filter the lane dimension flips to payers.
+    assert 'href="/timeline/payers/humana"' in text
+    assert "<span>Other</span>" in text
+    # Only this topic's stories are plotted/listed; the topic chip highlights.
+    assert 'href="/story/h-1"' in text and 'href="/story/plain"' in text
+    assert "UnitedHealthcare adds counties" not in text
+    assert 'class="chip chip-active"' in text
+    assert client.get("/timeline/topics/not_a_category").status_code == 404
+
+
+def test_timeline_payer_scope_marks_chip_active(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "h-1",
+        "Humana grows in Florida",
+        category="membership_movement",
+        entities=["Humana"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "u-1",
+        "UnitedHealthcare retreats",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/payers/humana")
+    assert resp.status_code == 200
+    text = resp.text
+    assert "Timeline — Humana" in text
+    assert 'href="/story/h-1"' in text
+    assert "UnitedHealthcare retreats" not in text
+    # The payer chip is highlighted (feed pages never mark payer chips active).
+    assert 'class="chip chip-active"' in text
+    assert client.get("/timeline/payers/nope").status_code == 404
+
+
+def test_timeline_state_scope(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "ca-1",
+        "California expansion news",
+        category="membership_movement",
+        states=["CA"],
+        published=now - timedelta(days=1),
+    )
+    _seed_story(
+        temp_db,
+        "tx-1",
+        "Texas-only development",
+        category="membership_movement",
+        states=["TX"],
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/states/CA")
+    assert resp.status_code == 200
+    assert "California expansion news" in resp.text
+    assert "Texas-only development" not in resp.text
+    assert client.get("/timeline/states/ZZ").status_code == 404
+
+
+def test_timeline_page_days_param_clamps(sample_config, temp_db):
+    _seed_story(
+        temp_db,
+        "r1",
+        "Humana update",
+        category="membership_movement",
+        entities=["Humana"],
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    assert "in the last 90 days" in client.get("/timeline?days=9999").text
+    assert "in the last 30 days" in client.get("/timeline?days=abc").text
+    # Period presets render as links on the live app.
+    assert 'href="/timeline?days=14"' in client.get("/timeline").text
+
+
+def test_timeline_empty_window_shows_empty_state(client):
+    """The 2024-dated fixture stories fall outside any recent window."""
+    resp = client.get("/timeline")
+    assert resp.status_code == 200
+    assert "0 signals in the last 30 days" in resp.text
+    assert "No signals in this window" in resp.text
+    assert "lane-dot" not in resp.text
+    assert 'id="timeline-stories"' not in resp.text
+
+
+def test_timeline_deep_day_stack_collapses_into_overflow_dot(sample_config, temp_db):
+    now = datetime.utcnow()
+    for i in range(6):
+        _seed_story(
+            temp_db,
+            f"burst-{i}",
+            f"Rule fallout piece {i}",
+            category="policy_regulatory",
+            score=0.4 + i / 20,
+            published=now - timedelta(days=1),
+        )
+    client = TestClient(create_app(sample_config, temp_db))
+    text = client.get("/timeline").text
+    assert 'class="lane-dot lane-dot-more"' in text
+    assert 'href="#timeline-stories"' in text
+    assert "3 more signals on" in text
+    # All six still appear in the list below the chart.
+    for i in range(6):
+        assert f"Rule fallout piece {i}" in text
+
+
+def test_story_page_links_to_scoped_timeline(client, sample_config, temp_db):
+    # story-a mentions UnitedHealthcare → its payer timeline.
+    assert (
+        'href="/timeline/payers/unitedhealthcare"' in client.get("/story/story-a").text
+    )
+    # story-b is entityless with a real topic → the topic timeline.
+    assert (
+        'href="/timeline/topics/policy_regulatory"' in client.get("/story/story-b").text
+    )
+    # An uncategorized, entityless story gets no timeline link.
+    _seed_story(temp_db, "bare", "A bare signal", category="uncategorized")
+    assert "View related coverage" not in client.get("/story/bare").text

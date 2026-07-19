@@ -27,6 +27,10 @@
       {% for st in story.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
     </div>
 
+    {% if timeline_href %}
+      <p class="story-timeline-link"><a href="{{ timeline_href }}">View related coverage on the timeline →</a></p>
+    {% endif %}
+
     {% if not static_site %}
       {# Live app: owner feedback widget. Verdicts POST to /feedback. #}
       <section class="feedback" id="feedback" data-item-id="{{ story.item_id }}"

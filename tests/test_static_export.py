@@ -206,6 +206,14 @@ def test_map_path_pagination():
     # Angles is a single page; any ?days= preset collapses to it.
     assert _map_path("/angles", "/r") == "/r/angles.html"
     assert _map_path("/angles?days=14", "/r") == "/r/angles.html"
+    # Timeline pages map like the other scoped routes; ?days= collapses too.
+    assert _map_path("/timeline", "/r") == "/r/timeline.html"
+    assert _map_path("/timeline?days=7", "/r") == "/r/timeline.html"
+    assert _map_path("/timeline/topics/x", "/r") == "/r/timeline/topics/x.html"
+    assert (
+        _map_path("/timeline/payers/humana", "/r") == "/r/timeline/payers/humana.html"
+    )
+    assert _map_path("/timeline/states/TX", "/r") == "/r/timeline/states/TX.html"
     # The legacy /post-ideas alias maps to the same static Angles file (a
     # separate meta-refresh stub catches direct hits on post-ideas.html).
     assert _map_path("/post-ideas", "/r") == "/r/angles.html"
@@ -290,6 +298,7 @@ def test_static_search_page_has_streamlined_nav(tmp_path, sample_config, temp_db
     search = (out / "search.html").read_text()
     for tail in (
         "index.html",
+        "timeline.html",
         "briefing.html",
         "angles.html",
         "sources.html",
@@ -493,5 +502,56 @@ def test_feed_timelines_survive_export(tmp_path, sample_config, temp_db):
     # The reader control needs a live server, so it's frozen out of the export.
     assert "period-picker" not in index
     assert "?days=" not in index
-    # The caption's payer link is rewritten to the static payer page.
-    assert "payers/unitedhealthcare.html" in index
+    # The caption's link is rewritten to the payer's static timeline page.
+    assert "timeline/payers/unitedhealthcare.html" in index
+
+
+def test_timeline_pages_exported(tmp_path, sample_config, temp_db):
+    """The /timeline page and every scoped variant a link can target export."""
+    item = NormalizedItem(
+        item_id="tl-1",
+        source_name="Healthcare Dive",
+        source_type="rss",
+        source_priority=3,
+        source_tags=["industry"],
+        title="Humana expands in Texas",
+        link="https://example.com/tl-1",
+        published_date=datetime.utcnow(),  # inside the default window
+        summary="Recent Humana signal.",
+    )
+    temp_db.upsert_story(
+        ScoredItem(
+            item=item,
+            relevance_score=0.7,
+            matched_categories=["membership_movement"],
+            matched_entities=["Humana"],
+        ),
+        primary_category="membership_movement",
+        states=["TX"],
+    )
+
+    out, counts = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    assert (out / "timeline.html").exists()
+    assert (out / "timeline" / "topics" / "policy_regulatory.html").exists()
+    assert (out / "timeline" / "payers" / "humana.html").exists()
+    assert (out / "timeline" / "states" / "TX.html").exists()
+    assert (
+        counts["timelines"] == 1 + len(sample_config.categories) + len(PAYER_GROUPS) + 1
+    )  # + the one state with stories
+
+    page = (out / "timeline.html").read_text()
+    # The recent story plots as a dot whose link is rewritten to the static
+    # story page; the window picker (live-only) is frozen out.
+    assert 'class="lane-dot"' in page
+    assert "/myrepo/story/tl-1.html" in page
+    assert "period-picker" not in page
+    assert "?days=" not in page
+    # The nav on every exported page reaches the static timeline file.
+    assert "/myrepo/timeline.html" in (out / "index.html").read_text()
+
+    # An empty scoped window keeps the static-appropriate empty state (no
+    # "widen the window" advice — there's no picker to widen it with).
+    empty = (out / "timeline" / "topics" / "policy_regulatory.html").read_text()
+    assert "No signals in this window." in " ".join(empty.split())
+    assert "try a wider window" not in empty

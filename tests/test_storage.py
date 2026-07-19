@@ -372,6 +372,39 @@ class TestStateStore:
         assert temp_db.count_stories(min_score=0.1) == 1
         assert temp_db.count_stories(min_score=0.11) == 0
 
+    def test_since_windows_stories(self, temp_db):
+        """``since`` bounds the browsable window on the left (inclusive)."""
+        temp_db.upsert_story(
+            _make_scored("old", "Old", published=datetime(2024, 1, 1, 9, 0)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored(
+                "new",
+                "New",
+                published=datetime(2024, 6, 1),
+                entities=["Humana"],
+            ),
+            primary_category="membership_movement",
+        )
+        since = datetime(2024, 6, 1).isoformat()
+        assert [r["item_id"] for r in temp_db.get_stories(since=since)] == ["new"]
+        assert temp_db.count_stories(since=since) == 1
+        # The boundary is inclusive; a moment later excludes it.
+        assert temp_db.count_stories(since="2024-06-01T00:00:01") == 0
+        # Composes with the other filters.
+        assert temp_db.count_stories(since=since, entity_aliases=["Humana"]) == 1
+        assert temp_db.count_stories(since=since, category="policy_regulatory") == 0
+
+    def test_since_dateless_story_falls_back_to_fetched_at(self, temp_db):
+        """A dateless story windows on fetched_at (stamped now at upsert)."""
+        temp_db.upsert_story(
+            _make_scored("nodate", "No date", published=None),
+            primary_category="policy_regulatory",
+        )
+        assert temp_db.count_stories(since="2000-01-01T00:00:00") == 1
+        assert temp_db.count_stories(since="2999-01-01T00:00:00") == 0
+
     def test_min_score_filters_state_counts(self, temp_db):
         """State tallies honor the floor so they match the filtered state feed."""
         temp_db.upsert_story(

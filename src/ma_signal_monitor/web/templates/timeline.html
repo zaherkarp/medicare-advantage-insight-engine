@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>{{ heading }}</h1>
+    <p class="subtitle">{{ subtitle }}</p>
+    <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }} in the last {{ days }} days</p>
+    {% include "_period_picker.html" %}
+  </section>
+
+  {% set filter_prefix = "/timeline" %}
+  {% include "_filter_bar.html" %}
+
+  {# Swimlane chart: one lane per group, stories as dots on a shared day axis.
+     Dots are absolutely-positioned anchors (percentage x, pixel y) — round at
+     any width, JS-free, and static-export safe. Geometry from lanes.py. #}
+  <section class="timeline-chart">
+    {% if total %}
+      <div class="lane-grid">
+        {% for lane in lanes %}
+          <div class="lane-label">
+            {% if lane.href %}<a href="{{ lane.href }}">{{ lane.label }}</a>{% else %}<span>{{ lane.label }}</span>{% endif %}
+            <span class="lane-count">{{ lane.total }}</span>
+          </div>
+          <div class="lane-plot" style="height: {{ lane.height }}px">
+            {% for t in ticks %}<span class="lane-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
+            {% for m in lane.markers %}
+              {% if m.overflow %}
+                <a class="lane-dot lane-dot-more" href="#timeline-stories"
+                   style="left: {{ m.pct }}%; bottom: {{ m.bottom }}px; width: {{ m.size }}px; height: {{ m.size }}px"
+                   title="{{ m.overflow }} more signal{{ '' if m.overflow == 1 else 's' }} on {{ m.day }} — full list below"
+                   aria-label="{{ m.overflow }} more signal{{ '' if m.overflow == 1 else 's' }} on {{ m.day }} — full list below"></a>
+              {% else %}
+                <a class="lane-dot" href="/story/{{ m.item_id }}"
+                   style="left: {{ m.pct }}%; bottom: {{ m.bottom }}px; width: {{ m.size }}px; height: {{ m.size }}px"
+                   title="{{ m.title }} — {{ m.source_name }} ({{ m.day }})"
+                   aria-label="{{ m.title }} — {{ m.source_name }} ({{ m.day }})"></a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <div class="lane-label" aria-hidden="true"></div>
+        <div class="lane-plot lane-axis" aria-hidden="true">
+          {% for t in ticks %}<span class="axis-tick{% if t.pct > 92 %} axis-tick-end{% elif t.pct < 8 %} axis-tick-start{% endif %}" style="left: {{ t.pct }}%">{{ t.label }}</span>{% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <p class="empty">No signals in this window{% if not static_site %} — try a wider window or another filter{% endif %}.</p>
+    {% endif %}
+  </section>
+
+  {% if stories %}
+    <section id="timeline-stories">
+      <h2 class="timeline-stories-h">Signals in this window</h2>
+      {% include "_story_list.html" %}
+    </section>
+  {% endif %}
+{% endblock %}
