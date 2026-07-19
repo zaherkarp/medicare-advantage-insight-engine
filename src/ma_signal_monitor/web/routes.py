@@ -385,9 +385,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 min_score=floor,
             )
             stories = [_story_view(r) for r in rows]
-            _attach_timelines(
-                stories, store, config, days=days, now=datetime.utcnow()
-            )
+            _attach_timelines(stories, store, config, days=days, now=datetime.utcnow())
 
         base_path = f"/search?q={quote_plus(query)}&"
         return templates.TemplateResponse(

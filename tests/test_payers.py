@@ -185,9 +185,7 @@ def test_daily_counts_buckets_by_entity(temp_db):
 
 def test_daily_counts_buckets_by_category(temp_db):
     now = datetime(2024, 3, 20, 12, 0)
-    _seed_story(
-        temp_db, "c1", "Policy A", category="policy_regulatory", published=now
-    )
+    _seed_story(temp_db, "c1", "Policy A", category="policy_regulatory", published=now)
     _seed_story(
         temp_db,
         "c2",
