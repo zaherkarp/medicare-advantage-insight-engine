@@ -5,6 +5,7 @@
     <h1>{{ heading }}</h1>
     <p class="subtitle">{{ subtitle }}</p>
     <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }}</p>
+    {% include "_period_picker.html" %}
   </section>
 
   {% include "_filter_bar.html" %}

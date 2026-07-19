@@ -460,3 +460,38 @@ def test_export_hides_duplicate_stories(tmp_path, sample_config, temp_db):
     # The representative's own page lists the duplicate.
     rep_page = (out / "story" / "rep.html").read_text()
     assert "Also reported by" in rep_page and "Beckers" in rep_page
+
+
+def test_feed_timelines_survive_export(tmp_path, sample_config, temp_db):
+    """Per-card coverage timelines render into static HTML; the picker does not."""
+    item = NormalizedItem(
+        item_id="uhc-recent",
+        source_name="Healthcare Dive",
+        source_type="rss",
+        source_priority=3,
+        source_tags=["industry"],
+        title="UnitedHealthcare expands service area",
+        link="https://example.com/uhc-recent",
+        published_date=datetime.utcnow(),  # inside the default window
+        summary="Recent UHC signal.",
+    )
+    temp_db.upsert_story(
+        ScoredItem(
+            item=item,
+            relevance_score=0.7,
+            matched_categories=["membership_movement"],
+            matched_entities=["UnitedHealthcare"],
+        ),
+        primary_category="membership_movement",
+    )
+
+    out, _ = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    index = (out / "index.html").read_text()
+    # The inline-SVG timeline (geometry only) survives the export untouched.
+    assert "card-timeline" in index and 'class="spark-line"' in index
+    # The reader control needs a live server, so it's frozen out of the export.
+    assert "period-picker" not in index
+    assert "?days=" not in index
+    # The caption's payer link is rewritten to the static payer page.
+    assert "payers/unitedhealthcare.html" in index

@@ -10,6 +10,7 @@
     {% if query %}
       <p class="muted">{{ total }} result{{ '' if total == 1 else 's' }} for
         &ldquo;{{ query }}&rdquo;</p>
+      {% include "_period_picker.html" %}
     {% endif %}
   </section>
 
@@ -32,6 +33,7 @@
           {% for e in s.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
           {% for st in s.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
         </div>
+        {% include "_timeline.html" %}
       </li>
     {% endfor %}
   </ul>
@@ -39,11 +41,11 @@
   {% if total_pages > 1 %}
     <nav class="pagination">
       {% if page > 1 %}
-        <a href="{{ base_path }}page={{ page - 1 }}">← Newer</a>
+        <a href="{{ base_path }}page={{ page - 1 }}{{ days_qs }}">← Newer</a>
       {% else %}<span class="disabled">← Newer</span>{% endif %}
       <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
       {% if page < total_pages %}
-        <a href="{{ base_path }}page={{ page + 1 }}">Older →</a>
+        <a href="{{ base_path }}page={{ page + 1 }}{{ days_qs }}">Older →</a>
       {% else %}<span class="disabled">Older →</span>{% endif %}
     </nav>
   {% endif %}

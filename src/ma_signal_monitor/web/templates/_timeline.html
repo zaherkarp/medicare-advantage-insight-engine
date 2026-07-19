@@ -1,0 +1,30 @@
+{# Compact daily "related coverage" timeline for one story card. Static-export
+   safe (inline SVG, no JS), so it ships to the GitHub Pages build untouched.
+   Expects the loop's `s` with an optional `s.timeline` view model built by
+   routes._attach_timelines. Hidden when the scope has no in-window coverage —
+   an all-zero flat line is noise, and only stories older than the window hit
+   that (a feed-visible recent story always counts itself). #}
+{% if s.timeline and s.timeline.spark.total %}
+  {% set t = s.timeline %}
+  <figure class="sparkline card-timeline">
+    <svg viewBox="0 0 {{ t.spark.width }} {{ t.spark.height }}" class="spark-svg"
+         role="img" preserveAspectRatio="none"
+         aria-label="Daily coverage of {{ t.label }}: {{ t.spark.total }} signal{{ '' if t.spark.total == 1 else 's' }} in the last {{ t.days }} days">
+      {% if t.spark.area_points %}
+        <polygon class="spark-area" points="{{ t.spark.area_points }}" />
+      {% endif %}
+      <polyline class="spark-line" points="{{ t.spark.points }}" />
+      {% if t.spark.points %}
+        <circle class="spark-end" cx="{{ t.spark.end_x }}" cy="{{ t.spark.end_y }}" r="2.5" />
+      {% endif %}
+      {# `is not none`, not truthiness: a marker at x=0.0 (the oldest day) is real. #}
+      {% if t.marker_x is not none %}
+        <circle class="spark-story" cx="{{ t.marker_x }}" cy="{{ t.marker_y }}" r="3" />
+      {% endif %}
+    </svg>
+    <figcaption class="spark-caption">
+      {% if t.href %}<a href="{{ t.href }}">{{ t.label }}</a>{% else %}{{ t.label }}{% endif %}
+      · {{ t.spark.total }} signal{{ '' if t.spark.total == 1 else 's' }} · last {{ t.days }} days
+    </figcaption>
+  </figure>
+{% endif %}

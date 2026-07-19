@@ -1,0 +1,17 @@
+{# Reader control for the story-card coverage window. Arbitrary ?days= needs the
+   live server, so — like the Angles picker — the whole control is hidden on the
+   frozen static export, where cards show the default window. Expects `days`,
+   `day_options`, and `days_base` (a base URL already ending in `?` or `&`). The
+   links intentionally carry no ?page=, so changing the window resets to page 1. #}
+{% if not static_site %}
+  <div class="period-picker">
+    <span class="filter-label">Coverage window</span>
+    {% for d in day_options %}
+      {% if d == days %}
+        <span class="chip chip-active">{{ d }} days</span>
+      {% else %}
+        <a class="chip" href="{{ days_base }}days={{ d }}">{{ d }} days</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}

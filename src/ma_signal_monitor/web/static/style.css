@@ -265,6 +265,14 @@ a.chip:hover { border-color: var(--accent); text-decoration: none; }
 /* On the wider /status section, cap the sparkline width so it doesn't stretch. */
 .status-section .sparkline { max-width: 480px; }
 
+/* Per-card related-coverage timelines: same mark family as .spark-*, sized down
+   to sit unobtrusively inside a story card. */
+.story-card .card-timeline { margin-top: 10px; max-width: 340px; }
+.story-card .card-timeline .spark-svg { height: 28px; }
+.story-card .card-timeline .spark-caption { font-size: 0.75rem; margin-top: 2px; }
+/* The story's own day: a hollow ring, distinct from the filled "today" end dot. */
+.spark-story { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
+
 /* "Also reported by" — other sources carrying the same story */
 .also-covered { color: var(--muted); font-size: 0.88rem; margin: -6px 0 14px; }
 
