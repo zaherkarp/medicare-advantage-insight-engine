@@ -37,6 +37,12 @@ ANGLES_DEFAULT_DAYS = 7
 ANGLES_MAX_DAYS = 90
 ANGLES_DAY_OPTIONS = (7, 14, 30)
 
+# Story-card "related coverage" timelines: rolling daily window the reader can
+# widen/narrow. Same clamp/default machinery as Angles, wider presets.
+TIMELINE_DEFAULT_DAYS = 30
+TIMELINE_MAX_DAYS = 90
+TIMELINE_DAY_OPTIONS = (7, 14, 30, 90)
+
 
 class FeedbackIn(BaseModel):
     """Body of a reader-feedback submission from the live web UI."""
@@ -61,6 +67,9 @@ def _story_view(row: sqlite3.Row) -> dict:
         "source_name": row["source_name"],
         "summary": row["summary"] or "",
         "display_date": display_date,
+        # Raw canonical time key (published, else fetched) — drives the
+        # timeline's own-day marker; templates ignore the extra key.
+        "event_date": row["published_date"] or row["fetched_at"] or "",
         "relevance_score": row["relevance_score"] or 0.0,
         "primary_category": row["primary_category"] or "uncategorized",
         "categories": json.loads(row["categories"] or "[]"),
@@ -116,6 +125,113 @@ def _page_param(request: Request) -> int:
         return max(1, int(request.query_params.get("page", "1")))
     except ValueError:
         return 1
+
+
+def _days_param(request: Request, *, default: int, max_days: int) -> int:
+    """Parse a ?days= rolling-window param, clamped to ``1..max_days``.
+
+    Garbage (non-integer) falls back to ``default``; the clamp keeps an
+    over-eager reader (or a crafted URL) from asking for an unbounded window.
+    """
+    try:
+        days = int(request.query_params.get("days", str(default)))
+    except ValueError:
+        return default
+    return min(max(days, 1), max_days)
+
+
+def _attach_timelines(
+    stories: list[dict], store, config, *, days: int, now: datetime
+) -> None:
+    """Attach a per-card ``timeline`` view model to each story in-place.
+
+    Each story's timeline plots how much *related* coverage exists over the last
+    ``days`` days — a single story is one event, so the time axis only has
+    meaning across the stories sharing its subject. Scope resolves to the
+    canonical payer groups behind its entities (folded from aliases exactly like
+    the payer pages, then matched by the full group alias set), falling back to
+    its topic when it has no entities. A story with neither entities nor a real
+    category gets ``timeline = None``.
+
+    Series are computed once per unique scope and shared across cards (a page
+    holds at most ``web_page_size`` stories, usually a handful of scopes), so a
+    feed page issues only a few extra queries regardless of card count.
+    """
+    from ma_signal_monitor.classify import get_category_label
+    from ma_signal_monitor.trends import marker_point, sparkline
+
+    floor = config.archive_min_score
+    valid_categories = {c.key for c in config.categories}
+    window_start = now.date() - timedelta(days=days - 1)
+    cache: dict[tuple, list[int]] = {}
+
+    for s in stories:
+        # Fold this story's entity aliases into canonical payer groups (order
+        # preserved); aliases without a group (e.g. agencies like CMS) stand on
+        # their own so they still get a coverage series, just no payer link.
+        groups: list = []
+        loose_aliases: list[str] = []
+        seen_slugs: set[str] = set()
+        for alias in s.get("entities", []):
+            group = ALIAS_TO_GROUP.get(alias)
+            if group is not None:
+                if group.slug not in seen_slugs:
+                    seen_slugs.add(group.slug)
+                    groups.append(group)
+            elif alias not in loose_aliases:
+                loose_aliases.append(alias)
+
+        if groups or loose_aliases:
+            aliases: list[str] = []
+            for group in groups:
+                aliases.extend(group.aliases)
+            aliases.extend(loose_aliases)
+            key: tuple = ("e", *sorted(aliases))
+            label = " + ".join([g.name for g in groups] + loose_aliases)
+            # Link only when the scope is exactly one payer group — a co-mention
+            # union or a lone agency alias has no single page to point at.
+            href = (
+                f"/payers/{groups[0].slug}"
+                if len(groups) == 1 and not loose_aliases
+                else None
+            )
+            query_kwargs: dict = {"entity_aliases": aliases}
+        else:
+            category = s.get("primary_category", "uncategorized")
+            if category == "uncategorized":
+                s["timeline"] = None
+                continue
+            key = ("c", category)
+            label = get_category_label(category, config)
+            href = f"/topics/{category}" if category in valid_categories else None
+            query_kwargs = {"category": category}
+
+        if key not in cache:
+            counts = store.get_daily_counts(
+                days=days, min_score=floor, now=now, **query_kwargs
+            )
+            cache[key] = [c["count"] for c in counts]
+        values = cache[key]
+
+        # Place a marker on the story's own day when it falls in the window.
+        marker_x = marker_y = None
+        try:
+            event_day = datetime.fromisoformat(s.get("event_date") or "").date()
+        except (ValueError, TypeError):
+            event_day = None
+        if event_day is not None:
+            idx = (event_day - window_start).days
+            if 0 <= idx < days:
+                marker_x, marker_y = marker_point(values, idx)
+
+        s["timeline"] = {
+            "spark": sparkline(values),
+            "days": days,
+            "label": label,
+            "href": href,
+            "marker_x": marker_x,
+            "marker_y": marker_y,
+        }
 
 
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
@@ -178,6 +294,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         config = request.app.state.config
         page_size = config.web_page_size
         page = _page_param(request)
+        days = _days_param(
+            request, default=TIMELINE_DEFAULT_DAYS, max_days=TIMELINE_MAX_DAYS
+        )
         floor = config.archive_min_score
 
         total = store.count_stories(category=category, state=state, min_score=floor)
@@ -191,6 +310,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             min_score=floor,
         )
         stories = [_story_view(r) for r in rows]
+        now = datetime.utcnow()
+        _attach_timelines(stories, store, config, days=days, now=now)
         return templates.TemplateResponse(
             request,
             "feed.html",
@@ -202,6 +323,10 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "page": page,
                 "total_pages": total_pages,
                 "base_path": base_path,
+                "days": days,
+                "day_options": TIMELINE_DAY_OPTIONS,
+                "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
+                "days_base": f"{base_path}?",
                 "filters": _feed_filters(
                     request, active_category=category, active_state=state
                 ),
@@ -240,6 +365,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         config = request.app.state.config
         query = (request.query_params.get("q") or "").strip()
         page = _page_param(request)
+        days = _days_param(
+            request, default=TIMELINE_DEFAULT_DAYS, max_days=TIMELINE_MAX_DAYS
+        )
         page_size = config.web_page_size
 
         stories: list[dict] = []
@@ -257,7 +385,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 min_score=floor,
             )
             stories = [_story_view(r) for r in rows]
+            _attach_timelines(stories, store, config, days=days, now=datetime.utcnow())
 
+        base_path = f"/search?q={quote_plus(query)}&"
         return templates.TemplateResponse(
             request,
             "search.html",
@@ -267,7 +397,11 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "total": total,
                 "page": page,
                 "total_pages": total_pages,
-                "base_path": f"/search?q={quote_plus(query)}&",
+                "base_path": base_path,
+                "days": days,
+                "day_options": TIMELINE_DAY_OPTIONS,
+                "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
+                "days_base": base_path,
             },
         )
 
@@ -413,6 +547,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
 
         page_size = config.web_page_size
         page = _page_param(request)
+        days = _days_param(
+            request, default=TIMELINE_DEFAULT_DAYS, max_days=TIMELINE_MAX_DAYS
+        )
         total = store.count_stories(entity_aliases=aliases, min_score=floor)
         total_pages = max(1, math.ceil(total / page_size)) if total else 1
         page = min(page, total_pages)
@@ -422,6 +559,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             offset=(page - 1) * page_size,
             min_score=floor,
         )
+        stories = [_story_view(r) for r in rows]
+        _attach_timelines(stories, store, config, days=days, now=datetime.utcnow())
 
         from ma_signal_monitor.classify import get_category_label
 
@@ -468,11 +607,15 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             {
                 "payer": {"slug": group.slug, "name": group.name},
                 "aliases": aliases,
-                "stories": [_story_view(r) for r in rows],
+                "stories": stories,
                 "total": total,
                 "page": page,
                 "total_pages": total_pages,
                 "base_path": f"/payers/{group.slug}",
+                "days": days,
+                "day_options": TIMELINE_DAY_OPTIONS,
+                "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
+                "days_base": f"/payers/{group.slug}?",
                 "category_mix": category_mix,
                 "state_footprint": state_footprint,
                 "sec_filings": sec_filings,
@@ -506,11 +649,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         """Lens-intersection angles mined from a rolling signal window."""
         store = request.app.state.store
         config = request.app.state.config
-        try:
-            days = int(request.query_params.get("days", str(ANGLES_DEFAULT_DAYS)))
-        except ValueError:
-            days = ANGLES_DEFAULT_DAYS
-        days = min(max(days, 1), ANGLES_MAX_DAYS)
+        days = _days_param(
+            request, default=ANGLES_DEFAULT_DAYS, max_days=ANGLES_MAX_DAYS
+        )
 
         now = datetime.utcnow()
         window_start = now - timedelta(days=days)

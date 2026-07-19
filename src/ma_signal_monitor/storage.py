@@ -984,6 +984,49 @@ class StateStore:
         series = weekly_series(dates, weeks, now)
         return [{"week_start": s.isoformat(), "count": c} for s, c in series]
 
+    def get_daily_counts(
+        self,
+        days: int = 30,
+        entity_aliases: list[str] | None = None,
+        category: str | None = None,
+        min_score: float = 0.0,
+        now: datetime | None = None,
+    ) -> list[dict]:
+        """Story volume per day over the last ``days`` days (oldest→newest).
+
+        The daily counterpart to :meth:`get_weekly_counts`, powering the
+        per-card "related coverage" timelines. Scope it to one payer via
+        ``entity_aliases`` (a canonical group's aliases, matched ANY) or to one
+        topic via ``category``; passing both AND-combines them, though the web
+        callers pass exactly one. Buckets on
+        ``COALESCE(published_date, fetched_at)`` — the same dateless-item
+        fallback the feed uses — and hides near-duplicates, so counts line up
+        with the deduped feed. Returns ``[{"day": "YYYY-MM-DD", "count": n}, …]``
+        with every day present (zero-filled).
+        """
+        from ma_signal_monitor.trends import daily_series
+
+        now = now or datetime.utcnow()
+        conn = self._get_conn()
+        where, params = self._story_filters(
+            category, None, min_score, entity_aliases=entity_aliases
+        )
+        cutoff = (now.date() - timedelta(days=days - 1)).isoformat()
+        clause = " AND " if where else " WHERE "
+        sql = (
+            f"SELECT published_date, fetched_at FROM stories{where}"
+            f"{clause}COALESCE(published_date, fetched_at) >= ?"
+        )
+        dates: list[datetime] = []
+        for row in conn.execute(sql, (*params, cutoff)):
+            raw = row["published_date"] or row["fetched_at"]
+            try:
+                dates.append(datetime.fromisoformat(raw))
+            except (ValueError, TypeError):
+                continue
+        series = daily_series(dates, days, now)
+        return [{"day": d.isoformat(), "count": c} for d, c in series]
+
     # --- Delivery Logging ---
 
     def log_delivery(self, result: DeliveryResult) -> None:

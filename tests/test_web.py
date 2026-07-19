@@ -96,12 +96,13 @@ def test_feed_has_filter_bar(client):
 
 
 def test_topic_and_state_pages_mark_active_chip(client):
-    assert "chip-active" in client.get("/topics/policy_regulatory").text
+    assert '<a class="chip chip-active"' in client.get("/topics/policy_regulatory").text
     state = client.get("/states/CA")
-    assert "chip-active" in state.text
+    assert '<a class="chip chip-active"' in state.text
     assert "Clear filter" in state.text
-    # The unfiltered feed has no active chip.
-    assert "chip-active" not in client.get("/").text
+    # The unfiltered feed marks no *filter* chip active. (The coverage-window
+    # picker renders its own active chip, but as a <span>, not a filter link.)
+    assert '<a class="chip chip-active"' not in client.get("/").text
 
 
 def test_nav_is_streamlined(client):
@@ -665,3 +666,152 @@ def test_story_page_shows_also_reported_by(sample_config, temp_db):
     assert "Beckers Payer Issues" in rep_page.text
     # The duplicate's own page has no "also reported by" block.
     assert "Also reported by" not in client.get("/story/dup").text
+
+
+# --- Per-card related-coverage timelines ---
+
+
+def test_feed_cards_show_related_coverage_timeline(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "uhc-recent",
+        "UnitedHealthcare adds counties",
+        category="membership_movement",
+        entities=["UnitedHealthcare"],
+        published=now,
+    )
+    _seed_story(
+        temp_db,
+        "uhc-recent-2",
+        "UnitedHealthcare earnings",
+        category="financial_pressure",
+        entities=["UnitedHealth"],
+        published=now - timedelta(days=3),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert 'class="sparkline card-timeline"' in resp.text
+    assert 'class="spark-svg"' in resp.text
+    # Caption names the canonical payer group and links to its page.
+    assert 'href="/payers/unitedhealthcare"' in resp.text
+    assert "last 30 days" in resp.text
+
+
+def test_timeline_days_param_clamps(sample_config, temp_db):
+    _seed_story(
+        temp_db,
+        "r1",
+        "Humana update",
+        category="membership_movement",
+        entities=["Humana"],
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    assert "last 90 days" in client.get("/?days=9999").text  # clamped to the cap
+    assert "last 1 days" in client.get("/?days=0").text  # clamped up to 1
+    assert "last 30 days" in client.get("/?days=abc").text  # garbage → default
+
+
+def test_period_picker_renders_on_feed(sample_config, temp_db):
+    _seed_story(
+        temp_db,
+        "r1",
+        "Humana update",
+        category="membership_movement",
+        entities=["Humana"],
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/")
+    assert "Coverage window" in resp.text
+    assert 'href="/?days=14"' in resp.text  # a non-active preset links out
+    assert '<span class="chip chip-active">30 days</span>' in resp.text  # default
+
+
+def test_pagination_preserves_nondefault_days(sample_config, temp_db):
+    sample_config.web_page_size = 1  # force a second page
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db,
+        "p1",
+        "Humana one",
+        category="membership_movement",
+        entities=["Humana"],
+        published=now,
+    )
+    _seed_story(
+        temp_db,
+        "p2",
+        "Humana two",
+        category="membership_movement",
+        entities=["Humana"],
+        published=now - timedelta(days=1),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    # A non-default window is carried through the Older link (& is HTML-escaped).
+    assert "page=2&amp;days=7" in client.get("/?days=7").text
+    # At the default window, no days= is appended to the pagination link (the
+    # picker still has its own days= links, so scope the check to pagination).
+    older = client.get("/")
+    assert 'href="/?page=2"' in older.text
+    assert "page=2&amp;days" not in older.text
+
+
+def test_entityless_story_falls_back_to_category_scope(sample_config, temp_db):
+    _seed_story(
+        temp_db,
+        "cat-only",
+        "CMS finalizes a rule",  # no entities → scope is the topic
+        category="policy_regulatory",
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/")
+    assert 'class="sparkline card-timeline"' in resp.text
+    assert 'href="/topics/policy_regulatory"' in resp.text
+    assert "Policy / Regulatory Changes" in resp.text
+
+
+def test_uncategorized_entityless_story_has_no_timeline(sample_config, temp_db):
+    _seed_story(
+        temp_db,
+        "bare",
+        "A bare signal",  # no entities, no real category → nothing to plot
+        category="uncategorized",
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "A bare signal" in resp.text  # the card still renders
+    assert "card-timeline" not in resp.text  # but with no timeline
+
+
+def test_old_story_shows_no_zero_total_timeline(client):
+    # The shared fixture's stories are dated 2024 — outside any window — so their
+    # coverage series are all-zero and the timeline is suppressed as noise.
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "card-timeline" not in resp.text
+
+
+def test_search_results_show_timelines_and_picker_preserves_query(
+    sample_config, temp_db
+):
+    _seed_story(
+        temp_db,
+        "s-humana",
+        "Humana expands Medicare Advantage footprint",
+        category="membership_movement",
+        entities=["Humana"],
+        published=datetime.utcnow(),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/search?q=Humana")
+    assert resp.status_code == 200
+    assert 'class="sparkline card-timeline"' in resp.text
+    # The picker keeps both the query and the chosen window in its links
+    # (the ampersand joining them is HTML-escaped in the rendered attribute).
+    assert 'href="/search?q=Humana&amp;days=14"' in resp.text

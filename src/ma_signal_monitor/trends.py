@@ -40,6 +40,33 @@ def weekly_series(
     return [(s, counts[s]) for s in starts]
 
 
+def daily_series(
+    dates: list[datetime], days: int, now: datetime
+) -> list[tuple[date, int]]:
+    """Bucket ``dates`` into the last ``days`` daily buckets, oldest→newest.
+
+    The per-day counterpart to :func:`weekly_series`: every day in the trailing
+    window ending on ``now`` gets an entry (zero-filled), so a quiet day reads
+    as a dip rather than vanishing. Dates outside the window — including
+    future-dated / misparsed ones — are ignored because their day key isn't a
+    bucket.
+    """
+    end = now.date()
+    starts = [end - timedelta(days=k) for k in range(days - 1, -1, -1)]
+    counts: dict[date, int] = {s: 0 for s in starts}
+    for d in dates:
+        key = d.date() if isinstance(d, datetime) else d
+        if key in counts:
+            counts[key] += 1
+    return [(s, counts[s]) for s in starts]
+
+
+def _y_for(v: float, hi: int, height: int) -> float:
+    """Invert + scale a value onto the padded canvas (SVG y grows downward)."""
+    inner = height - 2 * _PAD
+    return round(height - _PAD - (v / hi) * inner, 1)
+
+
 def sparkline_points(
     values: list[int], width: int = SPARK_WIDTH, height: int = SPARK_HEIGHT
 ) -> str:
@@ -53,16 +80,34 @@ def sparkline_points(
     if n == 0:
         return ""
     hi = max(values) or 1
-    inner = height - 2 * _PAD
-
-    def y_for(v: int) -> float:
-        return round(height - _PAD - (v / hi) * inner, 1)
-
     if n == 1:
-        y = y_for(values[0])
+        y = _y_for(values[0], hi, height)
         return f"0,{y} {width},{y}"
     step = width / (n - 1)
-    return " ".join(f"{round(i * step, 1)},{y_for(v)}" for i, v in enumerate(values))
+    return " ".join(
+        f"{round(i * step, 1)},{_y_for(v, hi, height)}" for i, v in enumerate(values)
+    )
+
+
+def marker_point(
+    values: list[int],
+    index: int,
+    width: int = SPARK_WIDTH,
+    height: int = SPARK_HEIGHT,
+) -> tuple[float, float]:
+    """The ``(x, y)`` of the point at ``index`` on the :func:`sparkline_points`
+    line over ``values`` — so a marker drawn here lands exactly on the line.
+
+    Callers guarantee ``0 <= index < len(values)``. A single-value series is a
+    flat full-width line, so its only point sits at the right edge (coinciding
+    with the end dot).
+    """
+    hi = max(values) or 1
+    y = _y_for(values[index], hi, height)
+    if len(values) == 1:
+        return float(width), y
+    step = width / (len(values) - 1)
+    return round(index * step, 1), y
 
 
 @dataclass(frozen=True)

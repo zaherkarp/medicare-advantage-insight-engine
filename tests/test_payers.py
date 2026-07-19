@@ -157,6 +157,97 @@ def test_weekly_counts_buckets_by_entity(temp_db):
     assert sum(w["count"] for w in series) == 3
 
 
+def test_daily_counts_buckets_by_entity(temp_db):
+    now = datetime(2024, 3, 20, 12, 0)
+    _seed_story(temp_db, "d1", "UHG A", entities=["UnitedHealth"], published=now)
+    _seed_story(
+        temp_db, "d2", "UHG B", entities=["UHC"], published=now - timedelta(days=1)
+    )
+    _seed_story(
+        temp_db,
+        "d3",
+        "UHG old",
+        entities=["UnitedHealth"],
+        published=now - timedelta(days=40),  # outside a 7-day window
+    )
+    _seed_story(temp_db, "h1", "Humana", entities=["Humana"], published=now)
+
+    series = temp_db.get_daily_counts(
+        days=7, entity_aliases=["UnitedHealth", "UHC"], now=now
+    )
+    assert len(series) == 7
+    # d2 lands yesterday, d1 today; cross-alias match folds UHC + UnitedHealth.
+    assert [d["count"] for d in series] == [0, 0, 0, 0, 0, 1, 1]
+    assert series[-1]["day"] == "2024-03-20"
+    # Humana and the out-of-window UHG story are excluded.
+    assert sum(d["count"] for d in series) == 2
+
+
+def test_daily_counts_buckets_by_category(temp_db):
+    now = datetime(2024, 3, 20, 12, 0)
+    _seed_story(temp_db, "c1", "Policy A", category="policy_regulatory", published=now)
+    _seed_story(
+        temp_db,
+        "c2",
+        "Policy B",
+        category="policy_regulatory",
+        published=now - timedelta(days=2),
+    )
+    _seed_story(
+        temp_db, "m1", "Membership", category="membership_movement", published=now
+    )
+
+    series = temp_db.get_daily_counts(days=7, category="policy_regulatory", now=now)
+    assert [d["count"] for d in series] == [0, 0, 0, 0, 1, 0, 1]  # c2 (−2d), c1 (today)
+    # The membership_movement story is excluded by the category filter.
+    assert sum(d["count"] for d in series) == 2
+
+
+def test_daily_counts_dateless_story_buckets_by_fetched_at(temp_db):
+    # No published_date → fetched_at (set at upsert time ≈ now) drives the bucket.
+    _seed_story(temp_db, "nd", "No date", entities=["Humana"], published=None)
+    now = datetime.utcnow()
+    series = temp_db.get_daily_counts(days=7, entity_aliases=["Humana"], now=now)
+    assert series[-1]["count"] == 1  # today's (last) bucket
+    assert sum(d["count"] for d in series) == 1
+
+
+def test_daily_counts_hides_duplicates_and_respects_min_score(temp_db):
+    now = datetime(2024, 3, 20, 12, 0)
+    _seed_story(temp_db, "rep", "Humana rep", entities=["Humana"], published=now)
+    # A near-duplicate carried by another source must not double-count.
+    dup = NormalizedItem(
+        item_id="dup",
+        source_name="Other Feed",
+        source_type="rss",
+        source_priority=4,
+        source_tags=["test"],
+        title="Humana dup",
+        link="https://example.com/dup",
+        published_date=now,
+        summary="dup",
+    )
+    temp_db.upsert_story(
+        ScoredItem(
+            item=dup,
+            relevance_score=0.6,
+            matched_categories=["membership_movement"],
+            matched_entities=["Humana"],
+        ),
+        primary_category="membership_movement",
+        duplicate_of="rep",
+    )
+    # A sub-floor story the min_score gate must drop.
+    _seed_story(
+        temp_db, "lo", "Humana low", entities=["Humana"], score=0.05, published=now
+    )
+
+    series = temp_db.get_daily_counts(
+        days=7, entity_aliases=["Humana"], min_score=0.1, now=now
+    )
+    assert sum(d["count"] for d in series) == 1  # only the representative story
+
+
 # --- Web routes ---
 
 
@@ -246,3 +337,24 @@ def test_payer_detail_no_signal_volume_when_stale(client):
     resp = client.get("/payers/unitedhealthcare")
     assert "Signal mix" in resp.text  # other panels present
     assert "Signal volume" not in resp.text
+
+
+def test_payer_detail_cards_show_coverage_timeline_and_picker(sample_config, temp_db):
+    now = datetime.utcnow()
+    _seed_story(
+        temp_db, "cig1", "Cigna reprices plans", entities=["Cigna"], published=now
+    )
+    _seed_story(
+        temp_db,
+        "cig2",
+        "Cigna expands network",
+        entities=["Cigna"],
+        published=now - timedelta(days=2),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/payers/cigna")
+    assert resp.status_code == 200
+    # Per-card timelines render alongside the existing weekly Signal-volume panel.
+    assert 'class="sparkline card-timeline"' in resp.text
+    # The window picker preserves the payer path.
+    assert 'href="/payers/cigna?days=14"' in resp.text

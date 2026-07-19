@@ -20,6 +20,7 @@
         {% for e in s.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
         {% for st in s.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
       </div>
+      {% include "_timeline.html" %}
       {% if not static_site %}
         {# Lightweight fire-and-forget rating; the story page has the full widget. #}
         <div class="card-feedback" data-item-id="{{ s.item_id }}">
@@ -57,11 +58,11 @@ document.querySelectorAll(".card-feedback").forEach(function (box) {
 {% if total_pages > 1 %}
   <nav class="pagination">
     {% if page > 1 %}
-      <a href="{{ base_path }}?page={{ page - 1 }}">← Newer</a>
+      <a href="{{ base_path }}?page={{ page - 1 }}{{ days_qs }}">← Newer</a>
     {% else %}<span class="disabled">← Newer</span>{% endif %}
     <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
     {% if page < total_pages %}
-      <a href="{{ base_path }}?page={{ page + 1 }}">Older →</a>
+      <a href="{{ base_path }}?page={{ page + 1 }}{{ days_qs }}">Older →</a>
     {% else %}<span class="disabled">Older →</span>{% endif %}
   </nav>
 {% endif %}

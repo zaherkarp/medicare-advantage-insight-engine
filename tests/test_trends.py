@@ -5,6 +5,8 @@ from datetime import date, datetime
 from ma_signal_monitor.trends import (
     SPARK_HEIGHT,
     SPARK_WIDTH,
+    daily_series,
+    marker_point,
     sparkline,
     sparkline_points,
     week_start,
@@ -77,3 +79,55 @@ def test_sparkline_empty_series():
     sp = sparkline([])
     assert sp.total == 0 and sp.latest == 0 and sp.points == ""
     assert sp.area_points == ""
+
+
+# --- Daily bucketing (per-card timelines) ---
+
+
+def test_daily_series_zero_fills_and_orders():
+    now = datetime(2024, 3, 20, 12, 0)
+    dates = [
+        datetime(2024, 3, 20, 8, 0),  # today (any time of day)
+        datetime(2024, 3, 19, 23, 0),  # yesterday
+        datetime(2024, 3, 19, 1, 0),  # yesterday
+        datetime(2024, 3, 14, 12, 0),  # 6 days back — oldest bucket in a 7d window
+    ]
+    series = daily_series(dates, days=7, now=now)
+    assert len(series) == 7
+    assert [c for _, c in series] == [1, 0, 0, 0, 0, 2, 1]  # oldest → newest
+    starts = [d for d, _ in series]
+    assert starts == sorted(starts)  # strictly ascending
+    assert starts[-1] == date(2024, 3, 20)  # window ends today
+
+
+def test_daily_series_ignores_out_of_window_and_future_dates():
+    now = datetime(2024, 3, 20, 12, 0)
+    dates = [datetime(2024, 1, 1), datetime(2024, 3, 25)]  # far past + future
+    series = daily_series(dates, days=7, now=now)
+    assert sum(c for _, c in series) == 0
+
+
+def test_daily_series_single_day_window():
+    now = datetime(2024, 3, 20, 12, 0)
+    series = daily_series([datetime(2024, 3, 20, 6, 0)], days=1, now=now)
+    assert series == [(date(2024, 3, 20), 1)]
+
+
+def test_marker_point_lands_on_the_sparkline():
+    # A marker at index i must sit exactly on the i-th sparkline vertex.
+    values = [0, 4, 2]
+    pts = [tuple(map(float, p.split(","))) for p in sparkline_points(values).split()]
+    for i in range(len(values)):
+        assert marker_point(values, i) == pts[i]
+
+
+def test_marker_point_scale():
+    assert marker_point([0, 4], 0) == (0.0, 36.0)  # zero → baseline
+    assert marker_point([0, 4], 1) == (SPARK_WIDTH, 4.0)  # max → top inset
+
+
+def test_marker_point_single_value_sits_at_end():
+    # A one-day series is a flat full-width line; its point is the right edge.
+    x, y = marker_point([5], 0)
+    assert x == float(SPARK_WIDTH)
+    assert y == 4.0
