@@ -1,6 +1,7 @@
 """Configuration loading and validation for MA Signal Monitor."""
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -44,6 +45,10 @@ class CategoryConfig:
     description: str
     weight: float
     keywords: list[str]
+    # Optional hex override (validated as ^#[0-9a-fA-F]{6}$ in
+    # _validate_config); "" means fall back to the positional default in
+    # topic_colors.DEFAULT_TOPIC_PALETTE (see topic_colors.topic_color_map).
+    color: str = ""
 
 
 @dataclass
@@ -487,6 +492,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
                 description=cat_data["description"],
                 weight=cat_data.get("weight", 1.0),
                 keywords=cat_data.get("keywords", []),
+                color=cat_data.get("color") or "",
             )
         )
     config.categories = categories
@@ -625,6 +631,13 @@ def _validate_config(config: AppConfig) -> None:
 
     if not config.categories:
         raise ValueError("No taxonomy categories found in taxonomy.yaml")
+
+    for cat in config.categories:
+        if cat.color and not re.fullmatch(r"#[0-9a-fA-F]{6}", cat.color):
+            raise ValueError(
+                f"Category {cat.key!r} has an invalid color {cat.color!r}; "
+                "expected a 6-digit hex value like '#2a78d6'"
+            )
 
     if not 0.0 <= config.min_relevance_score <= 1.0:
         raise ValueError(

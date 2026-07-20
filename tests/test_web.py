@@ -825,6 +825,14 @@ def test_search_results_show_timelines_and_picker_preserves_query(
 # --- Timeline page (swimlanes) ---
 
 
+def test_topic_color_global_returns_positional_palette_color(sample_config, temp_db):
+    """The `topic_color` Jinja global (registered next to `category_label`)
+    resolves the first configured category to the first palette hex."""
+    app = create_app(sample_config, temp_db)
+    topic_color = app.state.templates.env.globals["topic_color"]
+    assert topic_color(sample_config.categories[0].key) == "#2a78d6"
+
+
 def test_timeline_page_renders_topic_lanes(sample_config, temp_db):
     now = datetime.utcnow()
     _seed_story(

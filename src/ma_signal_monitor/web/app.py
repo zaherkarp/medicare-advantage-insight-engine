@@ -17,6 +17,7 @@ from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig, load_config
 from ma_signal_monitor.geo import state_name
 from ma_signal_monitor.storage import StateStore
+from ma_signal_monitor.topic_colors import topic_color, topic_color_map
 from ma_signal_monitor.web.routes import register_routes
 
 logger = logging.getLogger("ma_signal_monitor.web")
@@ -52,6 +53,10 @@ def create_app(
     templates.env.globals["category_label"] = lambda key: get_category_label(
         key, config
     )
+    # Resolved once (positional palette + YAML overrides) and reused for every
+    # lookup — see topic_colors.py for the fallback semantics.
+    color_map = topic_color_map(config.categories)
+    templates.env.globals["topic_color"] = lambda key: topic_color(key, color_map)
     templates.env.globals["state_name"] = state_name
     templates.env.globals["categories"] = config.categories
     templates.env.globals["static_site"] = static_export
