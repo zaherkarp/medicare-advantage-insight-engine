@@ -25,6 +25,10 @@
      the CSS reads (no raw hex in this template). #}
   <section class="timeline-viz">
     {% if total %}
+      {# Overflow note sits ABOVE the band, right-aligned: the top callout row
+         fills the band to its very top edge (card height ≈ row pitch), so an
+         in-band top-right note would overlap that card. #}
+      {% if band.dropped %}<p class="callout-overflow">+{{ band.dropped }} more not labeled</p>{% endif %}
       <div class="callout-band" style="height: {{ band.height }}px">
         {% for t in ticks %}<span class="viz-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
         {% for c in band.callouts %}
@@ -41,7 +45,6 @@
             <span class="callout-meta">{{ c.source_name }} · {{ c.day }}</span>
           </a>
         {% endfor %}
-        {% if band.dropped %}<span class="callout-overflow">+{{ band.dropped }} more not labeled</span>{% endif %}
       </div>
 
       <div class="viz-axis" aria-hidden="true">

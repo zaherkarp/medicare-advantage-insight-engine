@@ -305,6 +305,10 @@ a.chip:hover { border-color: var(--accent); text-decoration: none; }
   /* width COUPLED to timeline_layout.CALLOUT_W_PCT (24.0) — the packing math
      clamps against this; keep the two in sync. */
   width: 24%;
+  /* Above the stems/dots/gridlines (all z-index auto) so a neighbouring
+     callout's stem is hidden where it passes behind this card, never painted
+     across its face. */
+  z-index: 1;
   padding: 5px 8px; border-radius: 6px;
   font-size: 0.78rem; line-height: 1.25; color: var(--ink); text-decoration: none;
   background: var(--card);
@@ -325,8 +329,10 @@ a.chip:hover { border-color: var(--accent); text-decoration: none; }
   display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Right-aligned caption above the band (see timeline.html): kept out of the
+   band so it never overlaps the top callout row, which fills the band's height. */
 .callout-overflow {
-  position: absolute; top: 0; right: 0;
+  margin: 0 0 3px; text-align: right;
   color: var(--muted); font-size: 0.72rem;
 }
 
