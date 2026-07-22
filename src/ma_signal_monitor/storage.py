@@ -1083,6 +1083,32 @@ class StateStore:
         series = daily_series(dates, days, now)
         return [{"day": d.isoformat(), "count": c} for d, c in series]
 
+    def get_oldest_story_key(
+        self,
+        *,
+        category: str | None = None,
+        state: str | None = None,
+        entity_aliases: list[str] | None = None,
+        min_score: float = 0.0,
+    ) -> str | None:
+        """Oldest in-scope story's sort key, for the /timeline "all" window (D6).
+
+        Same ``COALESCE(published_date, fetched_at)`` fallback :meth:`get_stories`
+        orders by, and the same :meth:`_story_filters` scoping — no ``since``,
+        since the point is to find where the archive's window *should* start.
+        Returns ``None`` when nothing matches (an empty archive or an empty
+        scope) so callers can fall back to a sane default window instead of
+        erroring.
+        """
+        conn = self._get_conn()
+        where, params = self._story_filters(category, state, min_score, entity_aliases)
+        row = conn.execute(
+            f"SELECT MIN(COALESCE(published_date, fetched_at)) AS oldest "
+            f"FROM stories{where}",
+            params,
+        ).fetchone()
+        return row["oldest"] if row and row["oldest"] is not None else None
+
     # --- Delivery Logging ---
 
     def log_delivery(self, result: DeliveryResult) -> None:

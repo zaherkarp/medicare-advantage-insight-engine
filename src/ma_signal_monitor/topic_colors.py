@@ -17,8 +17,8 @@ The six-hue palette was chosen and validated (dataviz palette validator) for
 adjacent-pair color-vision-deficiency safety against the site's white
 ``--card`` background (see the plan's D4 design decision).
 
-Like :mod:`ma_signal_monitor.trends` and :mod:`ma_signal_monitor.lanes`, this
-module does no I/O: :func:`topic_color_map` is resolved once per app/build
+Like :mod:`ma_signal_monitor.trends` and :mod:`ma_signal_monitor.timeline_layout`,
+this module does no I/O: :func:`topic_color_map` is resolved once per app/build
 from the loaded config, and :func:`topic_color` is a cheap per-key lookup
 against that resolved map thereafter.
 """

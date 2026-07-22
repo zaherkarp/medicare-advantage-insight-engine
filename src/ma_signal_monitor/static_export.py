@@ -332,6 +332,10 @@ def build_site(
     # topic/payer/state timeline a link can target gets a static file. Frozen
     # at the default window (the picker is hidden on export); never paginated.
     grab("/timeline", "timeline.html")
+    # Explicit lookback windows (D5): the root chart's own picker chips link
+    # to plain paths (not ?days=) precisely so they survive the static export.
+    for token in ("7", "90", "180", "365", "all"):
+        grab(f"/timeline/w/{token}", f"timeline/w/{token}.html")
     for c in config.categories:
         grab(f"/timeline/topics/{c.key}", f"timeline/topics/{c.key}.html")
     for group in PAYER_GROUPS:
@@ -362,7 +366,8 @@ def build_site(
         "states": len(store.get_state_counts(min_score=floor)),
         "payers": len(PAYER_GROUPS),
         "digests": len(store.list_digests(limit=400)),
-        "timelines": 1
+        "timelines": 1  # root /timeline
+        + 5  # /timeline/w/{7,90,180,365,all} window pages
         + len(config.categories)
         + len(PAYER_GROUPS)
         + len(store.get_state_counts(min_score=floor)),

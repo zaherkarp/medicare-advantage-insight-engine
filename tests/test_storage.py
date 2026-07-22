@@ -446,6 +446,46 @@ class TestStateStore:
         # All three share source_name "Test Feed" (from _make_scored).
         assert temp_db.get_source_counts()["Test Feed"] == 3
 
+    def test_get_oldest_story_key_empty_db(self, temp_db):
+        """An empty archive (or empty scope) resolves to None, not an error."""
+        assert temp_db.get_oldest_story_key() is None
+        assert temp_db.get_oldest_story_key(category="policy_regulatory") is None
+
+    def test_get_oldest_story_key_returns_oldest_across_fallback(self, temp_db):
+        """Oldest sort key, falling back to fetched_at like get_stories orders."""
+        temp_db.upsert_story(
+            _make_scored("mid", "Middle", published=datetime(2024, 3, 1)),
+            primary_category="policy_regulatory",
+        )
+        temp_db.upsert_story(
+            _make_scored("newest", "Newest", published=datetime(2024, 6, 1)),
+            primary_category="policy_regulatory",
+        )
+        # A dateless story falls back to fetched_at (stamped ~now at upsert),
+        # so it's newer than either published-dated story above.
+        temp_db.upsert_story(
+            _make_scored("nodate", "No date", published=None),
+            primary_category="policy_regulatory",
+        )
+        assert temp_db.get_oldest_story_key() == "2024-03-01T00:00:00"
+
+    def test_get_oldest_story_key_respects_category_filter(self, temp_db):
+        """Scoping filters narrow the oldest-key search the same as get_stories."""
+        temp_db.upsert_story(
+            _make_scored("old-fin", "Old finance", published=datetime(2024, 1, 1)),
+            primary_category="financial_pressure",
+        )
+        temp_db.upsert_story(
+            _make_scored("newer-pol", "Newer policy", published=datetime(2024, 5, 1)),
+            primary_category="policy_regulatory",
+        )
+        assert temp_db.get_oldest_story_key() == "2024-01-01T00:00:00"
+        assert (
+            temp_db.get_oldest_story_key(category="policy_regulatory")
+            == "2024-05-01T00:00:00"
+        )
+        assert temp_db.get_oldest_story_key(category="competitive_strategy") is None
+
     def test_get_last_run(self, temp_db):
         """get_last_run returns the most recent completed run."""
         assert temp_db.get_last_run() is None
