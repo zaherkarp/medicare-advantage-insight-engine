@@ -23,6 +23,7 @@ from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig, load_config
 from ma_signal_monitor.geo import state_name
 from ma_signal_monitor.storage import StateStore
+from ma_signal_monitor.synthesis import DigestLede, build_lede
 
 logger = logging.getLogger("ma_signal_monitor.digest")
 
@@ -79,6 +80,7 @@ class Digest:
     sections: list[tuple[str, list[DigestStory]]]  # (category_label, stories)
     story_count: int
     candidates: list[CandidateSummary] = field(default_factory=list)
+    lede: DigestLede | None = None  # "what's happening" synthesis block
 
 
 def _build_candidates(store: StateStore, limit: int = 6) -> list[CandidateSummary]:
@@ -119,6 +121,49 @@ def _row_to_story(row, config: AppConfig) -> DigestStory:
     )
 
 
+def _facet_dict(row) -> dict:
+    """A ``get_recent_story_facets`` row → the facet dict ``build_lede`` folds.
+
+    Same lens shape as ``routes._facet_view`` (JSON lenses parsed); the web
+    layer isn't imported here, so the small conversion is repeated locally.
+    """
+    import json
+
+    return {
+        "primary_category": row["primary_category"] or "uncategorized",
+        "categories": json.loads(row["categories"] or "[]"),
+        "entities": json.loads(row["entities"] or "[]"),
+        "states": json.loads(row["states"] or "[]"),
+        "title": row["title"],
+        "relevance_score": row["relevance_score"] or 0.0,
+    }
+
+
+def _build_lede(store: StateStore, config: AppConfig, now: datetime, since: datetime):
+    """Fetch the current + prior facet windows and synthesize the lede.
+
+    Mirrors the ``/angles`` route: two uncapped, time-bounded facet reads (the
+    windows are small) feeding a pure builder. Returns ``None`` when the lede is
+    disabled or the window is empty.
+    """
+    if not config.digest_lede_enabled:
+        return None
+    prev_since = since - timedelta(hours=config.digest_lookback_hours)
+    current = [
+        _facet_dict(r)
+        for r in store.get_recent_story_facets(
+            since=since, min_score=config.digest_min_score, until=now
+        )
+    ]
+    previous = [
+        _facet_dict(r)
+        for r in store.get_recent_story_facets(
+            since=prev_since, min_score=config.digest_min_score, until=since
+        )
+    ]
+    return build_lede(current, previous, now, config)
+
+
 def build_digest(
     store: StateStore,
     config: AppConfig,
@@ -156,6 +201,7 @@ def build_digest(
         sections=sections,
         story_count=len(stories),
         candidates=candidates,
+        lede=_build_lede(store, config, now, since),
     )
 
 
@@ -185,6 +231,15 @@ def render_text(digest: Digest) -> str:
         f"{digest.lookback_hours} hours.",
         "",
     ]
+    if digest.lede:
+        lines.append("WHAT'S HAPPENING")
+        lines.append(digest.lede.summary)
+        if digest.lede.season_note:
+            lines.append(digest.lede.season_note)
+        if digest.lede.offcycle_note:
+            lines.append(digest.lede.offcycle_note)
+        lines.append(digest.lede.breakdown)
+        lines.append("")
     if not digest.story_count:
         lines.append("No qualifying signals in this window.")
     for label, stories in digest.sections:

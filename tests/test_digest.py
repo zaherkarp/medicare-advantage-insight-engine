@@ -122,6 +122,30 @@ def test_render_html_and_text_contain_stories(sample_config, temp_db):
     assert "<html" in html.lower()
 
 
+def test_digest_lede_present_and_rendered(sample_config, temp_db):
+    _seed_window(temp_db)
+    d = build_digest(temp_db, sample_config, now=NOW)
+    assert d.lede is not None
+    assert d.lede.total == 2  # full window count (both in-window stories)
+    html = render_html(d, sample_config)
+    text = render_text(d)
+    assert "What's happening" in html
+    assert "WHAT'S HAPPENING" in text
+
+
+def test_digest_lede_absent_for_empty_window(sample_config, temp_db):
+    d = build_digest(temp_db, sample_config, now=NOW)  # nothing seeded
+    assert d.lede is None
+    assert "What's happening" not in render_html(d, sample_config)
+
+
+def test_digest_lede_can_be_disabled(sample_config, temp_db):
+    _seed_window(temp_db)
+    sample_config.digest_lede_enabled = False
+    d = build_digest(temp_db, sample_config, now=NOW)
+    assert d.lede is None
+
+
 def test_send_digest_skips_when_unconfigured(sample_config, temp_db):
     d = build_digest(temp_db, sample_config, now=NOW)
     # sample_config has no SMTP host -> best-effort skip, returns False.

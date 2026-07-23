@@ -86,11 +86,21 @@ The score is clamped to [0.0, 1.0] and returned with a list of `ScoringReason` o
 5. Competitive / Operational Strategy
 6. Brokerage / Distribution
 
+## Drafting
+
+`drafting.py` turns each scored + classified item into the two-section `Alert`: an **internal analytic alert** (signal type, source, entities, a factual "why it matters", suggested checks, confidence, scoring reasons) and a **draft public insight** (opening hook, analytic angles, a `[DRAFT — verify before any external use]` paragraph, an uncertainty caution, and hashtags). All text is deterministic string assembly grounded in the item's own facts — the named payer(s), the primary category, the source, and the top scoring reasons — modeled on the fact-derived voice of `angles.py`: no speculative "this may signal…" framing and no significance inflation. Analytic angles are concrete follow-ups (a specific dataset or filing to check per category), not conjecture. The `[DRAFT]` marker and the uncertainty caution are retained by design — the public draft is a starting point for an analyst to edit, never finished copy.
+
 ## Angles (lens intersections weighted by a causal model)
 
 `angles.py` builds the `/angles` view ("ways of looking at the week's signals") from two adjacent story windows. Cards form at the intersections of lenses already present on every story — payer × topic, topic × topic (the full `categories` list, not just the primary), topic × state, and payer × payer co-mentions — with a minimum of 2 stories per card and fact-derived text (count, distinct sources, momentum vs. the prior window, strongest headline).
 
 Ranking is differential along a **declared causal model** (`config/causal_model.yaml`): four ordered layers (Structural & Policy Drivers → Economic Pressure → Strategic Response → Market Outcomes) and downstream-only weighted edges, each carrying a one-sentence citable `evidence` rationale. A topic-pair on an edge becomes a *causal chain* card; a payer with current signals on both sides of an edge becomes a *payer cascade*. `rank_score = count × (1 + boost × edge_weight)` with boosts 0.5 (chain) / 0.75 (cascade), so causality re-ranks without steamrolling volume; non-edge overlaps still appear, ranked by volume alone. Config load validates soundness (unknown/self/upstream/duplicate edges, weight range, blank evidence); full taxonomy coverage is test-enforced (`tests/test_causal_model.py`). Greedy subset suppression removes cards whose story set adds nothing over a higher-ranked card, and a single-lens topic fallback keeps sparse archives readable. The window fetch is an uncapped lean facet query (`get_recent_story_facets`), so counts and momentum are exact.
+
+## Daily Briefing and the synthesis lede
+
+`digest.py` assembles the Daily Briefing — the top windowed stories grouped into topic sections — for the `/briefing` page and the optional email. Above that per-story list sits a **synthesis lede** (`synthesis.py`): a deterministic, higher-altitude "what's happening" read of the same window. Like `angles.py` it is a pure function over two adjacent facet windows (`get_recent_story_facets`, the current window and the same-length prior one), reporting the window's volume and momentum, the leading topic, the most-named payers, and a topic breakdown.
+
+The lede is **calendar-aware**. `ma_calendar.py` models the approximate Medicare cycle windows (AEP, OEP, the Advance Notice / Final Rate / bid cycle, Star Ratings) and, for each, the taxonomy categories whose elevated volume is *seasonal*. When the window falls inside a cycle the lede frames those categories as seasonal ("AEP is underway … treat it as expected, not a step-change") and flags only genuinely off-cycle categories — so a routine enrollment-season flurry reads as routine, not as a step-change. Off-season it points at the next milestone instead. The dates are approximate framing aids, not compliance dates. The lede introduces no schema change and no scoring change, and is disabled with `DIGEST_LEDE_ENABLED=false`.
 
 ## Rendering and Delivery
 
