@@ -65,6 +65,21 @@ _HASHTAG_MAP: dict[str, list[str]] = {
     "brokerage_distribution": ["#MedicareAdvantage", "#Brokerage", "#Distribution"],
 }
 
+# Per-category concrete follow-up: a specific dataset/filing to check, not a
+# speculative "this may signal…" angle.
+_CROSS_REFERENCES: dict[str, str] = {
+    "membership_movement": "Cross-check against CMS monthly enrollment snapshots.",
+    "demographic_shifts": "Check against CMS/KFF age-in and D-SNP population data.",
+    "policy_regulatory": "Compare against the current CMS rate/bid-cycle documents.",
+    "financial_pressure": (
+        "Compare MLR and margin guidance against prior-quarter filings."
+    ),
+    "competitive_strategy": "Watch for follow-on filings from the named payers.",
+    "brokerage_distribution": (
+        "Track lead volume and AEP marketing economics for the named brokerage."
+    ),
+}
+
 
 def _confidence_from_score(score: float) -> str:
     """Map a relevance score to a confidence label."""
@@ -75,107 +90,82 @@ def _confidence_from_score(score: float) -> str:
     return "low"
 
 
-def _generate_why_it_matters(scored: ScoredItem, category_key: str) -> str:
-    """Generate a brief 'why it matters' explanation from scoring reasons."""
+def _generate_why_it_matters(scored: ScoredItem, config: AppConfig) -> str:
+    """State, in facts, why the item cleared the bar — no speculation."""
     parts = []
     if scored.matched_entities:
-        parts.append(
-            f"Involves named MA payer(s): {', '.join(scored.matched_entities[:3])}"
-        )
+        parts.append(f"Names MA payer(s): {', '.join(scored.matched_entities[:3])}")
     if len(scored.matched_categories) > 1:
+        labels = ", ".join(
+            get_category_label(c, config) for c in scored.matched_categories
+        )
         parts.append(
-            f"Crosses multiple signal categories ({len(scored.matched_categories)}), "
-            "suggesting broader market implications"
+            f"Spans {len(scored.matched_categories)} signal categories: {labels}"
         )
     top_reasons = sorted(scored.reasons, key=lambda r: r.contribution, reverse=True)[:2]
     for reason in top_reasons:
         if reason.factor in ("title_keyword", "body_keyword"):
-            parts.append(f"Contains signal language: {reason.detail}")
+            parts.append(f"Signal term: {reason.detail}")
             break
 
     if not parts:
-        parts.append("Matched general MA-related signal criteria")
+        parts.append("Matched general MA relevance criteria")
 
     return ". ".join(parts) + "."
 
 
 def _generate_opening_hook(scored: ScoredItem, category_label: str) -> str:
-    """Generate a suggested opening hook for thought leadership."""
-    title = scored.item.title
+    """A factual lead line: the actors and the topic, no significance claims."""
+    source = scored.item.source_name
     if scored.matched_entities:
-        entity = scored.matched_entities[0]
-        return (
-            f"New developments around {entity} highlight evolving dynamics in "
-            f"Medicare Advantage — this time touching on {category_label.lower()}."
-        )
-    return (
-        f"A recent signal in {category_label.lower()} warrants attention: "
-        f'"{title[:80]}{"..." if len(title) > 80 else ""}"'
-    )
+        who = ", ".join(scored.matched_entities[:2])
+        return f"{who} — {category_label.lower()}. Via {source}."
+    title = scored.item.title
+    clipped = f"{title[:80]}{'…' if len(title) > 80 else ''}"
+    return f'{category_label} signal via {source}: "{clipped}".'
 
 
-def _generate_analytic_angles(scored: ScoredItem, category_key: str) -> list[str]:
-    """Generate 2-4 possible analytic angles."""
-    angles = []
+def _generate_analytic_angles(scored: ScoredItem, config: AppConfig) -> list[str]:
+    """Concrete follow-ups — checks to run, not conjecture about significance."""
+    angles: list[str] = []
+    if len(scored.matched_categories) > 1:
+        labels = ", ".join(
+            get_category_label(c, config) for c in scored.matched_categories
+        )
+        angles.append(
+            f"Spans {len(scored.matched_categories)} signal categories: {labels}."
+        )
+    for cat in scored.matched_categories:
+        ref = _CROSS_REFERENCES.get(cat)
+        if ref and ref not in angles:
+            angles.append(ref)
 
-    if "membership_movement" in scored.matched_categories:
-        angles.append(
-            "Enrollment shifts may signal competitive repositioning — "
-            "worth tracking against CMS enrollment snapshots"
-        )
-    if "policy_regulatory" in scored.matched_categories:
-        angles.append(
-            "Regulatory changes here could ripple into bid strategy "
-            "and benefit design for upcoming plan year"
-        )
-    if "financial_pressure" in scored.matched_categories:
-        angles.append(
-            "Financial pressure signals could foreshadow benefit "
-            "reductions or market exits in affected geographies"
-        )
-    if "competitive_strategy" in scored.matched_categories:
-        angles.append(
-            "Strategic moves by major payers often precede broader "
-            "industry shifts — watch for follow-on announcements"
-        )
-    if "demographic_shifts" in scored.matched_categories:
-        angles.append(
-            "Demographic trends in the MA-eligible population continue "
-            "to reshape growth opportunities and risk profiles"
-        )
-    if "brokerage_distribution" in scored.matched_categories:
-        angles.append(
-            "Shifts in MA distribution economics — broker roll-ups, lead costs, "
-            "and AEP marketing — can reshape which plans win enrollment"
-        )
-
-    # Ensure at least 2 angles
-    if len(angles) < 2:
-        angles.append(
-            "The timing relative to the annual bid cycle may amplify "
-            "the significance of this signal"
-        )
-    if len(angles) < 2:
-        angles.append(
-            "Cross-referencing with recent CMS data releases could "
-            "reveal additional context"
-        )
+    # Guarantee at least two angles with factual fallbacks (never hype).
+    fallbacks = [
+        "Single-source so far — corroborate against a second outlet.",
+        "Confirm the Medicare Advantage angle against a primary source.",
+    ]
+    for fb in fallbacks:
+        if len(angles) >= 2:
+            break
+        angles.append(fb)
 
     return angles[:4]
 
 
 def _generate_draft_paragraph(scored: ScoredItem, category_label: str) -> str:
-    """Generate a short draft paragraph for public thought leadership."""
+    """A tight, sourced draft paragraph — the facts, marked for review."""
     item = scored.item
-    summary_excerpt = item.summary[:150] + ("..." if len(item.summary) > 150 else "")
+    summary = item.summary.strip()
+    if len(summary) > 220:
+        summary = summary[:220].rstrip() + "…"
+    who = ""
+    if scored.matched_entities:
+        who = f" involving {', '.join(scored.matched_entities[:3])}"
 
     return (
-        f"[DRAFT — requires manual editing before publication] "
-        f"Recent reporting signals movement in {category_label.lower()} "
-        f"within the Medicare Advantage landscape. {summary_excerpt} "
-        f"As the MA market continues to evolve, signals like this merit "
-        f"careful tracking against enrollment data, regulatory timelines, "
-        f"and competitive positioning."
+        f"[DRAFT — verify before any external use] {item.source_name} reports "
+        f"on {category_label.lower()}{who}: {summary}"
     )
 
 
@@ -205,7 +195,7 @@ def draft_alert(scored: ScoredItem, config: AppConfig) -> Alert:
         trigger_category=category_label,
         relevance_score=scored.relevance_score,
         summary=scored.item.summary,
-        why_it_matters=_generate_why_it_matters(scored, category_key),
+        why_it_matters=_generate_why_it_matters(scored, config),
         suggested_checks=_SUGGESTED_CHECKS.get(
             category_key,
             [
@@ -225,7 +215,7 @@ def draft_alert(scored: ScoredItem, config: AppConfig) -> Alert:
 
     public_draft = PublicInsightDraft(
         opening_hook=_generate_opening_hook(scored, category_label),
-        analytic_angles=_generate_analytic_angles(scored, category_key),
+        analytic_angles=_generate_analytic_angles(scored, config),
         uncertainty_caution=(
             "Note: This is an early signal based on public reporting. "
             "Confirm against primary sources before drawing conclusions. "
