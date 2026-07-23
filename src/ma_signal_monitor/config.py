@@ -221,6 +221,9 @@ class AppConfig:
     digest_max_items: int = 12  # max stories per digest
     digest_min_score: float = 0.3  # minimum relevance score to include
     digest_subject_prefix: str = "MA Daily Briefing"
+    digest_lede_enabled: bool = (
+        True  # synthesis lede ("what's happening") atop the digest
+    )
 
     # SMTP delivery (stdlib smtplib; optional — digest also renders to the web)
     smtp_host: str = ""
@@ -324,6 +327,8 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
             os.getenv("DIGEST_MIN_SCORE", os.getenv("MIN_RELEVANCE_SCORE", "0.3"))
         ),
         digest_subject_prefix=os.getenv("DIGEST_SUBJECT_PREFIX", "MA Daily Briefing"),
+        digest_lede_enabled=os.getenv("DIGEST_LEDE_ENABLED", "true").lower()
+        in ("1", "true", "yes"),
         smtp_host=os.getenv("SMTP_HOST", ""),
         smtp_port=int(os.getenv("SMTP_PORT", "587")),
         smtp_user=os.getenv("SMTP_USER", ""),

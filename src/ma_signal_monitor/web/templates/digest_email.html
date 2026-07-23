@@ -16,6 +16,16 @@
         {% if base_url %}<a href="{{ base_url }}/briefing" style="color:#0b5cad;">View online →</a>{% endif %}
       </p>
 
+      {% if digest.lede %}
+      <div style="background:#f0f6fc;border-left:4px solid #0b5cad;border-radius:6px;padding:12px 16px;margin:14px 0 4px;">
+        <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5cad;margin-bottom:4px;">What's happening</div>
+        <p style="font-size:14px;color:#2a3446;line-height:1.5;margin:0 0 6px;">{{ digest.lede.summary }}</p>
+        {% if digest.lede.season_note %}<p style="font-size:13px;color:#3a4456;line-height:1.5;margin:0 0 4px;">{{ digest.lede.season_note }}</p>{% endif %}
+        {% if digest.lede.offcycle_note %}<p style="font-size:13px;color:#8a5a00;line-height:1.5;margin:0 0 4px;">{{ digest.lede.offcycle_note }}</p>{% endif %}
+        <p style="font-size:12px;color:#687385;margin:6px 0 0;">{{ digest.lede.breakdown }}</p>
+      </div>
+      {% endif %}
+
       {% if digest.story_count == 0 %}
         <p style="color:#687385;">No qualifying signals in this window. We'll be back tomorrow.</p>
       {% endif %}
