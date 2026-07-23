@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 
 from ma_signal_monitor.angles import _causal_model_view, build_angles
 from ma_signal_monitor.geo import STATE_NAMES, state_name
-from ma_signal_monitor.lanes import Lane, axis_ticks, build_lane
 from ma_signal_monitor.payers import (
     ALIAS_TO_GROUP,
     KIND_LABELS,
@@ -26,6 +25,16 @@ from ma_signal_monitor.payers import (
     get_group,
 )
 from ma_signal_monitor.storage import VALID_VERDICTS
+from ma_signal_monitor.timeline_layout import (
+    axis_ticks,
+    build_callout_band,
+    build_strip,
+)
+from ma_signal_monitor.topic_colors import (
+    FALLBACK_TOPIC_COLOR,
+    topic_color,
+    topic_color_map,
+)
 
 SEC_SOURCE_PREFIX = "SEC EDGAR"
 
@@ -40,17 +49,25 @@ ANGLES_MAX_DAYS = 90
 ANGLES_DAY_OPTIONS = (7, 14, 30)
 
 # Story-card "related coverage" timelines: rolling daily window the reader can
-# widen/narrow. Same clamp/default machinery as Angles, wider presets. The
-# /timeline page shares the same window presets.
+# widen/narrow. Same clamp/default machinery as Angles, wider presets. Also
+# the default/clamp for the /timeline page itself when no window preset/token
+# applies (feed + search + payer-card pickers depend on these — never mutate).
 TIMELINE_DEFAULT_DAYS = 30
 TIMELINE_MAX_DAYS = 90
 TIMELINE_DAY_OPTIONS = (7, 14, 30, 90)
 
-# /timeline swimlane chart: cap the window fetch (a safety valve, cf. the
-# static export's _MAX_STORY_PAGES) and the payer-lane count under a topic
-# filter so the chart stays scannable.
-TIMELINE_MAX_STORIES = 1000
-MAX_PAYER_LANES = 7
+# /timeline page-specific window scheme (D5): preset chips (plus the "all"
+# token, handled separately) and the page's own — wider — clamp ceiling.
+TIMELINE_WINDOW_PRESETS = (7, 30, 90, 180, 365)
+TIMELINE_PAGE_MAX_DAYS = 365
+
+# /timeline layered chart: cap the windowed fetch (a safety valve, cf. the
+# static export's _MAX_STORY_PAGES); cap the story list rendered below the
+# chart so the "All" window stays sane; cap the payer rows shown under a
+# topic filter so the strip stays scannable.
+TIMELINE_MAX_STORIES = 5000
+TIMELINE_LIST_MAX = 100
+MAX_PAYER_ROWS = 7
 
 
 class FeedbackIn(BaseModel):
@@ -147,6 +164,66 @@ def _days_param(request: Request, *, default: int, max_days: int) -> int:
     except ValueError:
         return default
     return min(max(days, 1), max_days)
+
+
+def _window_param(request: Request, *, default: str) -> str:
+    """Parse a /timeline ``?days=`` value, tolerating the "all" token.
+
+    Anything else (garbage included) is handed to :func:`_resolve_window`,
+    which clamps/defaults it the same way :func:`_days_param` does for the
+    other rolling-window pickers.
+    """
+    raw = request.query_params.get("days", default)
+    return "all" if raw == "all" else raw
+
+
+def _resolve_window(
+    value: str,
+    store,
+    *,
+    category: str | None = None,
+    state: str | None = None,
+    entity_aliases: list[str] | None = None,
+    min_score: float = 0.0,
+) -> tuple[int, str, str]:
+    """Resolve a /timeline window token/day-count to ``(days, token, label)``.
+
+    ``value`` is either the literal "all" or a digit string, sourced from
+    whichever wins: the ``/timeline/w/{token}`` path (see ``_render_timeline``)
+    or a ``?days=`` query value. "all" resolves to the archive's true span
+    *under the same scope filters* via :meth:`StateStore.get_oldest_story_key`
+    (D6), clamped to ``[7, 730]`` days and labeled "all time"; an empty
+    archive/scope falls back to a 7-day span rather than erroring. A numeric
+    value clamps to ``1..TIMELINE_PAGE_MAX_DAYS`` and is labeled "the last N
+    days" (singular-safe: "the last 1 day"). The returned ``token`` is the
+    canonical string form (`"all"` or the clamped day count) — used both to
+    mark the active picker chip and to round-trip the window into scoped
+    ``?days=`` links.
+    """
+    if value == "all":
+        oldest = store.get_oldest_story_key(
+            category=category,
+            state=state,
+            entity_aliases=entity_aliases,
+            min_score=min_score,
+        )
+        days = 7
+        if oldest:
+            try:
+                span = (
+                    datetime.utcnow().date() - datetime.fromisoformat(oldest).date()
+                ).days + 1
+                days = span
+            except (ValueError, TypeError):
+                pass
+        days = min(max(days, 7), 730)
+        return days, "all", "all time"
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        days = TIMELINE_DEFAULT_DAYS
+    days = min(max(days, 1), TIMELINE_PAGE_MAX_DAYS)
+    return days, str(days), f"the last {days} day{'' if days == 1 else 's'}"
 
 
 def _fold_entity_groups(entities: list[str]) -> tuple[list[PayerGroup], list[str]]:
@@ -260,48 +337,59 @@ def _attach_timelines(
         }
 
 
-def _timeline_lanes(
-    stories: list[dict], config, *, mode: str, days: int, now: datetime, scope_qs: str
-) -> list[Lane]:
-    """Partition window stories into swimlanes and build their geometry.
+def _timeline_strip_groups(
+    stories: list[dict],
+    config,
+    *,
+    mode: str,
+    scope_qs: str,
+    color_map: dict[str, str],
+    scoped_category: str | None = None,
+) -> list[tuple[str, str, str | None, str, list[dict]]]:
+    """Partition window stories into topic-colored strip-row groups (C4).
 
-    ``mode="topics"`` gives one lane per configured category (config order, all
-    rendered even when quiet — a flat lane is signal), plus a trailing "Other"
-    lane only when uncategorized/stale-key stories exist. ``mode="payers"``
-    (used under a topic filter, where topic lanes would collapse to one) ranks
-    the canonical payer groups active in the window, caps them at
-    ``MAX_PAYER_LANES``, and absorbs below-cap groups, ungrouped aliases (e.g.
-    agencies like CMS), and entityless stories into "Other". Every story lands
-    in exactly one lane, so the chart total matches the list beneath it; a
+    Returns the ``[(key, label, href, color, stories)]`` shape
+    :func:`ma_signal_monitor.timeline_layout.build_strip` expects.
+    ``mode="topics"`` gives one group per configured category (config order,
+    all rendered even when quiet — a flat row is signal), plus a trailing
+    "Other" group (:data:`FALLBACK_TOPIC_COLOR`) only when
+    uncategorized/stale-key stories exist. ``mode="payers"`` (used under a
+    topic filter, where topic rows would collapse to one) ranks the canonical
+    payer groups active in the window, caps them at ``MAX_PAYER_ROWS``, and
+    absorbs below-cap groups, ungrouped aliases (e.g. agencies like CMS), and
+    entityless stories into "Other" — every row in this mode wears
+    ``scoped_category``'s single color, since the row dimension flipped to
+    payers but the color identity stays the scoping topic's. Every story lands
+    in exactly one group, so the chart total matches the list beneath it; a
     multi-payer co-mention plots once, in its first-mentioned group.
     """
-    lanes: list[Lane] = []
+    groups: list[tuple[str, str, str | None, str, list[dict]]] = []
     if mode == "payers":
+        color = topic_color(scoped_category, color_map)
         by_group: dict[str, list[dict]] = {}
         other: list[dict] = []
         for s in stories:
-            groups, _loose = _fold_entity_groups(s.get("entities", []))
-            if groups:
-                by_group.setdefault(groups[0].slug, []).append(s)
+            payer_groups, _loose = _fold_entity_groups(s.get("entities", []))
+            if payer_groups:
+                by_group.setdefault(payer_groups[0].slug, []).append(s)
             else:
                 other.append(s)
         ranked = sorted(by_group.items(), key=lambda kv: (-len(kv[1]), kv[0]))
-        for slug, bucket in ranked[:MAX_PAYER_LANES]:
+        for slug, bucket in ranked[:MAX_PAYER_ROWS]:
             group = get_group(slug)
-            lanes.append(
-                build_lane(
+            groups.append(
+                (
                     slug,
                     group.name if group else slug,
                     f"/timeline/payers/{slug}{scope_qs}",
+                    color,
                     bucket,
-                    days=days,
-                    now=now,
                 )
             )
-        for _slug, bucket in ranked[MAX_PAYER_LANES:]:
+        for _slug, bucket in ranked[MAX_PAYER_ROWS:]:
             other.extend(bucket)
         if other:
-            lanes.append(build_lane("other", "Other", None, other, days=days, now=now))
+            groups.append(("other", "Other", None, color, other))
     else:
         by_cat: dict[str, list[dict]] = {}
         for s in stories:
@@ -309,24 +397,21 @@ def _timeline_lanes(
         valid = set()
         for cat in config.categories:
             valid.add(cat.key)
-            lanes.append(
-                build_lane(
+            groups.append(
+                (
                     cat.key,
                     cat.label,
                     f"/timeline/topics/{cat.key}{scope_qs}",
+                    color_map.get(cat.key, FALLBACK_TOPIC_COLOR),
                     by_cat.get(cat.key, []),
-                    days=days,
-                    now=now,
                 )
             )
         leftovers = [
             s for key, bucket in by_cat.items() if key not in valid for s in bucket
         ]
         if leftovers:
-            lanes.append(
-                build_lane("other", "Other", None, leftovers, days=days, now=now)
-            )
-    return lanes
+            groups.append(("other", "Other", None, FALLBACK_TOPIC_COLOR, leftovers))
+    return groups
 
 
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
@@ -815,28 +900,48 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         category: str | None = None,
         state: str | None = None,
         payer_group: PayerGroup | None = None,
+        window_token: str | None = None,
     ) -> HTMLResponse:
-        """Shared renderer for the swimlane timeline page and its scoped twins.
+        """Shared renderer for the layered timeline page and its scoped twins.
 
         One windowed query fetches the actual story rows (not just daily
-        counts): the chart plots each story as a dot and the list below shows
-        exactly the plotted set, so the two always agree. Lanes are topics,
-        except under a topic filter — where they'd collapse to one — so the
-        dimension flips to payers.
+        counts): the callout band and topic strip both plot each story
+        directly, and the list below shows exactly the plotted set, so the
+        chart and the list always agree. Strip rows are topics, except under a
+        topic filter — where they'd collapse to one row — so the row
+        dimension flips to payers (C4), all sharing that one topic's color.
+
+        ``window_token`` is set only by the ``/timeline/w/{token}`` route,
+        which wins over any ``?days=`` query value (D5); every other caller
+        (the root ``/timeline`` GET and the scoped topic/payer/state pages)
+        resolves the window from the query string instead.
         """
         store = request.app.state.store
         config = request.app.state.config
-        days = _days_param(
-            request, default=TIMELINE_DEFAULT_DAYS, max_days=TIMELINE_MAX_DAYS
-        )
         floor = config.archive_min_score
+        is_root = category is None and state is None and payer_group is None
+        entity_aliases = list(payer_group.aliases) if payer_group else None
+
+        raw_window = (
+            window_token
+            if window_token is not None
+            else _window_param(request, default=str(TIMELINE_DEFAULT_DAYS))
+        )
+        days, token, window_label = _resolve_window(
+            raw_window,
+            store,
+            category=category,
+            state=state,
+            entity_aliases=entity_aliases,
+            min_score=floor,
+        )
         now = datetime.utcnow()
         window_start = now.date() - timedelta(days=days - 1)
 
         rows = store.get_stories(
             category=category,
             state=state,
-            entity_aliases=list(payer_group.aliases) if payer_group else None,
+            entity_aliases=entity_aliases,
             min_score=floor,
             since=window_start.isoformat(),
             limit=TIMELINE_MAX_STORIES,
@@ -854,33 +959,104 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             if window_start <= event_day <= now.date():
                 stories.append(s)
 
-        scope_qs = f"?days={days}" if days != TIMELINE_DEFAULT_DAYS else ""
-        lanes = _timeline_lanes(
+        # Round-trips the resolved window (including "all") into scoped links,
+        # so a linked topic/payer/state page reopens at the same lookback.
+        scope_qs = f"?days={token}" if token != str(TIMELINE_DEFAULT_DAYS) else ""
+        color_map = topic_color_map(config.categories)
+        band = build_callout_band(
             stories,
-            config,
-            mode="payers" if category else "topics",
             days=days,
             now=now,
-            scope_qs=scope_qs,
+            color_map=color_map,
+            fallback_color=FALLBACK_TOPIC_COLOR,
         )
+        mode = "payers" if category else "topics"
+        groups = _timeline_strip_groups(
+            stories,
+            config,
+            mode=mode,
+            scope_qs=scope_qs,
+            color_map=color_map,
+            scoped_category=category,
+        )
+        strip = build_strip(groups, days=days, now=now)
+        # A legend only makes sense with more than one color in play — under a
+        # topic scope every row already wears the same single color (C3).
+        legend = (
+            [
+                {
+                    "key": row.key,
+                    "label": row.label,
+                    "color": row.color,
+                    "total": row.total,
+                }
+                for row in strip
+            ]
+            if mode == "topics"
+            else None
+        )
+
+        total = len(stories)
+        list_truncated = total > TIMELINE_LIST_MAX
+
+        if is_root:
+            # Plain-path window chips (D5): survive the static export as-is.
+            window_options = [
+                {
+                    "label": f"{d} days",
+                    "href": "/timeline"
+                    if d == TIMELINE_DEFAULT_DAYS
+                    else f"/timeline/w/{d}",
+                    "active": token == str(d),
+                }
+                for d in TIMELINE_WINDOW_PRESETS
+            ] + [{"label": "All", "href": "/timeline/w/all", "active": token == "all"}]
+            show_picker_on_static = True
+        else:
+            # Scoped pages keep the old ?days= query scheme (C5) — needs a
+            # live server, so (like the feed's period picker) it's dropped
+            # from the static export entirely rather than frozen at one value.
+            window_options = [
+                {
+                    "label": f"{d} days",
+                    "href": f"{base_path}?days={d}",
+                    "active": token == str(d),
+                }
+                for d in TIMELINE_WINDOW_PRESETS
+            ] + [
+                {
+                    "label": "All",
+                    "href": f"{base_path}?days=all",
+                    "active": token == "all",
+                }
+            ]
+            show_picker_on_static = False
+
         return templates.TemplateResponse(
             request,
             "timeline.html",
             {
                 "heading": heading,
                 "subtitle": subtitle,
-                "lanes": lanes,
+                "window_label": window_label,
+                "band": band,
                 "ticks": axis_ticks(days, now),
-                "stories": stories,
-                "total": len(stories),
+                "strip": strip,
+                "legend": legend,
+                "stories": stories[:TIMELINE_LIST_MAX],
+                "total": total,
+                "list_truncated": list_truncated,
+                "window_options": window_options,
+                "show_picker_on_static": show_picker_on_static,
                 # The page plots (and lists) the whole window, so it never
                 # paginates — total_pages=1 keeps _story_list's pager hidden.
                 "page": 1,
                 "total_pages": 1,
                 "base_path": base_path,
                 "days": days,
-                "day_options": TIMELINE_DAY_OPTIONS,
-                "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
+                "days_qs": f"&days={token}"
+                if token != str(TIMELINE_DEFAULT_DAYS)
+                else "",
                 "days_base": f"{base_path}?",
                 "filters": _feed_filters(
                     request,
@@ -897,8 +1073,32 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             request,
             heading="Signal Timeline",
             subtitle="Related signals plotted on one shared timeline — "
-            "one lane per topic.",
+            "one topic-colored bubble row apiece.",
             base_path="/timeline",
+        )
+
+    @app.get("/timeline/w/{token}", response_model=None)
+    def timeline_window(
+        request: Request, token: str
+    ) -> HTMLResponse | RedirectResponse:
+        """Explicit lookback windows for the root timeline (D5).
+
+        ``w/30`` is the default window's own canonical URL, so it 301s back to
+        ``/timeline`` (the "30 days" chip links there directly instead of
+        here); any token outside the valid preset set 404s, like the other
+        unknown-slug routes.
+        """
+        if token == "30":
+            return RedirectResponse("/timeline", status_code=301)
+        if token not in {"7", "90", "180", "365", "all"}:
+            raise HTTPException(status_code=404, detail="Unknown timeline window")
+        return _render_timeline(
+            request,
+            heading="Signal Timeline",
+            subtitle="Related signals plotted on one shared timeline — "
+            "one topic-colored bubble row apiece.",
+            base_path="/timeline",
+            window_token=token,
         )
 
     @app.get("/timeline/topics/{category_key}", response_class=HTMLResponse)
@@ -913,7 +1113,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         return _render_timeline(
             request,
             heading=f"Timeline — {label}",
-            subtitle="Signals in this topic on one timeline — one lane per payer.",
+            subtitle="Signals in this topic on one timeline — "
+            "one payer bubble row apiece, all in this topic's color.",
             base_path=f"/timeline/topics/{category_key}",
             category=category_key,
         )
@@ -927,7 +1128,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             request,
             heading=f"Timeline — {group.name}",
             subtitle="This organization's signals on one timeline — "
-            "one lane per topic.",
+            "one topic-colored bubble row apiece.",
             base_path=f"/timeline/payers/{group.slug}",
             payer_group=group,
         )
@@ -941,7 +1142,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             request,
             heading=f"Timeline — {state_name(code)}",
             subtitle="Signals referencing this state on one timeline — "
-            "one lane per topic.",
+            "one topic-colored bubble row apiece.",
             base_path=f"/timeline/states/{code}",
             state=code,
         )

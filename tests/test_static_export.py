@@ -209,6 +209,9 @@ def test_map_path_pagination():
     # Timeline pages map like the other scoped routes; ?days= collapses too.
     assert _map_path("/timeline", "/r") == "/r/timeline.html"
     assert _map_path("/timeline?days=7", "/r") == "/r/timeline.html"
+    # Explicit window pages (D5) map like the other /timeline/ scoped routes.
+    assert _map_path("/timeline/w/7", "/r") == "/r/timeline/w/7.html"
+    assert _map_path("/timeline/w/all", "/r") == "/r/timeline/w/all.html"
     assert _map_path("/timeline/topics/x", "/r") == "/r/timeline/topics/x.html"
     assert (
         _map_path("/timeline/payers/humana", "/r") == "/r/timeline/payers/humana.html"
@@ -536,22 +539,40 @@ def test_timeline_pages_exported(tmp_path, sample_config, temp_db):
     assert (out / "timeline" / "topics" / "policy_regulatory.html").exists()
     assert (out / "timeline" / "payers" / "humana.html").exists()
     assert (out / "timeline" / "states" / "TX.html").exists()
-    assert (
-        counts["timelines"] == 1 + len(sample_config.categories) + len(PAYER_GROUPS) + 1
-    )  # + the one state with stories
+    # The 5 explicit lookback windows (D5) export alongside the default page.
+    for token in ("7", "90", "180", "365", "all"):
+        assert (out / "timeline" / "w" / f"{token}.html").exists()
+    assert counts["timelines"] == (
+        1  # root /timeline
+        + 5  # /timeline/w/{7,90,180,365,all}
+        + len(sample_config.categories)
+        + len(PAYER_GROUPS)
+        + 1  # the one state with stories
+    )
 
     page = (out / "timeline.html").read_text()
-    # The recent story plots as a dot whose link is rewritten to the static
-    # story page; the window picker (live-only) is frozen out.
-    assert 'class="lane-dot"' in page
+    # The recent story plots as a labeled callout card whose link is rewritten
+    # to the static story page; the root lookback picker survives the export
+    # as plain-path chips, rewritten just like any other static link.
+    assert 'class="callout"' in page
     assert "/myrepo/story/tl-1.html" in page
-    assert "period-picker" not in page
+    assert "/myrepo/timeline/w/7.html" in page
+    assert "/myrepo/timeline/w/all.html" in page
     assert "?days=" not in page
     # The nav on every exported page reaches the static timeline file.
     assert "/myrepo/timeline.html" in (out / "index.html").read_text()
 
+    # A scoped window's own ?days= picker needs a live server, so — like the
+    # root page's callout copy — it's dropped from the static export.
+    scoped = (out / "timeline" / "topics" / "policy_regulatory.html").read_text()
+    assert "period-picker" not in scoped
+
     # An empty scoped window keeps the static-appropriate empty state (no
     # "widen the window" advice — there's no picker to widen it with).
-    empty = (out / "timeline" / "topics" / "policy_regulatory.html").read_text()
-    assert "No signals in this window." in " ".join(empty.split())
-    assert "try a wider window" not in empty
+    assert "No signals in this window." in " ".join(scoped.split())
+    assert "try a wider window" not in scoped
+
+    # Every window page renders too (the "all" page reaches back further).
+    window_all = (out / "timeline" / "w" / "all.html").read_text()
+    assert "all time" in window_all
+    assert "/myrepo/story/tl-1.html" in window_all

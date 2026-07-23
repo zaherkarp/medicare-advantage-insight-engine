@@ -4,46 +4,73 @@
   <section class="page-head">
     <h1>{{ heading }}</h1>
     <p class="subtitle">{{ subtitle }}</p>
-    <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }} in the last {{ days }} days</p>
-    {% include "_period_picker.html" %}
+    <p class="muted">{{ total }} signal{{ '' if total == 1 else 's' }} in {{ window_label }}</p>
+    {# Lookback picker: plain-path window chips that also survive the static export.
+       Ships in a later workstream — tolerate its absence until then. #}
+    {% include "_window_picker.html" ignore missing %}
   </section>
 
   {% set filter_prefix = "/timeline" %}
   {% include "_filter_bar.html" %}
 
-  {# Swimlane chart: one lane per group, stories as dots on a shared day axis.
-     Dots are absolutely-positioned anchors (percentage x, pixel y) — round at
-     any width, JS-free, and static-export safe. Geometry from lanes.py. #}
-  <section class="timeline-chart">
+  {# Layered timeline (geometry from timeline_layout.py), two layers over one
+     shared date axis:
+       • callout band — the window's strongest stories as topic-colored label
+         cards, each on a stem dropping to a dot on the axis;
+       • topic strip — one row per topic, one bubble per day, bubble AREA ∝ count.
+     Everything is absolutely positioned (percentage x, pixel y) so it stays
+     round/legible at any width, needs no JS, and survives the static export.
+     Positions/sizes/colors come from the context objects; the only inline styles
+     are those geometry values and the per-element `--topic` custom property that
+     the CSS reads (no raw hex in this template). #}
+  <section class="timeline-viz">
     {% if total %}
-      <div class="lane-grid">
-        {% for lane in lanes %}
-          <div class="lane-label">
-            {% if lane.href %}<a href="{{ lane.href }}">{{ lane.label }}</a>{% else %}<span>{{ lane.label }}</span>{% endif %}
-            <span class="lane-count">{{ lane.total }}</span>
+      {# Overflow note sits ABOVE the band, right-aligned: the top callout row
+         fills the band to its very top edge (card height ≈ row pitch), so an
+         in-band top-right note would overlap that card. #}
+      {% if band.dropped %}<p class="callout-overflow">+{{ band.dropped }} more not labeled</p>{% endif %}
+      <div class="callout-band" style="height: {{ band.height }}px">
+        {% for t in ticks %}<span class="viz-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
+        {% for c in band.callouts %}
+          {# stem_h = row * CALLOUT_ROW_H + STEM_BASE, precomputed in timeline_layout.py
+             so this template stays arithmetic-free; it drives both the stem height
+             and the card's bottom offset. #}
+          <span class="callout-stem" style="left: {{ c.pct }}%; height: {{ c.stem_h }}px; --topic: {{ c.color }}" aria-hidden="true"></span>
+          <span class="callout-dot" style="left: {{ c.pct }}%; --topic: {{ c.color }}" aria-hidden="true"></span>
+          <a class="callout" href="/story/{{ c.item_id }}"
+             style="left: {{ c.label_left_pct }}%; bottom: {{ c.stem_h }}px; --topic: {{ c.color }}"
+             title="{{ c.title }} — {{ c.source_name }} ({{ c.day }})"
+             aria-label="{{ c.title }} — {{ c.source_name }} ({{ c.day }})">
+            <span class="callout-title">{{ c.title }}</span>
+            <span class="callout-meta">{{ c.source_name }} · {{ c.day }}</span>
+          </a>
+        {% endfor %}
+      </div>
+
+      <div class="viz-axis" aria-hidden="true">
+        {% for t in ticks %}<span class="axis-tick{% if t.pct > 92 %} axis-tick-end{% elif t.pct < 8 %} axis-tick-start{% endif %}" style="left: {{ t.pct }}%">{{ t.label }}</span>{% endfor %}
+      </div>
+
+      <div class="topic-strip">
+        {% for row in strip %}
+          <div class="strip-label">
+            {% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}<span>{{ row.label }}</span>{% endif %}
+            <span class="strip-count">{{ row.total }}</span>
           </div>
-          <div class="lane-plot" style="height: {{ lane.height }}px">
-            {% for t in ticks %}<span class="lane-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
-            {% for m in lane.markers %}
-              {% if m.overflow %}
-                <a class="lane-dot lane-dot-more" href="#timeline-stories"
-                   style="left: {{ m.pct }}%; bottom: {{ m.bottom }}px; width: {{ m.size }}px; height: {{ m.size }}px"
-                   title="{{ m.overflow }} more signal{{ '' if m.overflow == 1 else 's' }} on {{ m.day }} — full list below"
-                   aria-label="{{ m.overflow }} more signal{{ '' if m.overflow == 1 else 's' }} on {{ m.day }} — full list below"></a>
-              {% else %}
-                <a class="lane-dot" href="/story/{{ m.item_id }}"
-                   style="left: {{ m.pct }}%; bottom: {{ m.bottom }}px; width: {{ m.size }}px; height: {{ m.size }}px"
-                   title="{{ m.title }} — {{ m.source_name }} ({{ m.day }})"
-                   aria-label="{{ m.title }} — {{ m.source_name }} ({{ m.day }})"></a>
-              {% endif %}
+          <div class="strip-plot" style="--topic: {{ row.color }}">
+            {% for t in ticks %}<span class="viz-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
+            {% for b in row.bubbles %}
+              <a class="strip-bubble"
+                 style="left: {{ b.pct }}%; width: {{ b.size }}px; height: {{ b.size }}px"
+                 href="{{ row.href or '#timeline-stories' }}"
+                 title="{{ b.count }} signal{{ '' if b.count == 1 else 's' }} — {{ row.label }}, {{ b.day }}"
+                 aria-label="{{ b.count }} signal{{ '' if b.count == 1 else 's' }} — {{ row.label }}, {{ b.day }}"></a>
             {% endfor %}
           </div>
         {% endfor %}
-        <div class="lane-label" aria-hidden="true"></div>
-        <div class="lane-plot lane-axis" aria-hidden="true">
-          {% for t in ticks %}<span class="axis-tick{% if t.pct > 92 %} axis-tick-end{% elif t.pct < 8 %} axis-tick-start{% endif %}" style="left: {{ t.pct }}%">{{ t.label }}</span>{% endfor %}
-        </div>
       </div>
+
+      {% if legend %}{% include "_topic_legend.html" %}{% endif %}
     {% else %}
       <p class="empty">No signals in this window{% if not static_site %} — try a wider window or another filter{% endif %}.</p>
     {% endif %}
@@ -52,6 +79,9 @@
   {% if stories %}
     <section id="timeline-stories">
       <h2 class="timeline-stories-h">Signals in this window</h2>
+      {% if list_truncated %}
+        <p class="muted">Showing the {{ stories|length }} most recent of {{ total }} — see the <a href="/">Feed</a> for the full archive.</p>
+      {% endif %}
       {% include "_story_list.html" %}
     </section>
   {% endif %}

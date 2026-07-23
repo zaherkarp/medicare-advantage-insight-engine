@@ -173,6 +173,61 @@ class TestConfigValidation:
             load_config(project_root_with_config)
 
 
+def test_taxonomy_category_color_round_trips(tmp_path):
+    """A category's `color` is parsed onto CategoryConfig; omitted -> ""."""
+    from ma_signal_monitor.config import AppConfig, _load_taxonomy
+
+    path = tmp_path / "taxonomy.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "categories": {
+                    "membership_movement": {
+                        "label": "Membership Movement",
+                        "description": "Enrollment changes",
+                        "weight": 1.0,
+                        "keywords": ["enrollment"],
+                        "color": "#2a78d6",
+                    },
+                    "policy_regulatory": {
+                        "label": "Policy / Regulatory Changes",
+                        "description": "CMS rules",
+                        "weight": 1.2,
+                        "keywords": ["CMS"],
+                    },
+                }
+            }
+        )
+    )
+    config = AppConfig()
+    _load_taxonomy(path, config)
+    by_key = {c.key: c for c in config.categories}
+    assert by_key["membership_movement"].color == "#2a78d6"
+    assert by_key["policy_regulatory"].color == ""  # omitted -> default
+
+
+@pytest.mark.parametrize("bad_color", ["red", "#12345", "#gggggg", "2a78d6"])
+def test_invalid_category_color_raises(project_root_with_config, bad_color):
+    """ValueError when a category's `color` isn't a 6-digit hex value."""
+    config_dir = project_root_with_config / "config"
+    taxonomy = {
+        "categories": {
+            "membership_movement": {
+                "label": "Membership Movement",
+                "description": "Enrollment changes",
+                "weight": 1.0,
+                "keywords": ["enrollment"],
+                "color": bad_color,
+            },
+        },
+        "watched_entities": ["UnitedHealthcare"],
+    }
+    with open(config_dir / "taxonomy.yaml", "w") as f:
+        yaml.dump(taxonomy, f)
+    with pytest.raises(ValueError, match="color"):
+        load_config(project_root_with_config)
+
+
 def test_source_context_round_trips(tmp_path):
     """A source's `context` field is parsed from sources.yaml."""
     import yaml

@@ -1,0 +1,20 @@
+{# Lookback picker for /timeline (D5/C5): plain-path window chips on the root
+   page (`/timeline`, `/timeline/w/7`, …) — unlike the `?days=` period picker,
+   these survive the static export unchanged, so `show_picker_on_static` is
+   True there. Scoped topic/payer/state timelines reuse this same partial with
+   `?days=` query hrefs instead; those need a live server, so
+   `show_picker_on_static` is False and the control drops out under
+   `static_site`, exactly like `_period_picker.html`. Expects `window_options`
+   — a list of {label, href, active} in display order. #}
+{% if window_options and (show_picker_on_static or not static_site) %}
+  <div class="period-picker">
+    <span class="filter-label">Lookback</span>
+    {% for opt in window_options %}
+      {% if opt.active %}
+        <span class="chip chip-active">{{ opt.label }}</span>
+      {% else %}
+        <a class="chip" href="{{ opt.href }}">{{ opt.label }}</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}

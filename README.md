@@ -20,9 +20,11 @@ On each run, the monitor:
 A bundled **web frontend** then renders that archive as a browsable, paginated
 site with a streamlined navigation: the feed carries a tag-style **filter bar**
 (topic verticals, states, and payers are filters over one archive, not separate
-sections), alongside the Daily Briefing, an **Angles** page (ways of looking at
-the week's signals — cards form where analytical lenses overlap), and a System
-menu holding the Sources directory, discovery candidates, and status dashboard.
+sections), alongside a **Timeline** view (the window's top stories as
+topic-colored callouts over a per-topic bubble strip), the Daily Briefing, an
+**Angles** page (ways of looking at the week's signals — cards form where
+analytical lenses overlap), and a System menu holding the Sources directory,
+discovery candidates, and status dashboard.
 See [Web Frontend & Self-Hosting](#web-frontend--self-hosting).
 
 ## Architecture Overview
@@ -231,6 +233,7 @@ Jinja web app renders it as a browsable site. Pages:
 | Route | Purpose |
 |---|---|
 | `/` | Paginated, reverse-chronological signal feed |
+| `/timeline` and `/timeline/w/{7,90,180,365,all}` | Layered signal timeline — the window's strongest stories as topic-colored callouts on a shared date axis above a per-topic bubble strip (one bubble per day, area ∝ story count), with lookback presets that also survive the static Pages export; scoped twins at `/timeline/topics\|payers\|states/{…}` |
 | `/topics/{category}` | One of the six trigger verticals (e.g. `policy_regulatory`) |
 | `/payers` and `/payers/{slug}` | Payer Intelligence — signals grouped by watched payer, with a signal-volume trend sparkline, signal mix, state footprint, and SEC filings |
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |

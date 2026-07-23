@@ -1,5 +1,6 @@
 """Tests for the FastAPI web frontend."""
 
+import re
 from datetime import datetime, timedelta
 
 import pytest
@@ -822,10 +823,18 @@ def test_search_results_show_timelines_and_picker_preserves_query(
     assert 'href="/search?q=Humana&amp;days=14"' in resp.text
 
 
-# --- Timeline page (swimlanes) ---
+# --- Timeline page (layered callout band + topic strip) ---
 
 
-def test_timeline_page_renders_topic_lanes(sample_config, temp_db):
+def test_topic_color_global_returns_positional_palette_color(sample_config, temp_db):
+    """The `topic_color` Jinja global (registered next to `category_label`)
+    resolves the first configured category to the first palette hex."""
+    app = create_app(sample_config, temp_db)
+    topic_color = app.state.templates.env.globals["topic_color"]
+    assert topic_color(sample_config.categories[0].key) == "#2a78d6"
+
+
+def test_timeline_page_renders_topic_strip(sample_config, temp_db):
     now = datetime.utcnow()
     _seed_story(
         temp_db,
@@ -848,15 +857,24 @@ def test_timeline_page_renders_topic_lanes(sample_config, temp_db):
     text = resp.text
     assert "<h1>Signal Timeline</h1>" in text
     assert "2 signals in the last 30 days" in text
-    # One lane per configured topic (config order), rendered even when quiet.
+    # One strip row per configured topic (config order), rendered even when
+    # quiet, each wearing its config-order palette color.
     for cat in sample_config.categories:
         assert cat.label in text
-    # Lane labels link to the scoped topic timelines.
+    assert 'style="--topic: #2a78d6"' in text  # membership_movement (index 0)
+    assert 'style="--topic: #008300"' in text  # policy_regulatory (index 1)
+    # Strip labels link to the scoped topic timelines.
     assert 'href="/timeline/topics/membership_movement"' in text
-    # Stories plot as linked dots with native tooltips.
-    assert 'class="lane-dot"' in text
+    # The legend lists every configured topic (no "Other" — nothing stray).
+    assert 'class="timeline-legend"' in text
+    assert text.count('class="legend-item"') == len(sample_config.categories)
+    # The window's strongest stories plot as labeled callout cards.
+    assert 'class="callout"' in text
     assert 'href="/story/uhc-1"' in text
-    assert "UnitedHealthcare adds counties — Test Feed" in text
+    assert 'href="/story/pol-1"' in text
+    assert "UnitedHealthcare adds counties" in text
+    assert "Test Feed" in text
+    assert 'class="strip-bubble"' in text
     # The plotted set is listed below the chart; the axis labels the days.
     assert 'id="timeline-stories"' in text
     assert 'class="axis-tick' in text
@@ -865,7 +883,7 @@ def test_timeline_page_renders_topic_lanes(sample_config, temp_db):
     assert 'href="/timeline/payers/unitedhealthcare"' in text
 
 
-def test_timeline_topic_scope_flips_to_payer_lanes(sample_config, temp_db):
+def test_timeline_topic_scope_flips_to_payer_strip_one_color(sample_config, temp_db):
     now = datetime.utcnow()
     _seed_story(
         temp_db,
@@ -878,7 +896,7 @@ def test_timeline_topic_scope_flips_to_payer_lanes(sample_config, temp_db):
     _seed_story(
         temp_db,
         "plain",
-        "CMS proposes a rule",  # entityless → lands in the "Other" lane
+        "CMS proposes a rule",  # entityless → lands in the "Other" row
         category="policy_regulatory",
         published=now - timedelta(days=2),
     )
@@ -894,13 +912,20 @@ def test_timeline_topic_scope_flips_to_payer_lanes(sample_config, temp_db):
     resp = client.get("/timeline/topics/policy_regulatory")
     assert resp.status_code == 200
     text = resp.text
-    # Under a topic filter the lane dimension flips to payers.
+    # Under a topic filter the row dimension flips to payers.
     assert 'href="/timeline/payers/humana"' in text
     assert "<span>Other</span>" in text
     # Only this topic's stories are plotted/listed; the topic chip highlights.
     assert 'href="/story/h-1"' in text and 'href="/story/plain"' in text
     assert "UnitedHealthcare adds counties" not in text
     assert 'class="chip chip-active"' in text
+    # No legend under a single-topic scope — every row already shares one color.
+    assert 'class="timeline-legend"' not in text
+    # Every payer row (Humana + Other) wears policy_regulatory's single color.
+    colors = re.findall(r'class="strip-plot" style="--topic: (#[0-9a-fA-F]{6})"', text)
+    assert len(colors) == 2
+    assert len(set(colors)) == 1
+    assert colors[0] == "#008300"  # policy_regulatory is config index 1
     assert client.get("/timeline/topics/not_a_category").status_code == 404
 
 
@@ -970,10 +995,49 @@ def test_timeline_page_days_param_clamps(sample_config, temp_db):
         published=datetime.utcnow(),
     )
     client = TestClient(create_app(sample_config, temp_db))
-    assert "in the last 90 days" in client.get("/timeline?days=9999").text
+    # The /timeline page's own clamp ceiling is wider than the feed's (365).
+    assert "in the last 365 days" in client.get("/timeline?days=9999").text
     assert "in the last 30 days" in client.get("/timeline?days=abc").text
-    # Period presets render as links on the live app.
-    assert 'href="/timeline?days=14"' in client.get("/timeline").text
+    resp = client.get("/timeline")
+    # Root picker chips are plain paths (D5), not ?days= links, so they survive
+    # a static export unchanged.
+    assert 'href="/timeline/w/7"' in resp.text
+    assert 'href="/timeline/w/all"' in resp.text
+    assert 'href="/timeline?days=' not in resp.text
+    # The active (default 30-day) chip renders as an inert span, not a link.
+    assert '<span class="chip chip-active">30 days</span>' in resp.text
+    assert 'href="/timeline/w/30"' not in resp.text
+
+
+def test_timeline_window_all_shows_all_time_label(sample_config, temp_db):
+    # "all" spans back to the archive's true oldest story, clamped to 730 days
+    # (D6) — 400 days ago safely clears the 30-day default without hitting
+    # that cap.
+    _seed_story(
+        temp_db,
+        "old",
+        "An old-archive signal",
+        category="policy_regulatory",
+        published=datetime.utcnow() - timedelta(days=400),
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    assert "An old-archive signal" not in client.get("/timeline").text
+    resp = client.get("/timeline/w/all")
+    assert resp.status_code == 200
+    assert "all time" in resp.text
+    assert "An old-archive signal" in resp.text
+
+
+def test_timeline_window_30_redirects_to_root(sample_config, temp_db):
+    client = TestClient(create_app(sample_config, temp_db), follow_redirects=False)
+    resp = client.get("/timeline/w/30")
+    assert resp.status_code == 301
+    assert resp.headers["location"] == "/timeline"
+
+
+def test_timeline_window_unknown_token_404(sample_config, temp_db):
+    client = TestClient(create_app(sample_config, temp_db))
+    assert client.get("/timeline/w/nope").status_code == 404
 
 
 def test_timeline_empty_window_shows_empty_state(client):
@@ -982,29 +1046,28 @@ def test_timeline_empty_window_shows_empty_state(client):
     assert resp.status_code == 200
     assert "0 signals in the last 30 days" in resp.text
     assert "No signals in this window" in resp.text
-    assert "lane-dot" not in resp.text
+    assert 'class="callout"' not in resp.text
     assert 'id="timeline-stories"' not in resp.text
 
 
-def test_timeline_deep_day_stack_collapses_into_overflow_dot(sample_config, temp_db):
+def test_timeline_list_truncates_past_100_but_total_stays_accurate(
+    sample_config, temp_db
+):
     now = datetime.utcnow()
-    for i in range(6):
+    for i in range(120):
         _seed_story(
             temp_db,
             f"burst-{i}",
             f"Rule fallout piece {i}",
             category="policy_regulatory",
-            score=0.4 + i / 20,
-            published=now - timedelta(days=1),
+            score=0.3 + (i % 50) / 100,
+            published=now - timedelta(hours=i),
         )
     client = TestClient(create_app(sample_config, temp_db))
     text = client.get("/timeline").text
-    assert 'class="lane-dot lane-dot-more"' in text
-    assert 'href="#timeline-stories"' in text
-    assert "3 more signals on" in text
-    # All six still appear in the list below the chart.
-    for i in range(6):
-        assert f"Rule fallout piece {i}" in text
+    assert "120 signals in the last 30 days" in text
+    assert "Showing the 100 most recent of 120" in text
+    assert text.count('class="story-card"') == 100
 
 
 def test_story_page_links_to_scoped_timeline(client, sample_config, temp_db):

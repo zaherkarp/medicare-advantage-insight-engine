@@ -1,0 +1,11 @@
+{# Legend for the /timeline topic-colored callouts/bubbles. Expects `legend` —
+   a list of dicts {key, label, color, total} in config order (falsy/None
+   under a single-topic scope, where every row already shares one color).
+   Renders nothing when `legend` is falsy. #}
+{% if legend %}
+  <div class="timeline-legend">
+    {% for e in legend %}
+      <span class="legend-item" style="--topic: {{ e.color }}"><span class="legend-swatch" aria-hidden="true"></span>{{ e.label }} <span class="chip-count">{{ e.total }}</span></span>
+    {% endfor %}
+  </div>
+{% endif %}

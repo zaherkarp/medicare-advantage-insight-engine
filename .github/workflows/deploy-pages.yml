@@ -68,6 +68,9 @@ jobs:
       - name: Ingest latest signals
         run: ma-signal-monitor
 
+      - name: Backfill categorization under current taxonomy
+        run: ma-signal-backfill
+
       - name: Generate Daily Briefing (and email if configured)
         env:
           DIGEST_ENABLED: ${{ secrets.SMTP_HOST != '' && 'true' || 'false' }}

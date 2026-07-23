@@ -379,6 +379,47 @@ class StateStore:
             )
         conn.commit()
 
+    def update_story_classification(
+        self, item_id: str, primary_category: str, categories: list[str]
+    ) -> None:
+        """Rewrite a story's category fields (the reclassification backfill).
+
+        Used by :mod:`ma_signal_monitor.backfill` to move an archived row onto
+        today's taxonomy without touching anything else. Deliberately narrow
+        — see that module's docstring for why ``relevance_score``/``entities``/
+        ``states`` are a separate, opt-in write (:meth:`update_story_scoring`).
+        ``stories_fts`` indexes only title/summary, so no FTS maintenance is
+        needed here. Does not commit: the backfill CLI processes the whole
+        archive and batches commits itself (see ``_clean_story_titles`` for
+        the same caller-commits pattern).
+        """
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE stories SET primary_category = ?, categories = ? WHERE item_id = ?",
+            (primary_category, json.dumps(categories), item_id),
+        )
+
+    def update_story_scoring(
+        self,
+        item_id: str,
+        relevance_score: float,
+        entities: list[str],
+        states: list[str],
+    ) -> None:
+        """Rewrite a story's scoring fields (the backfill's ``--rescore`` path).
+
+        Companion to :meth:`update_story_classification` for the opt-in
+        rescore mode, which additionally refreshes the fields that can move a
+        story across ``archive_min_score``/digest visibility thresholds. Same
+        caller-commits convention (no commit here).
+        """
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE stories SET relevance_score = ?, entities = ?, states = ? "
+            "WHERE item_id = ?",
+            (relevance_score, json.dumps(entities), json.dumps(states), item_id),
+        )
+
     @staticmethod
     def _fts_query(query: str) -> str:
         """Build a safe FTS5 MATCH expression (AND of quoted prefix terms)."""
@@ -1041,6 +1082,32 @@ class StateStore:
                 continue
         series = daily_series(dates, days, now)
         return [{"day": d.isoformat(), "count": c} for d, c in series]
+
+    def get_oldest_story_key(
+        self,
+        *,
+        category: str | None = None,
+        state: str | None = None,
+        entity_aliases: list[str] | None = None,
+        min_score: float = 0.0,
+    ) -> str | None:
+        """Oldest in-scope story's sort key, for the /timeline "all" window (D6).
+
+        Same ``COALESCE(published_date, fetched_at)`` fallback :meth:`get_stories`
+        orders by, and the same :meth:`_story_filters` scoping — no ``since``,
+        since the point is to find where the archive's window *should* start.
+        Returns ``None`` when nothing matches (an empty archive or an empty
+        scope) so callers can fall back to a sane default window instead of
+        erroring.
+        """
+        conn = self._get_conn()
+        where, params = self._story_filters(category, state, min_score, entity_aliases)
+        row = conn.execute(
+            f"SELECT MIN(COALESCE(published_date, fetched_at)) AS oldest "
+            f"FROM stories{where}",
+            params,
+        ).fetchone()
+        return row["oldest"] if row and row["oldest"] is not None else None
 
     # --- Delivery Logging ---
 
