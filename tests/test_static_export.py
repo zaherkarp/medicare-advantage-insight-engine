@@ -539,12 +539,15 @@ def test_timeline_pages_exported(tmp_path, sample_config, temp_db):
     assert (out / "timeline" / "topics" / "policy_regulatory.html").exists()
     assert (out / "timeline" / "payers" / "humana.html").exists()
     assert (out / "timeline" / "states" / "TX.html").exists()
+    # The emergent-thread lane exports too, frozen at the default window.
+    assert (out / "timeline" / "threads.html").exists()
     # The 5 explicit lookback windows (D5) export alongside the default page.
     for token in ("7", "90", "180", "365", "all"):
         assert (out / "timeline" / "w" / f"{token}.html").exists()
     assert counts["timelines"] == (
         1  # root /timeline
         + 5  # /timeline/w/{7,90,180,365,all}
+        + 1  # /timeline/threads lane
         + len(sample_config.categories)
         + len(PAYER_GROUPS)
         + 1  # the one state with stories

@@ -46,6 +46,21 @@ processing:
     enabled: true
     lookback_days: 3
 
+# Layered-timeline emergent story threads (the /timeline/threads lane). Clusters
+# the window's stories into on-the-fly "threads" by headline+entity similarity,
+# names each from its most distinctive terms, and orders them along the declared
+# causal model. Fully deterministic — no ML, no embeddings, no external calls.
+timeline:
+  threads:
+    enabled: true
+    # Title/entity-token Jaccard at/above this joins two stories into one thread.
+    # Keep it BELOW delivery.dedup.similarity_threshold (0.6): a thread is looser
+    # than a near-duplicate.
+    similarity_threshold: 0.28
+    # A cluster needs at least this many stories to show as its own thread row;
+    # smaller clusters fold into the "Ungrouped signals" row.
+    min_stories: 2
+
 # Storage settings
 storage:
   # How long to keep seen items in days (for dedupe)

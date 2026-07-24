@@ -8,6 +8,14 @@
     {# Lookback picker: plain-path window chips that also survive the static export.
        Ships in a later workstream — tolerate its absence until then. #}
     {% include "_window_picker.html" ignore missing %}
+    {# Topics ↔ Threads grouping toggle (root chart + threads lane only). #}
+    {% if view_toggle %}
+      <nav class="timeline-views" aria-label="Timeline grouping">
+        {% for v in view_toggle %}
+          <a class="timeline-view{% if v.active %} is-active{% endif %}" href="{{ v.href }}"{% if v.active %} aria-current="page"{% endif %}>{{ v.label }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
   </section>
 
   {% set filter_prefix = "/timeline" %}
@@ -71,6 +79,7 @@
       </div>
 
       {% if legend %}{% include "_topic_legend.html" %}{% endif %}
+      {% if thread_legend %}{% include "_thread_legend.html" %}{% endif %}
     {% else %}
       <p class="empty">No signals in this window{% if not static_site %} — try a wider window or another filter{% endif %}.</p>
     {% endif %}

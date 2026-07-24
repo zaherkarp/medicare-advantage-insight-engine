@@ -25,6 +25,7 @@ from ma_signal_monitor.payers import (
     get_group,
 )
 from ma_signal_monitor.storage import VALID_VERDICTS
+from ma_signal_monitor.threads import build_threads
 from ma_signal_monitor.timeline_layout import (
     axis_ticks,
     build_callout_band,
@@ -412,6 +413,53 @@ def _timeline_strip_groups(
         if leftovers:
             groups.append(("other", "Other", None, FALLBACK_TOPIC_COLOR, leftovers))
     return groups
+
+
+def _timeline_thread_groups(
+    stories: list[dict],
+    config,
+    *,
+    color_map: dict[str, str],
+) -> tuple[list[tuple[str, str, str | None, str, list[dict]]], list[dict]]:
+    """Emergent-thread strip groups for the /timeline/threads lane.
+
+    Clusters the window into on-the-fly threads (:func:`threads.build_threads`)
+    and emits the ``(key, label, href, color, stories)`` shape
+    :func:`ma_signal_monitor.timeline_layout.build_strip` expects — one row per
+    thread, colored by its dominant topic and ordered along the causal cascade,
+    plus a trailing "Ungrouped signals" row so every story lands in exactly one
+    row and the chart total still matches the list. Returns ``(groups, legend)``;
+    the legend describes each thread with its causal layer.
+    """
+    threads, ungrouped = build_threads(
+        stories,
+        config,
+        threshold=config.thread_similarity_threshold,
+        min_stories=config.thread_min_stories,
+    )
+    groups: list[tuple[str, str, str | None, str, list[dict]]] = []
+    legend: list[dict] = []
+    for t in threads:
+        color = (
+            topic_color(t.dominant_category, color_map)
+            if t.dominant_category
+            else FALLBACK_TOPIC_COLOR
+        )
+        groups.append((t.key, t.label, None, color, list(t.stories)))
+        legend.append(
+            {
+                "key": t.key,
+                "label": t.label,
+                "color": color,
+                "total": t.total,
+                "layer": t.layer_label,
+            }
+        )
+    if ungrouped:
+        groups.append(
+            ("ungrouped", "Ungrouped signals", None, FALLBACK_TOPIC_COLOR, ungrouped)
+        )
+    return groups, legend
 
 
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
@@ -901,6 +949,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         state: str | None = None,
         payer_group: PayerGroup | None = None,
         window_token: str | None = None,
+        threads: bool = False,
     ) -> HTMLResponse:
         """Shared renderer for the layered timeline page and its scoped twins.
 
@@ -919,7 +968,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         store = request.app.state.store
         config = request.app.state.config
         floor = config.archive_min_score
-        is_root = category is None and state is None and payer_group is None
+        is_root = (
+            category is None and state is None and payer_group is None and not threads
+        )
         entity_aliases = list(payer_group.aliases) if payer_group else None
 
         raw_window = (
@@ -970,18 +1021,26 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             color_map=color_map,
             fallback_color=FALLBACK_TOPIC_COLOR,
         )
-        mode = "payers" if category else "topics"
-        groups = _timeline_strip_groups(
-            stories,
-            config,
-            mode=mode,
-            scope_qs=scope_qs,
-            color_map=color_map,
-            scoped_category=category,
-        )
+        thread_legend = None
+        if threads:
+            mode = "threads"
+            groups, thread_legend = _timeline_thread_groups(
+                stories, config, color_map=color_map
+            )
+        else:
+            mode = "payers" if category else "topics"
+            groups = _timeline_strip_groups(
+                stories,
+                config,
+                mode=mode,
+                scope_qs=scope_qs,
+                color_map=color_map,
+                scoped_category=category,
+            )
         strip = build_strip(groups, days=days, now=now)
         # A legend only makes sense with more than one color in play — under a
-        # topic scope every row already wears the same single color (C3).
+        # topic scope every row already wears the same single color (C3); the
+        # threads lane brings its own causal-aware legend (thread_legend).
         legend = (
             [
                 {
@@ -993,6 +1052,18 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 for row in strip
             ]
             if mode == "topics"
+            else None
+        )
+
+        # Topics ↔ Threads toggle, shown on the unscoped root chart and the
+        # threads lane only (the emergent lane clusters the whole window). Plain
+        # canonical hrefs keep it static-export-safe.
+        view_toggle = (
+            [
+                {"label": "Topics", "href": "/timeline", "active": not threads},
+                {"label": "Threads", "href": "/timeline/threads", "active": threads},
+            ]
+            if is_root or threads
             else None
         )
 
@@ -1043,6 +1114,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "ticks": axis_ticks(days, now),
                 "strip": strip,
                 "legend": legend,
+                "thread_legend": thread_legend,
+                "view_toggle": view_toggle,
                 "stories": stories[:TIMELINE_LIST_MAX],
                 "total": total,
                 "list_truncated": list_truncated,
@@ -1099,6 +1172,24 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             "one topic-colored bubble row apiece.",
             base_path="/timeline",
             window_token=token,
+        )
+
+    @app.get("/timeline/threads", response_class=HTMLResponse)
+    def timeline_threads(request: Request) -> HTMLResponse:
+        """Emergent story-thread lane: the window clustered on the fly.
+
+        On by default (``config.threads_enabled``); disabling it 404s the lane,
+        like any other unknown timeline route.
+        """
+        if not request.app.state.config.threads_enabled:
+            raise HTTPException(status_code=404, detail="Threads lane disabled")
+        return _render_timeline(
+            request,
+            heading="Signal Timeline — Threads",
+            subtitle="The window's signals clustered into emergent threads, "
+            "each named from its own language and placed on the causal cascade.",
+            base_path="/timeline/threads",
+            threads=True,
         )
 
     @app.get("/timeline/topics/{category_key}", response_class=HTMLResponse)

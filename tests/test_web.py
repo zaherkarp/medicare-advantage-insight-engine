@@ -1,5 +1,6 @@
 """Tests for the FastAPI web frontend."""
 
+import dataclasses
 import re
 from datetime import datetime, timedelta
 
@@ -1082,3 +1083,63 @@ def test_story_page_links_to_scoped_timeline(client, sample_config, temp_db):
     # An uncategorized, entityless story gets no timeline link.
     _seed_story(temp_db, "bare", "A bare signal", category="uncategorized")
     assert "View related coverage" not in client.get("/story/bare").text
+
+
+def _seed_recent(store, item_id, title, *, category, entities=None):
+    """Seed a story dated now so it lands inside the timeline's default window."""
+    _seed_story(
+        store,
+        item_id,
+        title,
+        category=category,
+        entities=entities,
+        published=datetime.utcnow(),
+    )
+
+
+def test_timeline_threads_lane_clusters_and_labels(sample_config, temp_db):
+    # Two near-identical Star Ratings stories cluster into one emergent thread;
+    # an unrelated story folds into the honest "Ungrouped signals" row.
+    _seed_recent(
+        temp_db,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-3",
+        "Aetna launches value-based care partnership network",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    # The grouping toggle renders (Threads view), and the emergent thread is
+    # named from its own distinctive language in the threads legend.
+    assert 'class="timeline-views"' in resp.text
+    assert "timeline-legend-threads" in resp.text
+    assert re.search(r"star|ratings|methodolog", resp.text, re.I)
+    assert "Ungrouped signals" in resp.text
+
+
+def test_timeline_root_shows_threads_toggle(client):
+    resp = client.get("/timeline")
+    assert resp.status_code == 200
+    assert 'class="timeline-views"' in resp.text
+    assert 'href="/timeline/threads"' in resp.text
+
+
+def test_timeline_threads_disabled_returns_404(sample_config, temp_db):
+    cfg = dataclasses.replace(sample_config, threads_enabled=False)
+    client = TestClient(create_app(cfg, temp_db))
+    assert client.get("/timeline/threads").status_code == 404
