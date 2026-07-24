@@ -342,6 +342,10 @@ def build_site(
         grab(f"/timeline/payers/{group.slug}", f"timeline/payers/{group.slug}.html")
     for code in store.get_state_counts(min_score=floor):
         grab(f"/timeline/states/{code}", f"timeline/states/{code}.html")
+    # Emergent-thread lane, frozen at the default window (its picker uses ?days=,
+    # which needs a live server); only when enabled, else the route 404s.
+    if config.threads_enabled:
+        grab("/timeline/threads", "timeline/threads.html")
     story_rows = store.get_stories(limit=_MAX_STORY_PAGES, min_score=floor)
     for row in story_rows:
         grab(f"/story/{row['item_id']}", f"story/{row['item_id']}.html")
@@ -368,6 +372,7 @@ def build_site(
         "digests": len(store.list_digests(limit=400)),
         "timelines": 1  # root /timeline
         + 5  # /timeline/w/{7,90,180,365,all} window pages
+        + (1 if config.threads_enabled else 0)  # /timeline/threads lane
         + len(config.categories)
         + len(PAYER_GROUPS)
         + len(store.get_state_counts(min_score=floor)),

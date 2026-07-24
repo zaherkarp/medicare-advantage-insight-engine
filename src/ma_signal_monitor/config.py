@@ -190,6 +190,16 @@ class AppConfig:
     story_dedup_enabled: bool = True
     story_dedup_lookback_days: int = 3
 
+    # Layered-timeline emergent story threads (timeline.threads in app.yaml). The
+    # /timeline/threads lane clusters the window into on-the-fly threads by
+    # headline+entity token-Jaccard (deliberately looser than
+    # ``dedup_similarity_threshold`` — a thread is broader than a near-duplicate),
+    # names each from its most distinctive terms, and orders them along the
+    # declared causal model. All deterministic (no ML). Disabled -> the lane 404s.
+    threads_enabled: bool = True
+    thread_similarity_threshold: float = 0.28
+    thread_min_stories: int = 2
+
     # Processing settings
     max_item_age_days: int = 7
     max_summary_length: int = 500
@@ -564,6 +574,14 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
         "lookback_days", config.story_dedup_lookback_days
     )
 
+    timeline = data.get("timeline", {})
+    threads = timeline.get("threads", {})
+    config.threads_enabled = threads.get("enabled", config.threads_enabled)
+    config.thread_similarity_threshold = threads.get(
+        "similarity_threshold", config.thread_similarity_threshold
+    )
+    config.thread_min_stories = threads.get("min_stories", config.thread_min_stories)
+
     storage = data.get("storage", {})
     config.seen_item_retention_days = storage.get(
         "seen_item_retention_days", config.seen_item_retention_days
@@ -652,6 +670,17 @@ def _validate_config(config: AppConfig) -> None:
     if not 0.0 <= config.archive_min_score <= 1.0:
         raise ValueError(
             f"archive_min_score must be between 0.0 and 1.0, got: {config.archive_min_score}"
+        )
+
+    if not 0.0 <= config.thread_similarity_threshold <= 1.0:
+        raise ValueError(
+            "thread_similarity_threshold must be between 0.0 and 1.0, got: "
+            f"{config.thread_similarity_threshold}"
+        )
+
+    if config.thread_min_stories < 1:
+        raise ValueError(
+            f"thread_min_stories must be >= 1, got: {config.thread_min_stories}"
         )
 
     # Only validate the causal model when one is actually loaded — the whole

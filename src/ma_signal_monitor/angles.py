@@ -23,6 +23,12 @@ feeds it the web layer's facet dicts for the current and previous windows.
 
 from itertools import combinations
 
+from ma_signal_monitor.causal import (
+    edge_map as _edge_map,
+    layer_map as _layer_map,
+    layers_for_topics as _layers_for_topics,
+    lookup_edge as _lookup_edge,
+)
 from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.geo import state_name
@@ -187,37 +193,6 @@ def _bucket_pairs(stories: list[dict], config: AppConfig) -> dict[tuple, list[di
                     for b in lenses[lens_b]:
                         buckets.setdefault((typ, a, b), []).append(s)
     return buckets
-
-
-def _edge_map(config: AppConfig) -> dict[tuple[str, str], object]:
-    """Directed ``(source, target) -> edge`` lookup for the causal model."""
-    return {(e.source, e.target): e for e in config.causal_edges}
-
-
-def _lookup_edge(edge_map: dict, a: str, b: str):
-    """Return the edge joining topics ``a`` and ``b`` in either order, else None.
-
-    Edges are downstream-only, so at most one of ``(a, b)`` / ``(b, a)`` can be
-    declared — the pair is unambiguous however the canonical bucket key sorted
-    it.
-    """
-    return edge_map.get((a, b)) or edge_map.get((b, a))
-
-
-def _layer_map(config: AppConfig) -> dict[str, object]:
-    """``category_key -> layer`` lookup (each category sits in one layer)."""
-    return {cat: layer for layer in config.causal_layers for cat in layer.categories}
-
-
-def _layers_for_topics(topic_keys: list[str], layer_map: dict) -> list[dict]:
-    """Distinct layers the topics span, in causal (upstream→downstream) order."""
-    seen: dict[str, object] = {}
-    for key in topic_keys:
-        layer = layer_map.get(key)
-        if layer is not None and layer.key not in seen:
-            seen[layer.key] = layer
-    ordered = sorted(seen.values(), key=lambda ly: ly.order)
-    return [{"key": ly.key, "label": ly.label, "short": ly.short} for ly in ordered]
 
 
 def _side(lens: str, value: str, config: AppConfig) -> dict:

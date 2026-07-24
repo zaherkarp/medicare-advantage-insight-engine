@@ -55,3 +55,11 @@ addopts = "-v --tb=short"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff.lint]
+# Pin the lint rule set to Ruff's historical default (pycodestyle E4/E7/E9 +
+# Pyflakes F). CI installs Ruff unpinned, and newer Ruff releases broaden the
+# implicit default set (0.16, for example, added flake8-datetimez, refurb, and
+# more), which would fail the entire existing codebase on a version bump.
+# Declaring the set explicitly keeps `ruff check` deterministic across versions.
+select = ["E4", "E7", "E9", "F"]
