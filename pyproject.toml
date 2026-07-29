@@ -11,8 +11,7 @@ requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = [
     "requests>=2.31.0",
-    "feedparser>=6.0.10",
-    "sgmllib3k>=1.0.0",
+    "feedparser>=6.0.13",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.1",
 ]

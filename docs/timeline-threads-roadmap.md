@@ -141,7 +141,7 @@ Pick as needed; each is independent.
 ## Run / verify (any phase)
 
 ```bash
-pip install -e ".[dev,web]"        # if sgmllib3k wheel fails: prefix SETUPTOOLS_USE_DISTUTILS=stdlib
+pip install -e ".[dev,web]"
 python scripts/seed_test_data.py   # populate the stories archive
 uvicorn ma_signal_monitor.web.app:app_factory --factory --port 8000
 # visit /timeline/threads  and  /timeline  (Topics ↔ Threads toggle)
