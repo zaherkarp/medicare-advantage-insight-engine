@@ -14,22 +14,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# feedparser depends on sgmllib3k, which fails to build a wheel with modern
-# setuptools/pip — install the single-file module from source, then feedparser
-# without deps (mirrors .github/workflows/scheduled-monitor.yml).
-RUN pip install --upgrade pip \
-    && pip download sgmllib3k --no-binary :all: -d /tmp/sgml \
-    && tar xzf /tmp/sgml/sgmllib3k-*.tar.gz -C /tmp/sgml \
-    && cp /tmp/sgml/sgmllib3k-*/sgmllib.py "$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')" \
-    && pip install "feedparser>=6.0.10" --no-deps \
-    && rm -rf /tmp/sgml
-
 # Install dependencies first (better layer caching), then the package.
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install ".[web]" --no-deps \
-    && pip install requests python-dotenv pyyaml \
-       fastapi "uvicorn[standard]" jinja2 apscheduler
+RUN pip install --upgrade pip \
+    && pip install ".[web]"
 
 COPY config ./config
 
