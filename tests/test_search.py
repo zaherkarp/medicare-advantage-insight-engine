@@ -167,6 +167,59 @@ def test_upsert_keeps_fts_in_sync(temp_db):
     assert len(temp_db.search_stories("telehealth")) == 1
 
 
+def test_search_filtered_combines_keyword_and_category(temp_db):
+    _seed_corpus(temp_db)
+    # "Medicare" matches s1 and s2's summaries; the category filter narrows
+    # to just s1 — exactly the combination neither search_stories() (no
+    # category filter) nor get_stories() (no keyword search) covers alone.
+    rows = temp_db.search_stories_filtered("Medicare", category="policy_regulatory")
+    assert {r["item_id"] for r in rows} == {"s1"}
+
+
+def test_search_filtered_respects_state_and_entity_aliases(temp_db):
+    _seed_corpus(temp_db)
+    rows = temp_db.search_stories_filtered(
+        "Medicare", state="TX", entity_aliases=["UnitedHealthcare"]
+    )
+    assert {r["item_id"] for r in rows} == {"s2"}
+    assert temp_db.search_stories_filtered("Medicare", state="CA") == []
+
+
+def test_search_filtered_since(temp_db):
+    _seed_corpus(temp_db)  # all published 2024-01-01
+    assert len(temp_db.search_stories_filtered("Medicare", since="2024-01-01")) == 2
+    assert temp_db.search_stories_filtered("Medicare", since="2024-06-01") == []
+
+
+def test_search_filtered_min_score(temp_db):
+    _seed(temp_db, "hi", "Medicare Advantage Star Ratings", summary="A real signal.")
+    _seed_scored(
+        temp_db, "lo", "Medicare mentioned in a local column", "Off-topic.", 0.04
+    )
+    rows = temp_db.search_stories_filtered("Medicare", min_score=0.1)
+    assert {r["item_id"] for r in rows} == {"hi"}
+
+
+def test_count_search_filtered_matches_row_count(temp_db):
+    _seed_corpus(temp_db)
+    assert temp_db.count_search_filtered("Medicare", category="policy_regulatory") == 1
+    assert temp_db.count_search_filtered("Medicare") == 2
+
+
+def test_search_filtered_like_fallback(temp_db):
+    _seed_corpus(temp_db)
+    temp_db.fts_enabled = False
+    rows = temp_db.search_stories_filtered("Medicare", category="policy_regulatory")
+    assert {r["item_id"] for r in rows} == {"s1"}
+    assert temp_db.count_search_filtered("Medicare", category="policy_regulatory") == 1
+
+
+def test_search_filtered_empty_query_returns_nothing(temp_db):
+    _seed_corpus(temp_db)
+    assert temp_db.search_stories_filtered("   ") == []
+    assert temp_db.count_search_filtered("   ") == 0
+
+
 def test_search_route(sample_config, temp_db):
     _seed_corpus(temp_db)
     client = TestClient(create_app(sample_config, temp_db))
