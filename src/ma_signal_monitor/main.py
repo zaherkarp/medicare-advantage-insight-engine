@@ -114,6 +114,7 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
                 public_draft=asdict(draft) if draft else None,
                 states=detect_states(s),
                 duplicate_of=dup_map.get(s.item.item_id),
+                threshold_at_score=config.min_relevance_score,
             )
             persisted += 1
         except Exception as e:

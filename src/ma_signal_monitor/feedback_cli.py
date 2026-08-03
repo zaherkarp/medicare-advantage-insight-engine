@@ -2,6 +2,7 @@
 
 Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
+    ma-signal-feedback alert <item_id> <correct|false_positive|missed>
     ma-signal-feedback ingest-github
     ma-signal-feedback ingest-ntfy
     ma-signal-feedback mine-keywords
@@ -13,6 +14,14 @@ Usage:
 history into the golden set. Verdicts: relevant | irrelevant | wrong_category |
 great. For ``wrong_category`` pass the corrected category key as ``[category]``.
 
+``alert`` records whether a story that was actually posted to the webhook was
+worth surfacing (``correct`` / ``false_positive``), or whether a story that
+should have alerted but didn't (``missed``). This is data collection only —
+it does not retrain scoring weights. Run it periodically against recent
+alerts (see docs/feedback.md). ``correct``/``false_positive`` require the
+story to have actually been delivered; ``missed`` requires that it wasn't —
+the command checks ``delivery_log`` and refuses a mismatched label.
+
 ``ingest-github`` pulls crowd reactions from giscus-backed Discussions (needs
 GISCUS_* config and a GITHUB_TOKEN). ``ingest-ntfy`` pulls owner 👍/👎 votes from
 the ntfy feedback topic (needs NTFY_FEEDBACK_TOPIC).
@@ -23,6 +32,14 @@ from pathlib import Path
 
 from ma_signal_monitor.config import load_config
 from ma_signal_monitor.storage import VALID_VERDICTS, StateStore
+
+# Friendly CLI words for the `alert` command, mapped to the verdicts stored
+# in the `feedback` table (see storage.ALERT_VERDICTS).
+_ALERT_VERDICT_WORDS = {
+    "correct": "alert_correct",
+    "false_positive": "alert_false_positive",
+    "missed": "alert_missed",
+}
 
 
 def _open(root: Path) -> tuple:
@@ -59,6 +76,34 @@ def main() -> None:
                 item_id, verdict, channel="cli", suggested_category=category
             )
             print(f"Recorded {verdict} for {item_id}.")
+
+        elif cmd == "alert" and len(args) >= 3:
+            item_id, word = args[1], args[2]
+            if word not in _ALERT_VERDICT_WORDS:
+                print(
+                    f"Unknown alert verdict {word!r}. "
+                    f"Choose: {', '.join(_ALERT_VERDICT_WORDS)}"
+                )
+                sys.exit(2)
+            if store.get_story(item_id) is None:
+                print(f"No story with id {item_id}.")
+                sys.exit(1)
+            delivered = store.get_alert_delivered(item_id)
+            verdict = _ALERT_VERDICT_WORDS[word]
+            if word in ("correct", "false_positive") and not delivered:
+                print(
+                    f"{item_id} was never successfully posted to the webhook "
+                    "— use 'missed' instead, or check delivery_log."
+                )
+                sys.exit(2)
+            if word == "missed" and delivered:
+                print(
+                    f"{item_id} WAS posted to the webhook — use 'correct' or "
+                    "'false_positive' instead."
+                )
+                sys.exit(2)
+            store.add_feedback(item_id, verdict, channel="cli")
+            print(f"Recorded alert outcome '{word}' for {item_id}.")
 
         elif cmd == "ingest-github":
             from ma_signal_monitor.feedback_ingest import ingest_github_feedback
@@ -145,14 +190,35 @@ def main() -> None:
                 )
 
         elif cmd == "summary" and len(args) >= 2:
-            s = store.get_feedback_summary(args[1])
-            print(f"Story {args[1]}")
+            item_id = args[1]
+            s = store.get_feedback_summary(item_id)
+            print(f"Story {item_id}")
             print(f"  your latest verdict: {s['my_verdict'] or '(none)'}")
             if s["counts"]:
                 for verdict, n in sorted(s["counts"].items()):
                     print(f"  {verdict:<15} {n}")
             else:
                 print("  no feedback yet")
+
+            alert_info = store.get_alert_feedback(item_id)
+            if alert_info:
+                print(f"\n  combined score: {alert_info['relevance_score']}")
+                print(f"  threshold at score time: {alert_info['threshold_at_score']}")
+                print(
+                    f"  posted to webhook: {'yes' if alert_info['delivered'] else 'no'}"
+                )
+                if alert_info["scoring_breakdown"]:
+                    print("  scoring breakdown:")
+                    for r in alert_info["scoring_breakdown"]:
+                        print(
+                            f"    {r['factor']:<18} {r['contribution']:+.3f}  {r['detail']}"
+                        )
+                if alert_info["alert_verdicts"]:
+                    print("  alert verdicts:")
+                    for v in alert_info["alert_verdicts"]:
+                        print(
+                            f"    {v['verdict']:<20} ({v['channel']}, {v['created_at']})"
+                        )
 
         elif cmd == "stats":
             print(f"Total feedback rows: {store.count_feedback()}")

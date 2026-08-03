@@ -20,6 +20,7 @@ class TestDelivery:
         result = deliver_alert(sample_alert, sample_config)
         assert result.success is True
         assert result.status_code == 200
+        assert result.item_id == sample_alert.scored_item.item.item_id
 
     @responses.activate
     def test_client_error_no_retry(self, sample_alert, sample_config):
@@ -34,6 +35,7 @@ class TestDelivery:
         assert result.success is False
         assert result.status_code == 400
         assert len(responses.calls) == 1  # No retries
+        assert result.item_id == sample_alert.scored_item.item.item_id
 
     @responses.activate
     def test_server_error_retries(self, sample_alert, sample_config):
@@ -125,6 +127,7 @@ class TestDelivery:
         result = deliver_alert(sample_alert, sample_config)
         assert result.success is True
         assert result.status_code == 0
+        assert result.item_id == sample_alert.scored_item.item.item_id
 
     @responses.activate
     def test_teams_mode_uses_teams_format(self, sample_alert, sample_config):

@@ -35,6 +35,50 @@ Verdicts: `relevant`, `irrelevant`, `wrong_category`, `great`. For
 `wrong_category`, the corrected category key is stored alongside — the highest
 value signal for future keyword tuning.
 
+## Alert-outcome feedback
+
+A separate, narrower axis from the verdicts above: not "was this story
+relevant" but "was this specific **posted alert** worth surfacing" —
+`alert_correct`, `alert_false_positive` (posted, shouldn't have been), or
+`alert_missed` (never posted, should have been). This is the raw material
+for eventually justifying scoring weights with real precision/recall instead
+of intuition — nothing here retrains anything automatically; it's data
+collection only.
+
+**Where it's captured:** the `cli` channel, same as `mark`. Teams Incoming
+Webhooks (the current `WEBHOOK_MODE=teams` delivery path) are a fire-and-forget
+POST with no message id and no reaction read-back — capturing this from the
+Teams message itself would need a full Bot Framework registration, a large
+lift for a low-frequency, deliberate activity. A periodic CLI sweep is the
+lowest-effort fit for the existing architecture:
+
+```bash
+ma-signal-feedback alert <item_id> correct
+ma-signal-feedback alert <item_id> false_positive
+ma-signal-feedback alert <item_id> missed
+```
+
+`correct`/`false_positive` require the story to have actually been delivered
+successfully (checked against `delivery_log`, which now carries the
+`item_id` of the story each attempt posted); `missed` requires the opposite.
+A mismatched label is rejected rather than silently recorded.
+
+**What's stored alongside it:** every archived story now carries its
+`scoring_breakdown` (the scorer's six-factor reasoning — keyword matches,
+source priority, entity match, MA-term boost, multi-category bonus,
+exclusions) and `threshold_at_score` (`min_relevance_score` at the moment it
+was scored, since that value moves as `taxonomy.yaml` is tuned). A label is
+only useful if it can be traced back to the exact scoring conditions that
+produced it, so both live on the `stories` row rather than being duplicated
+into the feedback row.
+
+**Querying it (read-only, no aggregation yet):**
+`ma-signal-feedback summary <item_id>` now also prints the combined score,
+threshold-at-score-time, delivery status, the full factor breakdown, and
+every alert verdict recorded for that story. There is no precision/recall
+report or disagreement-style digest for this data yet — that's future work
+once enough labels accumulate.
+
 ## Live app widget
 
 The story page shows a progressive-disclosure widget:

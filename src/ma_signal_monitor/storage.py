@@ -4,6 +4,7 @@ browsable story archive that backs the web product."""
 import json
 import logging
 import sqlite3
+from dataclasses import asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -13,7 +14,24 @@ logger = logging.getLogger("ma_signal_monitor.storage")
 
 # Allowed reader-feedback verdicts. Kept small and structured (not free-form)
 # so feedback feeds directly into the keyword-mining and source-yield loops.
-VALID_VERDICTS = frozenset({"relevant", "irrelevant", "wrong_category", "great"})
+# The alert_* verdicts are a distinct axis from the rest: they assert an
+# outcome about a specific *posted-or-not-posted alert* (see
+# StateStore.get_alert_delivered), not a general opinion about the story.
+VALID_VERDICTS = frozenset(
+    {
+        "relevant",
+        "irrelevant",
+        "wrong_category",
+        "great",
+        "alert_correct",
+        "alert_false_positive",
+        "alert_missed",
+    }
+)
+# Verdicts specifically about alert-posting outcomes (feature: feedback loop
+# on scoring accuracy). Kept separate from VALID_VERDICTS' full set so
+# queries can select just this axis without hardcoding the prefix elsewhere.
+ALERT_VERDICTS = frozenset({"alert_correct", "alert_false_positive", "alert_missed"})
 # Channels whose votes are owner ground-truth (weight 1.0). Everything else is
 # advisory crowd signal that surfaces things for review but never auto-mutates.
 OWNER_CHANNELS = frozenset({"local_web", "ntfy", "cli"})
@@ -34,7 +52,13 @@ CREATE TABLE IF NOT EXISTS delivery_log (
     success INTEGER NOT NULL,
     status_code INTEGER,
     error TEXT,
-    timestamp TEXT NOT NULL
+    timestamp TEXT NOT NULL,
+    -- The archived story this delivery attempt posted (or tried to post).
+    -- NULL on rows written before this column existed. Added to existing DBs
+    -- by _ensure_column (see _init_db). Lets alert-outcome feedback (see the
+    -- `feedback` table below) confirm whether a given story was actually
+    -- posted to the webhook before a human labels it correct/false_positive.
+    item_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS run_metadata (
@@ -69,7 +93,17 @@ CREATE TABLE IF NOT EXISTS stories (
     -- item_id of the representative story this one near-duplicates (same story
     -- carried by another source); NULL = this row IS the representative/unique.
     -- Added to existing DBs by _ensure_column (see _init_db).
-    duplicate_of TEXT
+    duplicate_of TEXT,
+    -- JSON list of the scorer's per-factor breakdown (ScoringReason objects:
+    -- factor/detail/contribution) at the time this story was scored. Lets
+    -- alert-outcome feedback trace a label back to exactly which scoring
+    -- factors produced the combined relevance_score. Added by _ensure_column.
+    scoring_breakdown TEXT,
+    -- config.min_relevance_score in effect when this story was scored. The
+    -- threshold moves over time as taxonomy.yaml is tuned, so this snapshot
+    -- is what makes a later "was this alert-worthy" judgment meaningful.
+    -- Added by _ensure_column.
+    threshold_at_score REAL
 );
 
 -- Generated Daily Briefing digests, archived for the /briefing page and so
@@ -204,6 +238,13 @@ class StateStore:
             "CREATE INDEX IF NOT EXISTS idx_stories_duplicate_of "
             "ON stories(duplicate_of)"
         )
+        self._ensure_column("stories", "scoring_breakdown", "TEXT")
+        self._ensure_column("stories", "threshold_at_score", "REAL")
+        self._ensure_column("delivery_log", "item_id", "TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_delivery_log_item_id "
+            "ON delivery_log(item_id)"
+        )
         conn.commit()
 
     def _clean_story_titles(self) -> None:
@@ -336,13 +377,20 @@ class StateStore:
         public_draft: dict | None = None,
         states: list[str] | None = None,
         duplicate_of: str | None = None,
+        threshold_at_score: float | None = None,
     ) -> None:
         """Persist a scored item into the browsable story archive.
 
-        Reuses the fields already computed on the ScoredItem. List/dict fields
-        are stored as JSON. Idempotent via INSERT OR REPLACE on item_id.
-        ``duplicate_of`` is the item_id of the representative story this one
-        near-duplicates (None = it is a representative / unique).
+        Reuses the fields already computed on the ScoredItem, including its
+        ``reasons`` (the scorer's per-factor breakdown), stored as JSON so a
+        later alert-outcome label can be traced back to exactly which scoring
+        factors produced the combined score. ``threshold_at_score`` is the
+        caller's ``config.min_relevance_score`` at scoring time (the
+        threshold moves as taxonomy.yaml is tuned, so this is a snapshot, not
+        a live lookup). List/dict fields are stored as JSON. Idempotent via
+        INSERT OR REPLACE on item_id. ``duplicate_of`` is the item_id of the
+        representative story this one near-duplicates (None = it is a
+        representative / unique).
         """
         conn = self._get_conn()
         item = scored.item
@@ -350,8 +398,9 @@ class StateStore:
             """INSERT OR REPLACE INTO stories
                (item_id, title, link, source_name, source_priority, summary,
                 published_date, fetched_at, relevance_score, primary_category,
-                categories, entities, states, public_draft, duplicate_of)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                categories, entities, states, public_draft, duplicate_of,
+                scoring_breakdown, threshold_at_score)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 item.item_id,
                 item.title,
@@ -368,6 +417,8 @@ class StateStore:
                 json.dumps(states or []),
                 json.dumps(public_draft) if public_draft else None,
                 duplicate_of,
+                json.dumps([asdict(r) for r in scored.reasons]),
+                threshold_at_score,
             ),
         )
         if self.fts_enabled:
@@ -1115,17 +1166,63 @@ class StateStore:
         """Log a delivery attempt."""
         conn = self._get_conn()
         conn.execute(
-            """INSERT INTO delivery_log (alert_title, success, status_code, error, timestamp)
-               VALUES (?, ?, ?, ?, ?)""",
+            """INSERT INTO delivery_log
+               (alert_title, success, status_code, error, timestamp, item_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 result.alert_title,
                 1 if result.success else 0,
                 result.status_code,
                 result.error,
                 result.timestamp.isoformat(),
+                result.item_id,
             ),
         )
         conn.commit()
+
+    def get_alert_delivered(self, item_id: str) -> bool:
+        """True if ``item_id`` was ever successfully posted to the webhook.
+
+        Backs the ``ma-signal-feedback alert`` command's sanity check: a
+        ``correct``/``false_positive`` verdict only makes sense for a story
+        that was actually posted, and ``missed`` only for one that wasn't.
+        """
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT 1 FROM delivery_log WHERE item_id = ? AND success = 1 LIMIT 1",
+            (item_id,),
+        ).fetchone()
+        return row is not None
+
+    def get_alert_feedback(self, item_id: str) -> dict | None:
+        """Join a story's scoring detail with its alert-outcome feedback.
+
+        Returns the six-factor breakdown, combined score, and the threshold
+        in effect when it was scored — the scoring conditions a later
+        ``alert_correct``/``alert_false_positive``/``alert_missed`` label
+        needs to be traceable to — plus whether it was actually delivered and
+        every alert-outcome verdict recorded so far. Read-only reporting: no
+        aggregation across stories (that's future work once labels
+        accumulate). Returns None if the story isn't archived.
+        """
+        story = self.get_story(item_id)
+        if story is None:
+            return None
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT verdict, channel, created_at FROM feedback "
+            "WHERE item_id = ? AND verdict IN (?, ?, ?) ORDER BY id DESC",
+            (item_id, *ALERT_VERDICTS),
+        ).fetchall()
+        return {
+            "item_id": item_id,
+            "title": story["title"],
+            "relevance_score": story["relevance_score"],
+            "threshold_at_score": story["threshold_at_score"],
+            "scoring_breakdown": json.loads(story["scoring_breakdown"] or "[]"),
+            "delivered": self.get_alert_delivered(item_id),
+            "alert_verdicts": [dict(r) for r in rows],
+        }
 
     def recent_alert_titles(self, since_days: int) -> list[str]:
         """Titles of alerts successfully delivered in the last ``since_days``.
