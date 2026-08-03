@@ -112,10 +112,48 @@ def test_nav_is_streamlined(client):
     assert "System ▾" in resp.text
     assert 'href="/angles"' in resp.text
     assert 'href="/timeline"' in resp.text
+    assert 'href="/ask"' in resp.text
     # Demoted sections left the top nav (they live in the filter bar and the
     # System menu now).
     assert "Topics ▾" not in resp.text
     assert "State Intelligence" not in resp.text
+
+
+class TestAsk:
+    """Natural-language query over the archive (read-only, no new engine)."""
+
+    def test_blank_question_just_renders_the_form(self, client):
+        resp = client.get("/ask")
+        assert resp.status_code == 200
+        assert "<form" in resp.text
+        assert "Parsed as:" not in resp.text
+
+    def test_category_only_question_filters_by_category(self, client):
+        # "star ratings" resolves to the policy_regulatory category via its
+        # taxonomy keyword — a pure structured filter, no leftover keywords.
+        resp = client.get("/ask", params={"q": "star ratings"})
+        assert resp.status_code == 200
+        assert "Star Ratings rule" in resp.text  # story-b
+        assert "enrollment in California" not in resp.text  # story-a excluded
+        assert "policy_regulatory" in resp.text
+
+    def test_keyword_fallback_question_uses_full_text_search(self, client):
+        # "expands" matches no taxonomy vocabulary, so it falls through to
+        # the FTS keyword search over title/summary.
+        resp = client.get("/ask", params={"q": "expands"})
+        assert resp.status_code == 200
+        assert "enrollment in California" in resp.text  # story-a
+        assert "Star Ratings rule" not in resp.text  # story-b excluded
+
+    def test_no_matches_shows_empty_state(self, client):
+        resp = client.get("/ask", params={"q": "nonexistent topic zzy"})
+        assert resp.status_code == 200
+        assert "No signals match" in resp.text
+
+    def test_never_writes_to_the_archive(self, client, temp_db):
+        before = temp_db.count_stories()
+        client.get("/ask", params={"q": "everything above alert grade since March"})
+        assert temp_db.count_stories() == before
 
 
 def test_topic_filters_by_category(client):

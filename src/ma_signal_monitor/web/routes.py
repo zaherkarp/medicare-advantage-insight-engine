@@ -24,6 +24,7 @@ from ma_signal_monitor.payers import (
     PayerGroup,
     get_group,
 )
+from ma_signal_monitor.query_parser import parse_query
 from ma_signal_monitor.storage import VALID_VERDICTS
 from ma_signal_monitor.threads import build_threads
 from ma_signal_monitor.timeline_layout import (
@@ -643,6 +644,66 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "day_options": TIMELINE_DAY_OPTIONS,
                 "days_qs": f"&days={days}" if days != TIMELINE_DEFAULT_DAYS else "",
                 "days_base": base_path,
+            },
+        )
+
+    @app.get("/ask", response_class=HTMLResponse)
+    def ask(request: Request) -> HTMLResponse:
+        """Natural-language query over the archive.
+
+        Parses a plain question into the same structured filters /search and
+        the topic/state/payer pages already use (see query_parser.py), then
+        reads the archive. Read-only — never touches scoring, thresholds, or
+        the ingestion pipeline.
+        """
+        store = request.app.state.store
+        config = request.app.state.config
+        question = (request.query_params.get("q") or "").strip()
+        page = _page_param(request)
+        page_size = config.web_page_size
+
+        parsed = None
+        stories: list[dict] = []
+        total = 0
+        total_pages = 1
+        if question:
+            parsed = parse_query(question, config)
+            filter_kwargs = {
+                "category": parsed.category,
+                "state": parsed.state,
+                "min_score": parsed.min_score,
+                "entity_aliases": parsed.entity_aliases or None,
+                "since": parsed.since,
+            }
+            if parsed.keywords:
+                total = store.count_search_filtered(parsed.keywords, **filter_kwargs)
+            else:
+                total = store.count_stories(**filter_kwargs)
+            total_pages = max(1, math.ceil(total / page_size)) if total else 1
+            page = min(page, total_pages)
+            offset = (page - 1) * page_size
+            if parsed.keywords:
+                rows = store.search_stories_filtered(
+                    parsed.keywords, limit=page_size, offset=offset, **filter_kwargs
+                )
+            else:
+                rows = store.get_stories(
+                    limit=page_size, offset=offset, **filter_kwargs
+                )
+            stories = [_story_view(r) for r in rows]
+
+        base_path = f"/ask?q={quote_plus(question)}&"
+        return templates.TemplateResponse(
+            request,
+            "ask.html",
+            {
+                "question": question,
+                "parsed": parsed,
+                "stories": stories,
+                "total": total,
+                "page": page,
+                "total_pages": total_pages,
+                "base_path": base_path,
             },
         )
 

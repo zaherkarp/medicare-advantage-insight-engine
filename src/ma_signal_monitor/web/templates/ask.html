@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{% if question %}Ask: {{ question }}{% else %}Ask{% endif %} — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>Ask the archive</h1>
+    <p class="muted">Ask a plain-language question — e.g. &ldquo;show me everything above alert grade related to
+      star ratings since March&rdquo; or &ldquo;Humana stories in Texas this month&rdquo;. This reads the
+      archive only; it never changes scoring or thresholds.</p>
+    <form class="search-form" action="/ask" method="get">
+      <input type="search" name="q" value="{{ question }}" placeholder="Ask a question about the archive…" autofocus>
+      <button type="submit">Ask</button>
+    </form>
+    {% if parsed %}
+      <p class="muted">Parsed as: {{ parsed.notes|join('; ') }}</p>
+      <p class="muted">{{ total }} result{{ '' if total == 1 else 's' }}</p>
+    {% endif %}
+  </section>
+
+  {% if question and not stories %}
+    <p class="empty">No signals match that question.</p>
+  {% endif %}
+
+  <ul class="story-list">
+    {% for s in stories %}
+      <li class="story-card">
+        <div class="story-meta">
+          <span class="badge badge-cat">{{ category_label(s.primary_category) }}</span>
+          <span class="source">{{ s.source_name }}</span>
+          {% if s.display_date %}<span class="date">{{ s.display_date }}</span>{% endif %}
+          <span class="score">score {{ '%.2f'|format(s.relevance_score) }}</span>
+        </div>
+        <h2 class="story-title"><a href="/story/{{ s.item_id }}">{{ s.title }}</a></h2>
+        {% if s.summary %}<p class="story-summary">{{ s.summary }}</p>{% endif %}
+        <div class="tag-row">
+          {% for e in s.entities %}<span class="badge badge-entity">{{ e }}</span>{% endfor %}
+          {% for st in s.states %}<a class="badge badge-state" href="/states/{{ st }}">{{ state_name(st) }}</a>{% endfor %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if total_pages > 1 %}
+    <nav class="pagination">
+      {% if page > 1 %}
+        <a href="{{ base_path }}page={{ page - 1 }}">← Newer</a>
+      {% else %}<span class="disabled">← Newer</span>{% endif %}
+      <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_path }}page={{ page + 1 }}">Older →</a>
+      {% else %}<span class="disabled">Older →</span>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

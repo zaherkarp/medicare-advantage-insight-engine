@@ -561,6 +561,97 @@ class StateStore:
             params,
         ).fetchone()[0]
 
+    def search_stories_filtered(
+        self,
+        query: str,
+        *,
+        category: str | None = None,
+        state: str | None = None,
+        min_score: float = 0.0,
+        entity_aliases: list[str] | None = None,
+        since: str | None = None,
+        limit: int = 25,
+        offset: int = 0,
+    ) -> list[sqlite3.Row]:
+        """Keyword search combined with the structured filters get_stories() accepts.
+
+        Neither :meth:`search_stories` (keyword + score floor only) nor
+        :meth:`get_stories` (structured filters, no keyword search) covers a
+        parsed natural-language question that combines both — e.g. "show me
+        signals above alert grade about star ratings since March" needs a
+        keyword match *and* a score/date filter together. This reuses the
+        same :meth:`_story_filters` clause-builder and FTS5/LIKE fallback as
+        those two, just combined.
+        """
+        conn = self._get_conn()
+        where, params = self._story_filters(
+            category, state, min_score, entity_aliases, since=since
+        )
+        if self.fts_enabled:
+            match = self._fts_query(query)
+            if not match:
+                return []
+            combined_where = (
+                f"{where} AND stories_fts MATCH ?"
+                if where
+                else " WHERE stories_fts MATCH ?"
+            )
+            return conn.execute(
+                f"""SELECT s.* FROM stories_fts f
+                   JOIN stories s ON s.item_id = f.item_id
+                   {combined_where}
+                   ORDER BY rank LIMIT ? OFFSET ?""",
+                (*params, match, limit, offset),
+            ).fetchall()
+        like = f"%{query.strip()}%"
+        extra = "(title LIKE ? OR summary LIKE ?)"
+        combined_where = f"{where} AND {extra}" if where else f" WHERE {extra}"
+        return conn.execute(
+            f"""SELECT * FROM stories
+               {combined_where}
+               ORDER BY COALESCE(published_date, fetched_at) DESC
+               LIMIT ? OFFSET ?""",
+            (*params, like, like, limit, offset),
+        ).fetchall()
+
+    def count_search_filtered(
+        self,
+        query: str,
+        *,
+        category: str | None = None,
+        state: str | None = None,
+        min_score: float = 0.0,
+        entity_aliases: list[str] | None = None,
+        since: str | None = None,
+    ) -> int:
+        """Count matches for :meth:`search_stories_filtered` (for pagination)."""
+        conn = self._get_conn()
+        where, params = self._story_filters(
+            category, state, min_score, entity_aliases, since=since
+        )
+        if self.fts_enabled:
+            match = self._fts_query(query)
+            if not match:
+                return 0
+            combined_where = (
+                f"{where} AND stories_fts MATCH ?"
+                if where
+                else " WHERE stories_fts MATCH ?"
+            )
+            return conn.execute(
+                f"""SELECT COUNT(*) FROM stories_fts f
+                   JOIN stories s ON s.item_id = f.item_id
+                   {combined_where}""",
+                (*params, match),
+            ).fetchone()[0]
+        like = f"%{query.strip()}%"
+        extra = "(title LIKE ? OR summary LIKE ?)"
+        combined_where = f"{where} AND {extra}" if where else f" WHERE {extra}"
+        return conn.execute(
+            f"SELECT COUNT(*) FROM stories {combined_where}",
+            (*params, like, like),
+        ).fetchone()[0]
+
     @staticmethod
     def _story_filters(
         category: str | None,
