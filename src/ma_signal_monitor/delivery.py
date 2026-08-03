@@ -64,6 +64,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
     timeout = config.delivery_timeout
 
     payload = _render_payload(alert, config)
+    item_id = alert.scored_item.item.item_id
 
     if mode == "test" and not url:
         logger.info(
@@ -77,6 +78,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
             success=True,
             status_code=0,
             error=None,
+            item_id=item_id,
         )
 
     if mode == "test":
@@ -110,6 +112,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
                     alert_title=alert.internal.title,
                     success=True,
                     status_code=response.status_code,
+                    item_id=item_id,
                 )
 
             # Non-retryable client errors
@@ -127,6 +130,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
                     success=False,
                     status_code=response.status_code,
                     error=error_msg,
+                    item_id=item_id,
                 )
 
             # Server error - retryable
@@ -162,6 +166,7 @@ def deliver_alert(alert: Alert, config: AppConfig) -> DeliveryResult:
         success=False,
         status_code=last_status,
         error=last_error,
+        item_id=item_id,
     )
 
 

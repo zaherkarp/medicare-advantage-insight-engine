@@ -588,6 +588,77 @@ class TestFeedback:
             temp_db.add_feedback("item-1", "bogus")
 
 
+class TestAlertFeedback:
+    """Alert-outcome feedback: scoring breakdown, delivery linkage, verdicts."""
+
+    def test_upsert_story_persists_breakdown_and_threshold(self, temp_db):
+        import json
+
+        from ma_signal_monitor.models import ScoringReason
+
+        scored = _make_scored(
+            "s1", "CMS Star Ratings update", published=datetime(2024, 1, 5), score=0.55
+        )
+        scored.reasons = [
+            ScoringReason("title_keyword", "'star rating' in title", 0.225),
+            ScoringReason("source_priority", "Source priority 4/5", 0.08),
+        ]
+        temp_db.upsert_story(
+            scored, primary_category="policy_regulatory", threshold_at_score=0.3
+        )
+
+        row = temp_db.get_story("s1")
+        breakdown = json.loads(row["scoring_breakdown"])
+        assert breakdown == [
+            {"factor": "title_keyword", "detail": "'star rating' in title", "contribution": 0.225},
+            {"factor": "source_priority", "detail": "Source priority 4/5", "contribution": 0.08},
+        ]
+        assert row["threshold_at_score"] == 0.3
+
+    def test_delivery_log_stores_item_id(self, temp_db):
+        result = DeliveryResult(
+            alert_title="Test Alert", success=True, status_code=200, item_id="s1"
+        )
+        temp_db.log_delivery(result)
+        conn = temp_db._get_conn()
+        row = conn.execute("SELECT item_id FROM delivery_log").fetchone()
+        assert row["item_id"] == "s1"
+
+    def test_get_alert_delivered(self, temp_db):
+        assert temp_db.get_alert_delivered("s1") is False
+        temp_db.log_delivery(
+            DeliveryResult(alert_title="T", success=False, status_code=500, item_id="s1")
+        )
+        # A failed delivery attempt doesn't count as "posted".
+        assert temp_db.get_alert_delivered("s1") is False
+        temp_db.log_delivery(
+            DeliveryResult(alert_title="T", success=True, status_code=200, item_id="s1")
+        )
+        assert temp_db.get_alert_delivered("s1") is True
+
+    def test_get_alert_feedback_unknown_story_returns_none(self, temp_db):
+        assert temp_db.get_alert_feedback("missing") is None
+
+    def test_get_alert_feedback_joins_score_and_verdicts(self, temp_db):
+        scored = _make_scored("s1", "Title", published=datetime(2024, 1, 5), score=0.42)
+        temp_db.upsert_story(scored, primary_category="policy_regulatory", threshold_at_score=0.3)
+        temp_db.log_delivery(
+            DeliveryResult(alert_title="T", success=True, status_code=200, item_id="s1")
+        )
+        temp_db.add_feedback("s1", "alert_correct", channel="cli")
+
+        info = temp_db.get_alert_feedback("s1")
+        assert info["relevance_score"] == 0.42
+        assert info["threshold_at_score"] == 0.3
+        assert info["delivered"] is True
+        assert [v["verdict"] for v in info["alert_verdicts"]] == ["alert_correct"]
+
+    def test_alert_verdicts_accepted(self, temp_db):
+        for verdict in ("alert_correct", "alert_false_positive", "alert_missed"):
+            temp_db.add_feedback("s1", verdict, channel="cli")
+        assert temp_db.count_feedback() == 3
+
+
 class TestSourceYield:
     """Per-source relevance-yield stats."""
 
