@@ -49,7 +49,9 @@ class TestAlertCommand:
     ):
         _seed_story(project_root_with_config, delivered=False)
         monkeypatch.chdir(project_root_with_config)
-        monkeypatch.setattr(sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"])
+        monkeypatch.setattr(
+            sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"]
+        )
         with pytest.raises(SystemExit) as exc:
             feedback_cli.main()
         assert exc.value.code == 2
@@ -60,7 +62,9 @@ class TestAlertCommand:
     ):
         _seed_story(project_root_with_config, delivered=True)
         monkeypatch.chdir(project_root_with_config)
-        monkeypatch.setattr(sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"])
+        monkeypatch.setattr(
+            sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"]
+        )
         feedback_cli.main()
         assert "Recorded alert outcome 'correct'" in capsys.readouterr().out
 
@@ -77,7 +81,9 @@ class TestAlertCommand:
     ):
         _seed_story(project_root_with_config, delivered=True)
         monkeypatch.chdir(project_root_with_config)
-        monkeypatch.setattr(sys, "argv", ["ma-signal-feedback", "alert", "s1", "missed"])
+        monkeypatch.setattr(
+            sys, "argv", ["ma-signal-feedback", "alert", "s1", "missed"]
+        )
         with pytest.raises(SystemExit) as exc:
             feedback_cli.main()
         assert exc.value.code == 2
@@ -88,7 +94,9 @@ class TestAlertCommand:
     ):
         _seed_story(project_root_with_config, delivered=False)
         monkeypatch.chdir(project_root_with_config)
-        monkeypatch.setattr(sys, "argv", ["ma-signal-feedback", "alert", "s1", "missed"])
+        monkeypatch.setattr(
+            sys, "argv", ["ma-signal-feedback", "alert", "s1", "missed"]
+        )
         feedback_cli.main()
         assert "Recorded alert outcome 'missed'" in capsys.readouterr().out
 
@@ -120,7 +128,9 @@ class TestSummaryCommand:
     ):
         _seed_story(project_root_with_config, delivered=True, score=0.42)
         monkeypatch.chdir(project_root_with_config)
-        monkeypatch.setattr(sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"])
+        monkeypatch.setattr(
+            sys, "argv", ["ma-signal-feedback", "alert", "s1", "correct"]
+        )
         feedback_cli.main()
         capsys.readouterr()  # discard the `alert` command's output
 

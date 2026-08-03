@@ -204,7 +204,9 @@ def main() -> None:
             if alert_info:
                 print(f"\n  combined score: {alert_info['relevance_score']}")
                 print(f"  threshold at score time: {alert_info['threshold_at_score']}")
-                print(f"  posted to webhook: {'yes' if alert_info['delivered'] else 'no'}")
+                print(
+                    f"  posted to webhook: {'yes' if alert_info['delivered'] else 'no'}"
+                )
                 if alert_info["scoring_breakdown"]:
                     print("  scoring breakdown:")
                     for r in alert_info["scoring_breakdown"]:
@@ -214,7 +216,9 @@ def main() -> None:
                 if alert_info["alert_verdicts"]:
                     print("  alert verdicts:")
                     for v in alert_info["alert_verdicts"]:
-                        print(f"    {v['verdict']:<20} ({v['channel']}, {v['created_at']})")
+                        print(
+                            f"    {v['verdict']:<20} ({v['channel']}, {v['created_at']})"
+                        )
 
         elif cmd == "stats":
             print(f"Total feedback rows: {store.count_feedback()}")

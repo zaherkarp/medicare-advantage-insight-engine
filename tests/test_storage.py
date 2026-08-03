@@ -610,8 +610,16 @@ class TestAlertFeedback:
         row = temp_db.get_story("s1")
         breakdown = json.loads(row["scoring_breakdown"])
         assert breakdown == [
-            {"factor": "title_keyword", "detail": "'star rating' in title", "contribution": 0.225},
-            {"factor": "source_priority", "detail": "Source priority 4/5", "contribution": 0.08},
+            {
+                "factor": "title_keyword",
+                "detail": "'star rating' in title",
+                "contribution": 0.225,
+            },
+            {
+                "factor": "source_priority",
+                "detail": "Source priority 4/5",
+                "contribution": 0.08,
+            },
         ]
         assert row["threshold_at_score"] == 0.3
 
@@ -627,7 +635,9 @@ class TestAlertFeedback:
     def test_get_alert_delivered(self, temp_db):
         assert temp_db.get_alert_delivered("s1") is False
         temp_db.log_delivery(
-            DeliveryResult(alert_title="T", success=False, status_code=500, item_id="s1")
+            DeliveryResult(
+                alert_title="T", success=False, status_code=500, item_id="s1"
+            )
         )
         # A failed delivery attempt doesn't count as "posted".
         assert temp_db.get_alert_delivered("s1") is False
@@ -641,7 +651,9 @@ class TestAlertFeedback:
 
     def test_get_alert_feedback_joins_score_and_verdicts(self, temp_db):
         scored = _make_scored("s1", "Title", published=datetime(2024, 1, 5), score=0.42)
-        temp_db.upsert_story(scored, primary_category="policy_regulatory", threshold_at_score=0.3)
+        temp_db.upsert_story(
+            scored, primary_category="policy_regulatory", threshold_at_score=0.3
+        )
         temp_db.log_delivery(
             DeliveryResult(alert_title="T", success=True, status_code=200, item_id="s1")
         )
