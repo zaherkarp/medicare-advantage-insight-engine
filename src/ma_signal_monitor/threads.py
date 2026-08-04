@@ -91,11 +91,15 @@ _LABEL_MIN_SHARE = 0.5
 # column, for a correctness reason that outweighs the adversarial one: this
 # cap is not free headroom, it is a *silent truncation* -- everything past it
 # is diverted straight into the "Ungrouped signals" row. ``routes`` fetches up
-# to ``TIMELINE_MAX_STORIES`` (5000) per window, and the production archive
-# already holds ~595 public-grade stories (docs/loop.md, iteration 5), so an
-# "All"-window render clusters ~595. A 500 cap would dump ~16% of that window
-# into the junk drawer -- reintroducing, on the widest view, the exact failure
-# this lane was rebuilt to remove -- and would get worse as the archive grows.
+# to ``TIMELINE_MAX_STORIES`` (5000) per window.
+#
+# Measured against the real archive (not the ~595 figure from docs/loop.md
+# iteration 5, which predates later rescoring): 6,701 stories total, **463**
+# at/above ``archive_min_score`` and non-duplicate, 382 of them inside the
+# default 30-day window. So a 500 cap would not truncate an "All" window
+# *today* -- but at 463/500 it sits at 93% of the cap, one active news month
+# from silently burying stories on the widest view, and the archive only
+# grows. 1500 leaves ~3.2x headroom instead of 8%.
 #
 # The adversarial 5.4s case needs a 1500-story window whose headlines share a
 # tiny vocabulary; that is an ingest pathology, not normal coverage, and the

@@ -77,12 +77,25 @@ timeline:
     #
     # Full swept table (0.02-0.30) is in the step-3 PR description.
     #
-    # CAVEAT: no production state.db was available when this was calibrated
-    # (only an 11-story seed -- far too thin a window to measure against).
-    # Both corpora above are synthetic. Re-run
-    # scripts/calibrate_threads.py --db <real state.db> against a real
-    # archive before trusting this as production-tuned, and adjust if the
-    # real-archive sweep disagrees.
+    # VALIDATED against the real archive (6,701 stories; 382 in the default
+    # 30-day window at archive_min_score, non-duplicate). The production sweep
+    # confirms 0.13 rather than moving it:
+    #
+    #   thr    threads  ungrouped%  largest%  purity
+    #   0.10        97       14.9%      3.4%    0.36
+    #   0.12        99       21.7%      2.6%    0.43
+    #   0.13       100       23.6%      2.1%    0.45   <-- shipped
+    #   0.16        89       37.2%      1.8%    0.52
+    #   0.20        74       50.0%      1.6%    0.55
+    #
+    # Below 0.13 purity falls away faster than ungrouped improves; above it,
+    # ungrouped climbs steeply for little purity gain. Largest-thread share
+    # never binds on real data (2.1% at 0.13 -- no chaining).
+    #
+    # To re-run after the archive grows, fetch it the same way deploy-pages.yml
+    # does and point the script at it:
+    #   curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db -o /tmp/prod.db
+    #   python scripts/calibrate_threads.py --db /tmp/prod.db --days 30
     similarity_threshold: 0.13
     # A cluster needs at least this many stories to show as its own thread row;
     # smaller clusters fold into the "Ungrouped signals" row.

@@ -200,9 +200,9 @@ class AppConfig:
     # On the IDF-weighted-cosine scale, NOT the old plain-Jaccard scale (0.28
     # was that metric's calibration and is meaningless here) -- mirrors
     # config/app.yaml's calibrated ``timeline.threads.similarity_threshold``,
-    # see that file's comment for the full sweep and the caveat that it is
-    # calibrated on synthetic corpora only (no production state.db was
-    # available to validate against). Kept in sync with app.yaml so a config
+    # see that file's comment for the full sweep -- validated against the real
+    # 6,701-story archive (382 in the default 30-day window), which confirmed
+    # 0.13 rather than moving it. Kept in sync with app.yaml so a config
     # missing this key (e.g. ``sample_config`` in tests, built without
     # loading app.yaml) still gets a scale-appropriate value instead of
     # silently falling back to the old metric's number.

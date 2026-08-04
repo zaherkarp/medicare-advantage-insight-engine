@@ -42,13 +42,21 @@ Optionally a third, real corpus: ``--db state.db`` reads actual archived
 stories (``--days`` back from now, default 30, matching the timeline's own
 default window) instead of either synthetic corpus.
 
-CAVEAT (see also the ``config/app.yaml`` comment next to
-``similarity_threshold``): no production ``state.db`` was available in the
-container this script was first run in -- only an 11-story seed, far too thin
-a window to calibrate against. The threshold shipped from this sweep is
-therefore calibrated on synthetic corpora only and must be re-validated
-against a real archive (via ``--db``) before it can be trusted as
-production-tuned.
+The shipped threshold has been validated this way against the real archive
+(6,701 stories, 382 in the default 30-day window) -- see the sweep table in
+the ``config/app.yaml`` comment next to ``similarity_threshold``.
+
+Getting a real archive to sweep is a one-liner, because the production DB
+round-trips through the published Pages site: ``deploy-pages.yml`` restores it
+with a plain unauthenticated GET at the start of every run, so the same URL
+serves the current archive to anyone::
+
+    curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db \\
+        -o /tmp/prod.db
+    python scripts/calibrate_threads.py --db /tmp/prod.db --days 30
+
+Write it somewhere outside the repo: ``.gitignore`` covers ``data/`` and
+``*.db``, but a 14 MB archive has no business near a commit either way.
 """
 
 import argparse
