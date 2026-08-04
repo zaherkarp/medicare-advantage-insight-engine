@@ -62,7 +62,7 @@ jobs:
         run: ma-signal-monitor
 
       - name: Backfill categorization under current taxonomy
-        run: ma-signal-backfill
+        run: ma-signal-backfill --rescore
 
       - name: Generate Daily Briefing (and email if configured)
         env:
