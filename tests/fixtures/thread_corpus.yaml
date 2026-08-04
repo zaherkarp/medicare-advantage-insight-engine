@@ -1,0 +1,469 @@
+# A ~80-headline synthetic Medicare Advantage news window for
+# tests/test_thread_quality.py (the emergent story-thread quality gate).
+#
+# Modeled on real MA trade-press phrasing across a 30-day window: a CMS
+# advance-notice arc, a Star Ratings arc, an MLR/earnings arc, benefit-design
+# and network moves, hospital contract disputes, broker/commission news,
+# enrollment tallies, a couple of demographic stories, and a long tail of
+# one-off stories with little lexical overlap to anything else in the window
+# (nursing homes, telehealth, PBM reform, senior housing...). The long tail is
+# deliberate: it is what makes 'ungrouped signals' a real, non-trivial
+# fraction of the window instead of an artifact of a too-small test corpus.
+#
+# primary_category is one of the four tests/conftest.py sample_config
+# categories (membership_movement, policy_regulatory, financial_pressure,
+# competitive_strategy) or 'uncategorized'. entities only uses aliases from
+# sample_config.watched_entities (UnitedHealthcare, Humana, Aetna, CMS) --
+# other named companies (Elevance, Centene, CVS Health, GoHealth, ...) are
+# left out of entities on purpose, mirroring how a narrower watch list would
+# actually score them. Both fields are assigned by hand, independent of the
+# real classifier/taxonomy, so this fixture is a pure unit-test input with no
+# DB/HTTP/config-loading dependency.
+#
+# day_offset is days from the oldest day in a 30-day window (0-29).
+
+stories:
+- title: CMS releases 2027 Medicare Advantage advance notice with 2.1% benchmark increase
+  day_offset: 0
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Healthcare Dive
+- title: CMS advance notice previews risk adjustment model changes for 2027 MA plans
+  day_offset: 0
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Modern Healthcare
+- title: AHIP urges CMS to revisit 2027 Medicare Advantage benchmark growth rate
+  day_offset: 1
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Fierce Healthcare
+- title: Analysts call CMS advance notice a modest positive for Medicare Advantage payers
+  day_offset: 2
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Becker's Payer Issues
+- title: Better Medicare Alliance warns CMS advance notice underestimates cost trend
+  day_offset: 3
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: STAT News
+- title: CMS finalizes Medicare Advantage marketing rule limiting broker compensation
+  day_offset: 4
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Axios
+- title: Broker groups sue CMS over Medicare Advantage agent compensation cap
+  day_offset: 4
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Healthcare Dive
+- title: CMS proposes Star Ratings methodology changes for 2027 Medicare Advantage plans
+  day_offset: 3
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Modern Healthcare
+- title: UnitedHealth challenges CMS Star Ratings calculation in federal court
+  day_offset: 5
+  primary_category: policy_regulatory
+  entities:
+  - UnitedHealthcare
+  - CMS
+  source_name: Fierce Healthcare
+- title: Humana Star Ratings decline threatens 2027 bonus payments
+  day_offset: 6
+  primary_category: policy_regulatory
+  entities:
+  - Humana
+  source_name: Becker's Payer Issues
+- title: CMS Star Ratings cut points shift as more plans cluster at four stars
+  day_offset: 6
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: STAT News
+- title: Star Ratings recalculation could restore Humana bonus revenue
+  day_offset: 8
+  primary_category: policy_regulatory
+  entities:
+  - Humana
+  source_name: Axios
+- title: CMS defends Star Ratings tukey outlier deletion in court filing
+  day_offset: 9
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Healthcare Dive
+- title: Humana reports rising medical loss ratio amid elevated Medicare Advantage utilization
+  day_offset: 2
+  primary_category: financial_pressure
+  entities:
+  - Humana
+  source_name: Modern Healthcare
+- title: UnitedHealth medical loss ratio climbs on higher senior care costs
+  day_offset: 3
+  primary_category: financial_pressure
+  entities:
+  - UnitedHealthcare
+  source_name: Fierce Healthcare
+- title: CVS Health raises medical cost trend outlook for Medicare Advantage
+  day_offset: 4
+  primary_category: financial_pressure
+  entities: []
+  source_name: Becker's Payer Issues
+- title: Centene lowers full-year earnings guidance on Medicare Advantage cost pressure
+  day_offset: 7
+  primary_category: financial_pressure
+  entities: []
+  source_name: STAT News
+- title: Humana cuts 2027 earnings guidance as medical cost trend accelerates
+  day_offset: 9
+  primary_category: financial_pressure
+  entities:
+  - Humana
+  source_name: Axios
+- title: UnitedHealth shares fall after medical loss ratio miss
+  day_offset: 10
+  primary_category: financial_pressure
+  entities:
+  - UnitedHealthcare
+  source_name: Healthcare Dive
+- title: Analysts cut Medicare Advantage payer price targets on margin pressure
+  day_offset: 11
+  primary_category: financial_pressure
+  entities: []
+  source_name: Modern Healthcare
+- title: CVS Aetna medical loss ratio improves as benefit cuts take hold
+  day_offset: 12
+  primary_category: financial_pressure
+  entities:
+  - Aetna
+  source_name: Fierce Healthcare
+- title: Elevance says Medicare Advantage margins will not recover until 2028
+  day_offset: 13
+  primary_category: financial_pressure
+  entities: []
+  source_name: Becker's Payer Issues
+- title: Humana medical cost trend stabilizes but margin recovery remains slow
+  day_offset: 14
+  primary_category: financial_pressure
+  entities:
+  - Humana
+  source_name: STAT News
+- title: Aetna partners with Oak Street Health to expand value-based primary care
+  day_offset: 6
+  primary_category: competitive_strategy
+  entities:
+  - Aetna
+  source_name: Axios
+- title: Humana expands CenterWell primary care clinics in Texas and Florida
+  day_offset: 7
+  primary_category: competitive_strategy
+  entities:
+  - Humana
+  source_name: Healthcare Dive
+- title: UnitedHealthcare trims dental and vision benefits for 2027 plans
+  day_offset: 8
+  primary_category: competitive_strategy
+  entities:
+  - UnitedHealthcare
+  source_name: Modern Healthcare
+- title: Aetna exits Medicare Advantage PPO plans in 12 states for 2027
+  day_offset: 9
+  primary_category: membership_movement
+  entities:
+  - Aetna
+  source_name: Fierce Healthcare
+- title: Humana narrows Medicare Advantage provider network in three states
+  day_offset: 10
+  primary_category: competitive_strategy
+  entities:
+  - Humana
+  source_name: Becker's Payer Issues
+- title: Elevance expands value-based contracting with primary care groups
+  day_offset: 12
+  primary_category: competitive_strategy
+  entities: []
+  source_name: STAT News
+- title: UnitedHealthcare adds supplemental benefits targeting chronic conditions
+  day_offset: 13
+  primary_category: competitive_strategy
+  entities:
+  - UnitedHealthcare
+  source_name: Axios
+- title: Humana cuts supplemental benefits to protect Medicare Advantage margins
+  day_offset: 14
+  primary_category: competitive_strategy
+  entities:
+  - Humana
+  source_name: Healthcare Dive
+- title: CVS Health narrows Medicare Advantage footprint to profitable counties
+  day_offset: 15
+  primary_category: membership_movement
+  entities: []
+  source_name: Modern Healthcare
+- title: Alignment Healthcare expands Medicare Advantage service area for 2027
+  day_offset: 16
+  primary_category: membership_movement
+  entities: []
+  source_name: Fierce Healthcare
+- title: Devoted Health raises funding to expand Medicare Advantage markets
+  day_offset: 17
+  primary_category: competitive_strategy
+  entities: []
+  source_name: Becker's Payer Issues
+- title: SCAN Health Plan partners with providers on value-based Medicare Advantage
+  day_offset: 19
+  primary_category: competitive_strategy
+  entities: []
+  source_name: STAT News
+- title: Aetna and Oak Street expand value-based primary care to new markets
+  day_offset: 20
+  primary_category: competitive_strategy
+  entities:
+  - Aetna
+  source_name: Axios
+- title: Baylor Scott White drops UnitedHealthcare Medicare Advantage plans
+  day_offset: 10
+  primary_category: competitive_strategy
+  entities:
+  - UnitedHealthcare
+  source_name: Healthcare Dive
+- title: HCA Healthcare threatens to exit Humana Medicare Advantage network
+  day_offset: 12
+  primary_category: competitive_strategy
+  entities:
+  - Humana
+  source_name: Modern Healthcare
+- title: Cleveland Clinic ends Medicare Advantage contract with Aetna
+  day_offset: 16
+  primary_category: competitive_strategy
+  entities:
+  - Aetna
+  source_name: Fierce Healthcare
+- title: Sanford Health terminates Medicare Advantage contract with UnitedHealthcare
+  day_offset: 20
+  primary_category: competitive_strategy
+  entities:
+  - UnitedHealthcare
+  source_name: Becker's Payer Issues
+- title: Hospital groups press CMS on Medicare Advantage prior authorization delays
+  day_offset: 22
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: STAT News
+- title: Providence Health drops two Medicare Advantage contracts for 2027
+  day_offset: 24
+  primary_category: competitive_strategy
+  entities: []
+  source_name: Axios
+- title: eHealth reports lower Medicare Advantage commission revenue
+  day_offset: 8
+  primary_category: financial_pressure
+  entities: []
+  source_name: Healthcare Dive
+- title: SelectQuote Medicare Advantage policy submissions decline year over year
+  day_offset: 13
+  primary_category: membership_movement
+  entities: []
+  source_name: Modern Healthcare
+- title: Broker commission cap reshapes Medicare Advantage distribution economics
+  day_offset: 15
+  primary_category: policy_regulatory
+  entities: []
+  source_name: Fierce Healthcare
+- title: Field marketing organizations consolidate under CMS broker rules
+  day_offset: 19
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Becker's Payer Issues
+- title: GoHealth Medicare Advantage enrollment volume drops in fourth quarter
+  day_offset: 21
+  primary_category: membership_movement
+  entities: []
+  source_name: STAT News
+- title: Third party marketing organizations face new CMS oversight requirements
+  day_offset: 23
+  primary_category: policy_regulatory
+  entities:
+  - CMS
+  source_name: Axios
+- title: SelectQuote cuts Medicare Advantage agent headcount ahead of AEP
+  day_offset: 26
+  primary_category: financial_pressure
+  entities: []
+  source_name: Healthcare Dive
+- title: Medicare Advantage enrollment growth slows to lowest rate in a decade
+  day_offset: 12
+  primary_category: membership_movement
+  entities: []
+  source_name: Modern Healthcare
+- title: Humana projects Medicare Advantage membership decline in Florida
+  day_offset: 15
+  primary_category: membership_movement
+  entities:
+  - Humana
+  source_name: Fierce Healthcare
+- title: UnitedHealthcare Medicare Advantage membership grows despite benefit cuts
+  day_offset: 17
+  primary_category: membership_movement
+  entities:
+  - UnitedHealthcare
+  source_name: Becker's Payer Issues
+- title: KFF analysis shows Medicare Advantage penetration tops 54 percent
+  day_offset: 19
+  primary_category: membership_movement
+  entities: []
+  source_name: STAT News
+- title: Aetna Medicare Advantage membership falls after plan exits
+  day_offset: 21
+  primary_category: membership_movement
+  entities:
+  - Aetna
+  source_name: Axios
+- title: Medicare Advantage open enrollment tally shows softer membership growth
+  day_offset: 23
+  primary_category: membership_movement
+  entities: []
+  source_name: Healthcare Dive
+- title: Medicare Advantage disenrollment rises among high utilizing members
+  day_offset: 27
+  primary_category: membership_movement
+  entities: []
+  source_name: Modern Healthcare
+- title: CMS enrollment data shows Medicare Advantage growth concentrated in D-SNPs
+  day_offset: 28
+  primary_category: membership_movement
+  entities:
+  - CMS
+  source_name: Fierce Healthcare
+- title: Medicare Advantage membership growth concentrated in five large payers
+  day_offset: 29
+  primary_category: membership_movement
+  entities: []
+  source_name: Becker's Payer Issues
+- title: Dual eligible population growth reshapes Medicare Advantage risk pools
+  day_offset: 5
+  primary_category: uncategorized
+  entities: []
+  source_name: STAT News
+- title: Aging baby boomers push Medicare eligible population past 68 million
+  day_offset: 14
+  primary_category: uncategorized
+  entities: []
+  source_name: Axios
+- title: D-SNP enrollment growth outpaces general Medicare Advantage growth
+  day_offset: 22
+  primary_category: membership_movement
+  entities: []
+  source_name: Healthcare Dive
+- title: Rural Medicare beneficiaries gain Medicare Advantage plan options
+  day_offset: 28
+  primary_category: uncategorized
+  entities: []
+  source_name: Modern Healthcare
+- title: Nursing home operator settles false claims allegations
+  day_offset: 1
+  primary_category: uncategorized
+  entities: []
+  source_name: Fierce Healthcare
+- title: Telehealth utilization among seniors plateaus after pandemic surge
+  day_offset: 2
+  primary_category: uncategorized
+  entities: []
+  source_name: Becker's Payer Issues
+- title: Pharmacy benefit manager reform bill stalls in Senate
+  day_offset: 3
+  primary_category: uncategorized
+  entities: []
+  source_name: STAT News
+- title: Home health agency reports higher labor costs
+  day_offset: 4
+  primary_category: uncategorized
+  entities: []
+  source_name: Axios
+- title: Insurer launches new diabetes management program
+  day_offset: 6
+  primary_category: uncategorized
+  entities: []
+  source_name: Healthcare Dive
+- title: Senior housing occupancy recovers to pre pandemic levels
+  day_offset: 7
+  primary_category: uncategorized
+  entities: []
+  source_name: Modern Healthcare
+- title: Health system reports operating margin improvement
+  day_offset: 9
+  primary_category: uncategorized
+  entities: []
+  source_name: Fierce Healthcare
+- title: Digital health startup raises Series B for senior care
+  day_offset: 10
+  primary_category: uncategorized
+  entities: []
+  source_name: Becker's Payer Issues
+- title: State insurance regulator reviews network adequacy standards
+  day_offset: 11
+  primary_category: uncategorized
+  entities: []
+  source_name: STAT News
+- title: Physician group practice acquires urgent care clinics
+  day_offset: 13
+  primary_category: uncategorized
+  entities: []
+  source_name: Axios
+- title: Long term care insurance premiums rise again
+  day_offset: 16
+  primary_category: uncategorized
+  entities: []
+  source_name: Healthcare Dive
+- title: Hospice provider faces Department of Justice inquiry
+  day_offset: 18
+  primary_category: uncategorized
+  entities: []
+  source_name: Modern Healthcare
+- title: Pharmacy chain closes underperforming locations
+  day_offset: 20
+  primary_category: uncategorized
+  entities: []
+  source_name: Fierce Healthcare
+- title: Wearable device study targets fall prevention in seniors
+  day_offset: 21
+  primary_category: uncategorized
+  entities: []
+  source_name: Becker's Payer Issues
+- title: Behavioral health access gaps persist for older adults
+  day_offset: 24
+  primary_category: uncategorized
+  entities: []
+  source_name: STAT News
+- title: Ambulance billing dispute reaches state court
+  day_offset: 25
+  primary_category: uncategorized
+  entities: []
+  source_name: Axios
+- title: Rural hospital closure leaves county without emergency care
+  day_offset: 26
+  primary_category: uncategorized
+  entities: []
+  source_name: Healthcare Dive
+- title: Medicaid redetermination effects linger for safety net plans
+  day_offset: 27
+  primary_category: uncategorized
+  entities: []
+  source_name: Modern Healthcare
+- title: Primary care physician shortage worsens in the Southeast
+  day_offset: 29
+  primary_category: uncategorized
+  entities: []
+  source_name: Fierce Healthcare
