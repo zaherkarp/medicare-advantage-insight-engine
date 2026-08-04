@@ -60,6 +60,10 @@ timeline:
     # A cluster needs at least this many stories to show as its own thread row;
     # smaller clusters fold into the "Ungrouped signals" row.
     min_stories: 2
+    # Relative weight for entity-group tokens vs. title tokens in the
+    # similarity metric. Not yet consumed by the clusterer -- declared now so
+    # the knob exists; a later step wires it into the weighted Jaccard.
+    entity_weight: 1.0
 
 # Storage settings
 storage:

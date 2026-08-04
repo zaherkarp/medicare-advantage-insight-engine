@@ -88,6 +88,15 @@ class TestConfigLoading:
         config = load_config(project_root_with_config)
         assert config.archive_min_score == 0.0
 
+    def test_thread_entity_weight_defaults(self, project_root_with_config):
+        """thread_entity_weight defaults to 1.0 when app.yaml doesn't set it.
+
+        The knob is unused until step 3 wires it into the clusterer's weighted
+        Jaccard, but it must still load and validate like any other setting.
+        """
+        config = load_config(project_root_with_config)
+        assert config.thread_entity_weight == 1.0
+
     def test_missing_sources_file_raises(self, tmp_path):
         """FileNotFoundError when sources.yaml is missing."""
         (tmp_path / "config").mkdir()
@@ -170,6 +179,15 @@ class TestConfigValidation:
         )
         os.environ.pop("ARCHIVE_MIN_SCORE", None)
         with pytest.raises(ValueError, match="archive_min_score"):
+            load_config(project_root_with_config)
+
+    def test_invalid_thread_entity_weight_raises(self, project_root_with_config):
+        """ValueError for out-of-range timeline.threads.entity_weight."""
+        app_yaml_path = project_root_with_config / "config" / "app.yaml"
+        app_yaml_path.write_text(
+            yaml.dump({"timeline": {"threads": {"entity_weight": 1.5}}})
+        )
+        with pytest.raises(ValueError, match="thread_entity_weight"):
             load_config(project_root_with_config)
 
 

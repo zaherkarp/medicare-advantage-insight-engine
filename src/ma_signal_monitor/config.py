@@ -199,6 +199,11 @@ class AppConfig:
     threads_enabled: bool = True
     thread_similarity_threshold: float = 0.28
     thread_min_stories: int = 2
+    # Relative weight for entity-group tokens vs. title tokens in the thread
+    # similarity metric. Deliberately unused as of this commit — declared and
+    # validated now so the knob exists; step 3 wires it into the clusterer's
+    # weighted Jaccard.
+    thread_entity_weight: float = 1.0
 
     # Processing settings
     max_item_age_days: int = 7
@@ -581,6 +586,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
         "similarity_threshold", config.thread_similarity_threshold
     )
     config.thread_min_stories = threads.get("min_stories", config.thread_min_stories)
+    config.thread_entity_weight = threads.get(
+        "entity_weight", config.thread_entity_weight
+    )
 
     storage = data.get("storage", {})
     config.seen_item_retention_days = storage.get(
@@ -681,6 +689,12 @@ def _validate_config(config: AppConfig) -> None:
     if config.thread_min_stories < 1:
         raise ValueError(
             f"thread_min_stories must be >= 1, got: {config.thread_min_stories}"
+        )
+
+    if not 0.0 <= config.thread_entity_weight <= 1.0:
+        raise ValueError(
+            "thread_entity_weight must be between 0.0 and 1.0, got: "
+            f"{config.thread_entity_weight}"
         )
 
     # Only validate the causal model when one is actually loaded — the whole

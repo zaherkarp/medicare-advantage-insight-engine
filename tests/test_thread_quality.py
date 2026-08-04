@@ -26,6 +26,19 @@ earn them outright. ``strict=True`` means the moment step 2's fix makes one of
 these pass, pytest reports it as a failure (unexpected pass) -- that failure
 is the signal to delete the marker and fold the gate into the numeric-floor
 table like the other two.
+
+KNOWN LIMITATION -- this fixture UNDERSTATES any entity-related improvement.
+``sample_config.watched_entities`` carries only four aliases
+(UnitedHealthcare, Humana, Aetna, CMS), and only one of them belongs to a
+payer group with siblings. Real ``config/taxonomy.yaml`` watches 33 aliases
+folding into 23 groups, several of them multi-alias (UnitedHealthcare /
+UnitedHealth / UHC / Optum; CVS Health / Aetna; Elevance / Anthem). Alias
+*fragmentation* is therefore barely exercised here, so a change that fixes it
+shows a small delta against this fixture and a much larger one in production.
+Measured for step 1: this fixture moved 0.605 -> 0.556 ungrouped, while an
+83-story window scored through the real taxonomy moved 0.53 -> 0.41 with
+thread count 14 -> 18. Read the fixture deltas as a REGRESSION FLOOR, not as
+the effect size; measure effect size against the real archive.
 """
 
 from collections import Counter
@@ -55,7 +68,16 @@ _BASE_DATE = date(2026, 7, 1)
 # reproduces both diagnosed failure modes at once. Ceilings below are set
 # just above those measured values -- tight enough to catch a regression,
 # loose enough not to flake. Floors only ever tighten from here.
-_UNGROUPED_FRACTION_CEILING = 0.62
+#
+# Step 1 (threads._story_terms folding each watched-entity alias to one
+# opaque per-payer-group token instead of a raw lowercased alias string --
+# see threads.py) re-measures this same fixture at: 81 stories -> 11
+# threads, 45 ungrouped (0.556 of the window), largest thread still 9
+# stories (0.111 of the window), and still 6 distinct labels across 11
+# threads (label quality is step 2's job, untouched here). The ungrouped
+# floor tightens accordingly; the other floor is unchanged since largest-
+# thread share didn't move.
+_UNGROUPED_FRACTION_CEILING = 0.57
 _LARGEST_THREAD_FRACTION_CEILING = 0.15
 
 

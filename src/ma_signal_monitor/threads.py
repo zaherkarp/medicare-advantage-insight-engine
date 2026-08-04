@@ -33,6 +33,7 @@ from ma_signal_monitor.causal import layer_map
 from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.keyword_mining import _log_odds, _terms
+from ma_signal_monitor.payers import ALIAS_TO_GROUP
 from ma_signal_monitor.similarity import jaccard, title_terms
 
 # A thread label shows at most this many distinctive terms (joined by " · ").
@@ -80,17 +81,43 @@ class Thread:
 
 
 def _story_terms(story: dict) -> set[str]:
-    """Clustering token set: headline content words plus canonical entity tokens.
+    """Clustering token set: headline content words plus one token per payer group.
 
-    Title tokens carry the topic; entity aliases (lowercased) bind stories about
-    the same organization even when the wording differs. Taxonomy categories are
-    left out on purpose — they are the *coarse* grouping this lane exists to go
-    beneath, so letting them merge would just rebuild the topic rows.
+    Title tokens carry the topic and are kept exactly as ``title_terms`` emits
+    them — stripping payer name-words (e.g. "cvs", "health") out of the title
+    was tried and measured *worse* (more fragmentation), because those words
+    carry real topical signal beyond just naming the company.
+
+    Entities are folded through ``payers.ALIAS_TO_GROUP`` rather than used as
+    raw alias strings, for two reasons detection doesn't have to care about but
+    clustering does:
+
+    * **Fragmentation** — ``payers.py`` keeps aliases intentionally granular
+      so *detection* fires on whichever wording a story uses ("UnitedHealthcare",
+      "UnitedHealth", "UHC", "Optum" all independently match). Clustering wants
+      the opposite: two stories about the same company should merge even when
+      the outlets picked different aliases, so each alias is mapped to its
+      canonical group and only the group identity becomes a token.
+    * **Triple-counting** — a raw multi-word alias like "CVS Health" added
+      as-is duplicates work ``title_terms`` already did: the headline
+      contributes "cvs" and "health" as separate tokens, and the alias string
+      then adds a third ("cvs health"), giving one company mention 3x weight
+      in the Jaccard.
+
+    The token is the opaque, ``@``-prefixed group slug (e.g. ``"@unitedhealthcare"``)
+    so it can never collide with a title token — ``_TOKEN_RE``
+    (keyword_mining.py) never emits ``@``. An alias with no group (not a
+    watched payer) falls back to the previous lowercased-string behavior.
+
+    Taxonomy categories are left out on purpose — they are the *coarse*
+    grouping this lane exists to go beneath, so letting them merge would just
+    rebuild the topic rows.
     """
     terms = set(title_terms(story.get("title") or ""))
     for alias in story.get("entities") or []:
         if alias:
-            terms.add(alias.lower())
+            group = ALIAS_TO_GROUP.get(alias)
+            terms.add(f"@{group.slug}" if group else alias.lower())
     return terms
 
 

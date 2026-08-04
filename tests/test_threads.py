@@ -1,6 +1,6 @@
 """Tests for emergent story-thread clustering (threads.py)."""
 
-from ma_signal_monitor.threads import _dominant_category, build_threads
+from ma_signal_monitor.threads import _dominant_category, _story_terms, build_threads
 
 
 def _story(item_id, title, *, category=None, entities=None, score=0.5, summary=None):
@@ -51,6 +51,27 @@ _SOLO = _story(
     category="competitive_strategy",
     entities=["Aetna"],
 )
+# Same company, different watched-entity aliases from the same payer group
+# ("UnitedHealthcare" and "UnitedHealth" both map to payers.PAYER_GROUPS'
+# "unitedhealthcare" group). Titles deliberately share too little vocabulary
+# to cluster on title tokens alone (title-only Jaccard 0.25, below the 0.28
+# default threshold) -- clustering must come from the canonical entity token.
+# Note: only "UnitedHealthcare" is in sample_config.watched_entities (see
+# conftest.py); "UnitedHealth" isn't. That's fine here -- build_threads reads
+# whatever is already on story["entities"], independent of the watch list
+# that gated real detection, so this still exercises the fix directly.
+_UHC_A = _story(
+    "f",
+    "UnitedHealthcare billing practices draw scrutiny",
+    category="competitive_strategy",
+    entities=["UnitedHealthcare"],
+)
+_UHC_B = _story(
+    "g",
+    "UnitedHealth billing practices anger providers",
+    category="competitive_strategy",
+    entities=["UnitedHealth"],
+)
 
 
 def _threads(config, stories, *, threshold=0.28, min_stories=2):
@@ -61,6 +82,30 @@ def test_related_stories_cluster_unrelated_stay_apart(sample_config):
     threads, ungrouped = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
     assert len(threads) == 1
     assert {s["item_id"] for s in threads[0].stories} == {"a", "b"}
+    assert [s["item_id"] for s in ungrouped] == ["e"]
+
+
+def test_story_terms_folds_aliases_to_one_group_token():
+    # "UnitedHealthcare" and "UnitedHealth" are different watched-entity
+    # aliases of the same payers.PAYER_GROUPS group -- _story_terms must fold
+    # both to the same opaque "@<slug>" token rather than keeping them as two
+    # distinct raw-string tokens (the fragmentation bug this step fixes).
+    assert "@unitedhealthcare" in _story_terms(_UHC_A)
+    assert "@unitedhealthcare" in _story_terms(_UHC_B)
+    # An alias with no payer group (e.g. "CMS") still falls back to the
+    # previous lowercased-string behavior.
+    assert "cms" in _story_terms(_STAR_A)
+
+
+def test_different_aliases_of_same_payer_group_cluster_together(sample_config):
+    # Same fix, at the build_threads level: two stories about the same
+    # company under different aliases share too little title vocabulary to
+    # cluster on title tokens alone (title-only Jaccard 0.25, below the 0.28
+    # default threshold) but must still land in one thread once the aliases
+    # are folded to a shared canonical entity token.
+    threads, ungrouped = _threads(sample_config, [_UHC_A, _UHC_B, _SOLO])
+    assert len(threads) == 1
+    assert {s["item_id"] for s in threads[0].stories} == {"f", "g"}
     assert [s["item_id"] for s in ungrouped] == ["e"]
 
 
