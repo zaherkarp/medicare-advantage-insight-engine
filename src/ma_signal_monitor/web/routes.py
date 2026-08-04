@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from ma_signal_monitor.angles import _causal_model_view, build_angles
+from ma_signal_monitor.causal import edge_map
 from ma_signal_monitor.geo import STATE_NAMES, state_name
 from ma_signal_monitor.payers import (
     ALIAS_TO_GROUP,
@@ -26,7 +27,7 @@ from ma_signal_monitor.payers import (
 )
 from ma_signal_monitor.query_parser import parse_query
 from ma_signal_monitor.storage import VALID_VERDICTS
-from ma_signal_monitor.threads import build_threads
+from ma_signal_monitor.threads import build_thread_links, build_threads, thread_bands
 from ma_signal_monitor.timeline_layout import (
     axis_ticks,
     build_callout_band,
@@ -488,12 +489,39 @@ def _default_window_threads(store, config) -> tuple[list, list[dict]]:
     )
 
 
+def _thread_links_view(threads: list, config) -> dict[str, dict]:
+    """Row-keyed "leads to" chip data: ``{source_key: {key, label, href}}``.
+
+    Thin view layer over :func:`threads.build_thread_links` — resolves each
+    surviving target key to the thread it names (for its label) and the page
+    it links to, the same ``/timeline/threads/{key}`` URL every other thread
+    reference on this page uses. Shared by the lane (forward chips) and the
+    thread-detail route (which inverts it for the reciprocal "caused by"
+    back-link) so the link rule is computed in exactly one place.
+    """
+    links = build_thread_links(threads, edge_map(config))
+    by_key = {t.key: t for t in threads}
+    return {
+        source: {
+            "key": target,
+            "label": by_key[target].label,
+            "href": f"/timeline/threads/{target}",
+        }
+        for source, target in links.items()
+    }
+
+
 def _timeline_thread_groups(
     stories: list[dict],
     config,
     *,
     color_map: dict[str, str],
-) -> tuple[list[tuple[str, str, str | None, str, list[dict]]], list[dict]]:
+) -> tuple[
+    list[tuple[str, str, str | None, str, list[dict]]],
+    list[dict],
+    dict[int, str],
+    dict[str, dict],
+]:
     """Emergent-thread strip groups for the /timeline/threads lane.
 
     Clusters the window into on-the-fly threads (:func:`threads.build_threads`)
@@ -504,10 +532,19 @@ def _timeline_thread_groups(
     row and the chart total still matches the list. Each thread row links to
     its own page (``/timeline/threads/{key}`` — see ``timeline_thread``),
     keyed on the thread's anchor so the link survives re-clustering; the
-    trailing ungrouped row has no such identity, so it stays unlinked. Returns
-    ``(groups, legend)``; the legend describes each thread with its causal
-    layer, or "Mixed" when the thread spans several categories with no clear
-    majority (:attr:`threads.Thread.mixed`).
+    trailing ungrouped row has no such identity, so it stays unlinked.
+
+    Returns ``(groups, legend, strip_bands, thread_links)``:
+
+    * ``legend`` describes each thread with its causal layer, or "Mixed" when
+      the thread spans several categories with no clear majority
+      (:attr:`threads.Thread.mixed`).
+    * ``strip_bands`` (:func:`threads.thread_bands`) is the causal-layer band
+      header data, row-index-keyed to line up with ``groups``/the strip
+      ``build_strip`` renders from it — threads-lane only; the topics strip
+      never gets one (callers just never build/pass this for that mode).
+    * ``thread_links`` (:func:`_thread_links_view`) is the row-keyed "leads
+      to" chip data for the same strip rows.
     """
     threads, ungrouped = build_threads(
         stories,
@@ -540,7 +577,9 @@ def _timeline_thread_groups(
         groups.append(
             ("ungrouped", "Ungrouped signals", None, FALLBACK_TOPIC_COLOR, ungrouped)
         )
-    return groups, legend
+    strip_bands = thread_bands(threads, has_ungrouped=bool(ungrouped))
+    thread_links = _thread_links_view(threads, config)
+    return groups, legend, strip_bands, thread_links
 
 
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
@@ -1152,9 +1191,11 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             fallback_color=FALLBACK_TOPIC_COLOR,
         )
         thread_legend = None
+        strip_bands = None
+        thread_links = None
         if threads:
             mode = "threads"
-            groups, thread_legend = _timeline_thread_groups(
+            groups, thread_legend, strip_bands, thread_links = _timeline_thread_groups(
                 stories, config, color_map=color_map
             )
         else:
@@ -1245,6 +1286,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "strip": strip,
                 "legend": legend,
                 "thread_legend": thread_legend,
+                "strip_bands": strip_bands,
+                "thread_links": thread_links,
                 "view_toggle": view_toggle,
                 "stories": stories[:TIMELINE_LIST_MAX],
                 "total": total,
@@ -1353,6 +1396,16 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         _days, _token, window_label = _resolve_window(
             str(TIMELINE_DEFAULT_DAYS), store, min_score=config.archive_min_score
         )
+        # The reciprocal of the lane's forward "leads to" chip: every thread
+        # whose single outgoing link (threads.build_thread_links allows at
+        # most one per SOURCE, not per target) points at this one, so the
+        # cascade reads in both directions from either end.
+        by_key = {t.key: t for t in threads}
+        caused_by = [
+            {"key": src, "label": by_key[src].label, "href": f"/timeline/threads/{src}"}
+            for src, link in _thread_links_view(threads, config).items()
+            if link["key"] == key
+        ]
         return templates.TemplateResponse(
             request,
             "thread.html",
@@ -1360,6 +1413,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "thread": thread,
                 "window_label": window_label,
                 "stories": list(thread.stories),
+                "caused_by": caused_by,
                 "base_path": f"/timeline/threads/{key}",
                 "days_qs": "",
                 "page": 1,

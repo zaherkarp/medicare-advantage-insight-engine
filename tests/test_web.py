@@ -1328,3 +1328,102 @@ def test_timeline_thread_mixed_chip_renders(sample_config, temp_db):
     assert detail.status_code == 200
     assert "Mixed" in detail.text
     assert detail.text.count('class="story-card"') == 4
+
+
+def _seed_dated(store, item_id, title, *, category, entities=None, days_ago=0):
+    """Like _seed_recent, but with a controllable event date -- needed to
+    exercise build_thread_links' temporal-precedence rule, which _seed_recent
+    (always "now") can't."""
+    _seed_story(
+        store,
+        item_id,
+        title,
+        category=category,
+        entities=entities,
+        published=datetime.utcnow() - timedelta(days=days_ago),
+    )
+
+
+def _seed_causal_cascade(store):
+    """A Star Ratings (policy) thread followed, later in the window, by an MLR
+    (financial) thread -- both mentioning Humana, so build_thread_links has a
+    declared edge (policy_regulatory -> financial_pressure), temporal
+    precedence, AND shared thread-level evidence (the "@humana" payer token)
+    all at once, and should draw exactly one "leads to" link between them."""
+    _seed_dated(
+        store,
+        "L1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=10,
+    )
+    _seed_dated(
+        store,
+        "L2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=9,
+    )
+    _seed_dated(
+        store,
+        "L3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=2,
+    )
+    _seed_dated(
+        store,
+        "L4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=1,
+    )
+
+
+def test_timeline_threads_lane_renders_band_header_and_leads_to_chip(
+    sample_config, temp_db
+):
+    _seed_causal_cascade(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+
+    # Causal-layer band header, reusing the existing .legend-layer chip style.
+    assert 'class="strip-band' in text
+    assert re.search(r'class="strip-band[^"]*">\s*<span class="legend-layer">', text)
+
+    # The "leads to" chip: the reused angle-sep/sr-only idiom, arrow visible,
+    # "leading to" for assistive tech only, and a real link to the target
+    # thread's own page.
+    assert 'class="strip-link"' in text
+    assert re.search(
+        r'class="strip-link"><span class="angle-sep" aria-hidden="true">→</span>'
+        r'<span class="sr-only"> leading to </span><a href="(/timeline/threads/[^"]+)"',
+        text,
+    )
+    hrefs = re.findall(
+        r'class="strip-link">.*?<a href="(/timeline/threads/[^"]+)"', text
+    )
+    assert hrefs
+
+    # The reciprocal back-link shows up on the downstream thread's own page.
+    target_key = hrefs[0].rsplit("/", 1)[-1]
+    detail = client.get(f"/timeline/threads/{target_key}")
+    assert detail.status_code == 200
+    assert re.search(
+        r'<span class="angle-sep" aria-hidden="true">←</span>'
+        r'<span class="sr-only"> caused by </span>',
+        detail.text,
+    )
+
+
+def test_timeline_topics_page_has_no_band_headers(client):
+    resp = client.get("/timeline")
+    assert resp.status_code == 200
+    assert 'class="strip-band' not in resp.text
+    assert "has-bands" not in resp.text

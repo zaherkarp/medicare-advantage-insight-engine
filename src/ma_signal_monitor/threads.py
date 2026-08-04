@@ -35,8 +35,9 @@ Pure data-in/data-out so it is unit-testable without HTTP, mirroring
 
 from collections import Counter
 from dataclasses import dataclass, replace
+from datetime import datetime
 
-from ma_signal_monitor.causal import layer_map
+from ma_signal_monitor.causal import layer_map, lookup_edge
 from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.keyword_mining import _terms, distinctive_terms
@@ -343,10 +344,25 @@ def _category_split(stories: list[dict], config: AppConfig) -> tuple[str, bool]:
     don't count). Ties among counts break toward the higher taxonomy weight
     (mirroring ``classify_item``), then the key, so the choice is
     deterministic. The count leader only wins as ``dominant`` when it holds
-    *more than half* of the thread's stories (``len(stories)``, not just the
-    categorized ones) — a payer-bucket thread spanning several categories
-    with no clear majority gets placed on an arbitrary causal layer otherwise,
-    a coin flip step 5's causal links would then inherit.
+    *more than half* of the **categorized** stories — a payer-bucket thread
+    spanning several categories with no clear majority would otherwise be
+    placed on an arbitrary causal layer, a coin flip the causal links in
+    :func:`build_thread_links` would then inherit.
+
+    The denominator is deliberately the categorized count, not
+    ``len(stories)``, because "mixed" and "sparse" are different conditions
+    and only the first should suppress placement:
+
+    * **mixed** — the categorized stories disagree (two stories calling a
+      thread ``financial_pressure`` and two calling it ``membership_movement``
+      genuinely has no dominant category);
+    * **sparse** — few stories carry a category at all. A thread of one
+      ``brokerage_distribution`` story plus one uncategorized story has *zero*
+      disagreement; every story that expressed an opinion agreed. Dividing by
+      ``len(stories)`` scores that 0.5 and suppresses it, which measured as 6
+      of 8 suppressed threads on a realistic window being falsely "mixed" —
+      five of them with exactly one category represented. An unlabeled story
+      is an absence of evidence, not evidence of conflict.
 
     Returns ``(dominant, mixed)``:
 
@@ -365,7 +381,7 @@ def _category_split(stories: list[dict], config: AppConfig) -> tuple[str, bool]:
     if not counts:
         return "", False
     top = max(counts, key=lambda k: (counts[k], weights.get(k, 0.0), k))
-    if counts[top] / len(stories) > 0.5:
+    if counts[top] / sum(counts.values()) > 0.5:
         return top, False
     return "", True
 
@@ -681,3 +697,177 @@ def build_threads(
     threads = _dedupe_labels(threads, doc_terms, global_terms, members_by_key)
     threads.sort(key=lambda t: (t.layer_order, -t.total, t.label))
     return threads, ungrouped
+
+
+# --- Causal cascade: layer bands + "leads to" links between threads ---
+#
+# The lane already places threads on the causal cascade by row order
+# (layer_order), but row order alone never states the cause -> effect claim --
+# nothing on the page says "this row leads to that one". These two pure
+# functions add that: `thread_bands` groups the already-ordered rows under
+# their causal-layer headers, and `build_thread_links` draws at most one
+# outgoing "leads to" arrow per thread to the single downstream thread its
+# own evidence best supports. Both take `threads` (and, for links, the
+# window's edge_map) and return plain data -- no template/route concerns --
+# mirroring the rest of this module.
+
+
+def thread_bands(threads: list[Thread], *, has_ungrouped: bool) -> dict[int, str]:
+    """Causal-layer band headers for the /timeline/threads strip.
+
+    Returns ``{row_index: band_label}`` for exactly the row indices where a
+    new band begins. ``row_index`` lines up with ``threads``' own order --
+    the same order ``_timeline_thread_groups`` feeds ``build_strip`` -- with
+    the trailing "Ungrouped signals" row (when ``has_ungrouped``) counted as
+    row ``len(threads)``, one past the last thread.
+
+    A band begins wherever ``layer_key`` changes from the previous thread;
+    since ``threads`` already sorts by ``layer_order`` (upstream ->
+    downstream), this only ever walks forward through the cascade, never
+    back. ``layer_key == ""`` -- true for both a ``mixed`` thread (step 4)
+    and every unplaced-category thread, and implicitly true of the trailing
+    ungrouped row -- always labels its band "Unplaced", and every
+    consecutive run of such rows shares ONE band: a mixed thread immediately
+    followed by the ungrouped row reads as a single trailing section, not
+    two adjacent ones.
+
+    Returns ``{}`` when there is nothing to band (no threads and no
+    ungrouped row -- the caller's empty-window branch never renders the
+    strip at all, so this is mostly a defensive default).
+    """
+    bands: dict[int, str] = {}
+    prev_key: str | None = None  # sentinel: no real layer_key is ever None
+    for i, t in enumerate(threads):
+        if t.layer_key != prev_key:
+            bands[i] = t.layer_short if t.layer_key else "Unplaced"
+            prev_key = t.layer_key
+    if has_ungrouped and prev_key != "":
+        bands[len(threads)] = "Unplaced"
+    return bands
+
+
+def _parse_event_date(value):
+    """``event_date`` (an ISO date/datetime string, or falsy) -> a ``date``, or
+    ``None`` when missing/unparseable -- the same tolerance
+    ``timeline_layout._bucket_days`` applies to the same field."""
+    try:
+        return datetime.fromisoformat(value or "").date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _median_event_date(thread: Thread):
+    """A thread's representative event date, or ``None`` if none parse.
+
+    The middle element of the thread's stories' parseable event dates,
+    sorted -- no interpolation for an even count (dates aren't numeric to
+    average two of); picking the lower-middle element keeps it a single,
+    deterministic, real date rather than a synthesized one. Stories with a
+    missing/garbage ``event_date`` are skipped, same tolerance as
+    ``timeline_layout._bucket_days``.
+    """
+    dates = sorted(
+        d
+        for d in (_parse_event_date(s.get("event_date")) for s in thread.stories)
+        if d is not None
+    )
+    if not dates:
+        return None
+    return dates[len(dates) // 2]
+
+
+def _thread_evidence_terms(thread: Thread) -> frozenset[str]:
+    """A thread's evidence vocabulary for the "leads to" rule.
+
+    The union of the thread's own label terms (its label is already the
+    terms most distinctive of it -- see ``_label``; split on the
+    ``" · "`` join so e.g. "star ratings · methodology" contributes both
+    "star ratings" and "methodology") and every payer group any of its
+    stories mentions, folded to the same opaque ``@slug`` token
+    ``_story_terms`` uses (so "UnitedHealthcare" and "UnitedHealth" count as
+    the same evidence). Two threads sharing a term here is the
+    thread-*specific* evidence ``build_thread_links`` requires on top of a
+    bare category-edge match -- see that function's docstring for why a
+    category edge alone is not enough.
+    """
+    terms = {term.strip().lower() for term in thread.label.split(" · ") if term.strip()}
+    for s in thread.stories:
+        for alias in s.get("entities") or []:
+            group = ALIAS_TO_GROUP.get(alias)
+            if group:
+                terms.add(f"@{group.slug}")
+    return frozenset(terms)
+
+
+def build_thread_links(
+    threads: list[Thread], edges: dict[tuple[str, str], object]
+) -> dict[str, str]:
+    """At most one "leads to" link per thread: ``{source_key: target_key}``.
+
+    A candidate ``a -> b`` link requires all three, evaluated independently
+    (none is implied by the others):
+
+    1. **A declared, correctly-directed causal edge.** ``causal.lookup_edge``
+       matches ``a``'s and ``b``'s dominant categories in either order (edges
+       are downstream-only, so at most one direction is ever declared) --
+       but only the edge whose OWN ``source`` equals ``a.dominant_category``
+       is accepted. Without that check, a coincidental date ordering could
+       pair with the model's edge declared in the opposite direction and
+       mislabel it as supporting the reverse claim.
+    2. **Temporal precedence.** ``a``'s median ``event_date``
+       (:func:`_median_event_date`) must strictly precede ``b``'s --
+       a self-contained, intra-window comparison; no second window is
+       fetched (see the roadmap's "self-contained (preferred first cut)"
+       option). A thread with no parseable date on any story can neither
+       source nor receive a link.
+    3. **Thread-level evidence.** ``a`` and ``b`` must share at least one
+       term in :func:`_thread_evidence_terms` -- a payer both mention, or a
+       distinctive label term both share. Without this, the rule collapses
+       to "these two categories have a declared edge and happened to sort
+       in the right order", which stamps out a connector for nearly every
+       adjacent-layer thread pair regardless of whether they are actually
+       part of the same story (measured on a 15-row realistic window:
+       45 category-only candidate pairs -- a hairball, not a cascade).
+
+    ``mixed`` threads (step 4) and threads with no ``dominant_category``
+    never source or receive a link -- there is no single category to place
+    an edge against.
+
+    Survivors are ranked by ``edge.weight * overlap`` (``overlap`` = the
+    number of shared evidence terms), descending; only the single best
+    target per source thread is kept. Ties break on the target's ``key``
+    ascending, so the result never depends on ``threads``' iteration order
+    (every candidate is scored from the full list regardless of walk
+    order) -- see ``tests/test_threads.py::test_link_ordering_is_deterministic``.
+
+    An empty ``edges`` map (no causal model loaded) yields no links at all,
+    the same graceful degradation the rest of the causal-aware pages apply.
+    """
+    links: dict[str, str] = {}
+    for a in threads:
+        if a.mixed or not a.dominant_category:
+            continue
+        a_date = _median_event_date(a)
+        if a_date is None:
+            continue
+        a_terms = _thread_evidence_terms(a)
+
+        candidates: list[tuple[float, str]] = []
+        for b in threads:
+            if b.key == a.key or b.mixed or not b.dominant_category:
+                continue
+            edge = lookup_edge(edges, a.dominant_category, b.dominant_category)
+            if edge is None or edge.source != a.dominant_category:
+                continue
+            b_date = _median_event_date(b)
+            if b_date is None or not (a_date < b_date):
+                continue
+            overlap = len(a_terms & _thread_evidence_terms(b))
+            if overlap == 0:
+                continue
+            candidates.append((edge.weight * overlap, b.key))
+
+        if candidates:
+            _score, target = min(candidates, key=lambda c: (-c[0], c[1]))
+            links[a.key] = target
+    return links

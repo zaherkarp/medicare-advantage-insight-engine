@@ -659,3 +659,94 @@ def test_thread_detail_pages_exported(tmp_path, sample_config, temp_db):
     assert hrefs  # sanity: the lane actually linked at least one thread
     for href in hrefs:
         assert (out / href[len("/myrepo/") :]).exists(), f"dangling link: {href}"
+
+
+def _seed_dated(store, item_id, title, *, category, entities=None, days_ago=0):
+    """Like _seed_recent, but with a controllable event date -- needed so two
+    threads land in the strict temporal order threads.build_thread_links
+    requires before it will draw a "leads to" chip between them."""
+    item = NormalizedItem(
+        item_id=item_id,
+        source_name="Healthcare Dive",
+        source_type="rss",
+        source_priority=3,
+        source_tags=["industry"],
+        title=title,
+        link=f"https://example.com/{item_id}",
+        published_date=datetime.utcnow() - timedelta(days=days_ago),
+        summary=f"{title} summary.",
+    )
+    store.upsert_story(
+        ScoredItem(
+            item=item,
+            relevance_score=0.7,
+            matched_categories=[category],
+            matched_entities=entities or [],
+        ),
+        primary_category=category,
+        states=[],
+    )
+
+
+def test_thread_leads_to_chip_exports_with_no_script_and_resolves(
+    tmp_path, sample_config, temp_db
+):
+    """The lane's new "leads to" chip (step 5: layer bands + causal-cascade
+    links between threads) survives static export intact: the frozen lane
+    page still carries no <script> (the whole timeline stays JS-free/static-
+    export-safe), and the chip's href resolves to a file this export wrote --
+    same no-dangling-link guarantee as the plain thread-detail links."""
+    # A Star Ratings (policy) thread, then -- later in the window -- an MLR
+    # (financial) thread, both mentioning Humana: a declared causal edge,
+    # temporal precedence, and shared evidence (the "@humana" token) all at
+    # once, so build_thread_links draws exactly one link between them.
+    _seed_dated(
+        temp_db,
+        "L1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=10,
+    )
+    _seed_dated(
+        temp_db,
+        "L2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=9,
+    )
+    _seed_dated(
+        temp_db,
+        "L3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=2,
+    )
+    _seed_dated(
+        temp_db,
+        "L4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=1,
+    )
+
+    out, _counts = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    assert (out / "timeline" / "threads.html").exists()
+    lane_page = (out / "timeline" / "threads.html").read_text()
+    assert "<script" not in lane_page
+    assert 'class="strip-band' in lane_page  # the band header exported too
+    assert 'class="strip-link"' in lane_page
+
+    hrefs = re.findall(r'href="(/myrepo/timeline/threads/[^"]+)"', lane_page)
+    assert hrefs
+    for href in hrefs:
+        assert (out / href[len("/myrepo/") :]).exists(), f"dangling link: {href}"
+
+    # The reciprocal "caused by" back-link on the downstream thread's own
+    # exported page is also script-free.
+    for f in sorted((out / "timeline" / "threads").glob("*.html")):
+        assert "<script" not in f.read_text()

@@ -13,6 +13,16 @@
         <span class="legend-layer">{{ thread.layer_label }}</span>
       {% endif %}
     </p>
+    {# Reciprocal of the lane's forward "leads to" chip (see timeline.html):
+       every upstream thread whose own single outgoing link points here, so
+       the cascade reads in both directions. Same JS-free arrow idiom as
+       angles.html (~lines 19-26), flipped to point back upstream. #}
+    {% if caused_by %}
+      <p class="muted thread-caused-by">
+        <span class="angle-sep" aria-hidden="true">←</span><span class="sr-only"> caused by </span>
+        {% for c in caused_by %}{% if not loop.first %}, {% endif %}<a href="{{ c.href }}">{{ c.label }}</a>{% endfor %}
+      </p>
+    {% endif %}
   </section>
 
   {% include "_story_list.html" %}

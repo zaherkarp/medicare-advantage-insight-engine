@@ -1,10 +1,15 @@
 """Tests for emergent story-thread clustering (threads.py)."""
 
+from ma_signal_monitor import causal
 from ma_signal_monitor.threads import (
+    _NO_LAYER_ORDER,
+    Thread,
     _cluster,
     _dominant_category,
     _story_terms,
+    build_thread_links,
     build_threads,
+    thread_bands,
 )
 
 
@@ -399,3 +404,322 @@ def test_mixed_category_thread_has_no_layer(sample_config):
     from ma_signal_monitor.threads import _NO_LAYER_ORDER
 
     assert mixed_thread.layer_order == _NO_LAYER_ORDER
+
+
+# --- thread_bands: causal-layer band headers ---
+
+
+def _band_thread(key, *, layer_key, layer_short, layer_order, mixed=False):
+    """A minimal Thread for exercising thread_bands (no stories needed)."""
+    return Thread(
+        key=key,
+        label=key,
+        stories=(),
+        dominant_category="" if mixed else "cat",
+        mixed=mixed,
+        layer_key=layer_key,
+        layer_short=layer_short,
+        layer_label=layer_short,
+        layer_order=layer_order,
+    )
+
+
+def test_thread_bands_marks_each_layer_transition():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("b", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("c", layer_key="pressure", layer_short="Pressure", layer_order=2),
+    ]
+    assert thread_bands(threads, has_ungrouped=False) == {0: "Drivers", 2: "Pressure"}
+
+
+def test_thread_bands_folds_mixed_and_ungrouped_into_one_unplaced_band():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread(
+            "m", layer_key="", layer_short="", layer_order=_NO_LAYER_ORDER, mixed=True
+        ),
+    ]
+    # The mixed thread (row 1) and the trailing ungrouped row (row 2) share one
+    # "Unplaced" band, not two adjacent ones.
+    assert thread_bands(threads, has_ungrouped=True) == {0: "Drivers", 1: "Unplaced"}
+
+
+def test_thread_bands_ungrouped_only_window_gets_its_own_band():
+    assert thread_bands([], has_ungrouped=True) == {0: "Unplaced"}
+
+
+def test_thread_bands_empty_window_has_no_bands():
+    assert thread_bands([], has_ungrouped=False) == {}
+
+
+# --- build_thread_links: "leads to" cascade between threads ---
+
+
+def _linked_thread(
+    key,
+    label,
+    *,
+    category,
+    layer_key,
+    layer_short,
+    layer_order,
+    dates,
+    entities=None,
+    mixed=False,
+):
+    """A Thread built directly (bypassing clustering) so evidence/precedence
+    inputs (label, entities, event_date) are under exact test control."""
+    stories = tuple(
+        {"item_id": f"{key}-{i}", "entities": entities or [], "event_date": d}
+        for i, d in enumerate(dates)
+    )
+    return Thread(
+        key=key,
+        label=label,
+        stories=stories,
+        dominant_category="" if mixed else category,
+        mixed=mixed,
+        layer_key="" if mixed else layer_key,
+        layer_short="" if mixed else layer_short,
+        layer_label="" if mixed else layer_short,
+        layer_order=_NO_LAYER_ORDER if mixed else layer_order,
+    )
+
+
+def test_link_requires_edge_precedence_and_evidence_all_three(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01", "2024-01-02"],
+    )
+
+    # All three hold (edge, precedence, and a shared "star ratings" label
+    # term) -> a link.
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10", "2024-01-11"],
+    )
+    assert build_thread_links([upstream, downstream], edges) == {"u": "d"}
+
+    # Edge + precedence hold, but no shared evidence term -> no link.
+    no_evidence = _linked_thread(
+        "d2",
+        "cost trend · margin pressure",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10", "2024-01-11"],
+    )
+    assert build_thread_links([upstream, no_evidence], edges) == {}
+
+    # Edge + evidence hold, but the "downstream" thread is dated BEFORE the
+    # upstream one -> no link.
+    no_precedence = _linked_thread(
+        "d3",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2023-12-01", "2023-12-02"],
+    )
+    assert build_thread_links([upstream, no_precedence], edges) == {}
+
+    # Precedence + evidence hold, but no declared edge connects the two
+    # categories (policy_regulatory -> membership_movement isn't declared in
+    # sample_config) -> no link.
+    no_edge = _linked_thread(
+        "d4",
+        "star ratings · unrelated",
+        category="membership_movement",
+        layer_key="outcomes",
+        layer_short="Outcomes",
+        layer_order=4,
+        dates=["2024-01-10"],
+    )
+    assert build_thread_links([upstream, no_edge], edges) == {}
+
+
+def test_link_direction_is_never_reversed(sample_config):
+    # Even if a downstream-category thread's dates happen to precede an
+    # upstream-category thread's (noisy real-world ordering), the model's
+    # declared direction must win: no financial_pressure -> policy_regulatory
+    # link may ever be produced (no such edge is declared -- only the reverse).
+    early_financial = _linked_thread(
+        "early",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-01"],
+    )
+    late_policy = _linked_thread(
+        "late",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-10"],
+    )
+    edges = causal.edge_map(sample_config)
+    assert build_thread_links([early_financial, late_policy], edges) == {}
+
+
+def test_empty_causal_model_yields_no_links(sample_config):
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+    )
+    assert build_thread_links([upstream, downstream], {}) == {}
+
+
+def test_at_most_one_outgoing_link_per_thread(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # Two valid downstream targets sharing evidence with `upstream`:
+    # policy_regulatory -> financial_pressure (weight 1.0) and
+    # policy_regulatory -> competitive_strategy (weight 0.7). `lower_weight`
+    # is dated BEFORE `higher_weight` so financial_pressure -> competitive_
+    # strategy (a real declared edge too) can't itself produce a second,
+    # confounding link between the two candidates -- this test isolates
+    # `upstream`'s own one-link-max choice, not the whole graph's link count.
+    higher_weight = _linked_thread(
+        "b",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    lower_weight = _linked_thread(
+        "c",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-03"],
+    )
+    links = build_thread_links([upstream, higher_weight, lower_weight], edges)
+    assert list(links.keys()) == ["u"]
+    assert links["u"] == "b"  # weight 1.0 * overlap beats weight 0.7 * overlap
+
+
+def test_mixed_thread_never_sources_or_receives_a_link(sample_config):
+    edges = causal.edge_map(sample_config)
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+    )
+    mixed_source = _linked_thread(
+        "m",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+        mixed=True,
+    )
+    assert build_thread_links([mixed_source, downstream], edges) == {}
+
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    mixed_target = _linked_thread(
+        "m2",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+        mixed=True,
+    )
+    assert build_thread_links([upstream, mixed_target], edges) == {}
+
+
+def test_link_ordering_is_deterministic(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # Same date arrangement as test_at_most_one_outgoing_link_per_thread --
+    # `c` dated before `b` so the graph produces exactly one link (`u -> b`)
+    # regardless of walk order, keeping this test about ORDER independence
+    # rather than also re-proving the one-link-per-source rule.
+    b = _linked_thread(
+        "b",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    c = _linked_thread(
+        "c",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-03"],
+    )
+    forward = build_thread_links([upstream, b, c], edges)
+    reverse = build_thread_links([c, b, upstream], edges)
+    assert forward == reverse == {"u": "b"}

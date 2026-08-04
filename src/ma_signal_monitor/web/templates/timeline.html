@@ -59,13 +59,34 @@
         {% for t in ticks %}<span class="axis-tick{% if t.pct > 92 %} axis-tick-end{% elif t.pct < 8 %} axis-tick-start{% endif %}" style="left: {{ t.pct }}%">{{ t.label }}</span>{% endfor %}
       </div>
 
-      <div class="topic-strip">
+      {# The threads lane (only) carries strip_bands (causal-layer band
+         headers, {row_index: label}) and thread_links (per-row "leads to"
+         chip data, {row_key: {key, label, href}}) — the /timeline topics
+         strip never gets either, so `has-bands`/`strip-band`/`strip-nosep`
+         never render there and the markup stays byte-identical to before
+         this step (see web/static/style.css for why that matters).
+         A band header is its own full-width grid child (`grid-column: 1/-1`
+         in CSS) rather than a third cell in a row, so it never disturbs the
+         topic-strip's two-columns-per-row assumption. #}
+      <div class="topic-strip{% if strip_bands %} has-bands{% endif %}">
         {% for row in strip %}
-          <div class="strip-label">
+          {% set is_band_start = strip_bands and loop.index0 in strip_bands %}
+          {% if is_band_start %}
+            <div class="strip-band{% if loop.index0 == 0 %} strip-nosep{% endif %}">
+              <span class="legend-layer">{{ strip_bands[loop.index0] }}</span>
+            </div>
+          {% endif %}
+          <div class="strip-label{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}">
             {% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}<span>{{ row.label }}</span>{% endif %}
-            <span class="strip-count">{{ row.total }}</span>
+            <span class="strip-meta">
+              <span class="strip-count">{{ row.total }}</span>
+              {% if thread_links and thread_links.get(row.key) %}
+                {% set lead = thread_links[row.key] %}
+                <span class="strip-link"><span class="angle-sep" aria-hidden="true">→</span><span class="sr-only"> leading to </span><a href="{{ lead.href }}">{{ lead.label }}</a></span>
+              {% endif %}
+            </span>
           </div>
-          <div class="strip-plot" style="--topic: {{ row.color }}">
+          <div class="strip-plot{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}" style="--topic: {{ row.color }}">
             {% for t in ticks %}<span class="viz-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
             {% for b in row.bubbles %}
               <a class="strip-bubble"

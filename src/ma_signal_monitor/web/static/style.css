@@ -350,20 +350,55 @@ a.chip:hover { border-color: var(--accent); text-decoration: none; }
   display: grid; grid-template-columns: 150px 1fr; align-items: center;
   margin-top: 8px;
 }
-/* Row separators: every grid child from the second row on (children pair up
-   as label+plot, so the first two are row one). */
-.topic-strip > :nth-child(n+3) { border-top: 1px solid var(--border); }
+/* Row separators. Two mutually-exclusive rules, partitioned by a `has-bands`
+   modifier the template puts on `.topic-strip` itself only for the threads
+   lane (see timeline.html), so the two never compete on the same element:
+     - `/timeline` topics/payers strip: NEVER carries `has-bands` (no band
+       headers exist there) -- kept as the original position-based rule
+       (every grid child from the second row on; children pair up as
+       label+plot, so the first two are row one), markup untouched.
+     - threads lane (`has-bands`): the strip interleaves a variable number of
+       full-width `.strip-band` headers (see below) between label+plot pairs,
+       which shifts child-position parity -- nth-child can't express "every
+       row except the first one after a boundary" once that boundary count
+       varies, so this rule is class-based instead: every `.strip-label`/
+       `.strip-plot`/`.strip-band` gets a border EXCEPT whichever cell opens
+       a new visual section (the very first row, or the first row of a new
+       causal-layer band), marked `strip-nosep` server-side.
+   Scoping both under/around `has-bands` -- rather than one shared rule --
+   is what keeps `/timeline`'s DOM and CSS byte-for-byte identical to before
+   this step. */
+.topic-strip:not(.has-bands) > :nth-child(n+3) { border-top: 1px solid var(--border); }
+.topic-strip.has-bands > .strip-label,
+.topic-strip.has-bands > .strip-plot,
+.topic-strip.has-bands > .strip-band { border-top: 1px solid var(--border); }
+.topic-strip.has-bands > .strip-nosep { border-top: none; }
 .strip-label {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   align-self: stretch; padding-right: 12px; font-size: 0.82rem; line-height: 1.3;
 }
 .strip-count { color: var(--muted); font-size: 0.72rem; }
+/* Wraps the count and the optional per-thread "leads to" chip so
+   `.strip-label` keeps exactly two flex children (the title, this) whether
+   or not a chip renders -- adding the chip as a bare third child would shift
+   `justify-content: space-between`'s spacing for every row that has one. */
+.strip-meta { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.strip-link { font-size: 0.72rem; color: var(--muted); text-align: right; }
+.strip-link a { font-weight: 600; }
 .strip-plot { position: relative; height: 26px; }
 .strip-bubble {
   position: absolute; top: 50%; border-radius: 50%;
   background: var(--topic); transform: translate(-50%, -50%); opacity: 0.85;
 }
 a.strip-bubble:hover { opacity: 1; box-shadow: 0 0 0 3px rgba(20, 30, 50, 0.08); }
+/* Causal-layer band header (threads lane only): a full-width grid row
+   spanning both topic-strip columns, so it never becomes a third cell in a
+   label+plot pair. Reuses .legend-layer's existing chip styling (see
+   "Emergent-thread lane" below) rather than inventing new chip CSS; the
+   left margin that chip carries for its usual inline-after-text placement
+   is zeroed here since the band header IS the whole line. */
+.strip-band { grid-column: 1 / -1; padding: 7px 0 3px; }
+.strip-band .legend-layer { margin-left: 0; }
 
 .timeline-stories-h {
   font-size: 1.15rem; margin: 30px 0 0; border-bottom: 2px solid var(--border);
@@ -508,4 +543,6 @@ a.strip-bubble:hover { opacity: 1; box-shadow: 0 0 0 3px rgba(20, 30, 50, 0.08);
   font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.02em;
   color: var(--muted); background: var(--card); border: 1px solid var(--border);
 }
+/* Thread detail page: reciprocal "caused by" back-link (see thread.html). */
+.thread-caused-by { margin-top: 2px; }
 .footer-links { margin-top: 8px !important; }
