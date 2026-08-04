@@ -153,6 +153,75 @@ def test_thread_labeled_from_distinctive_terms(sample_config):
     assert any(w in star.label.lower() for w in ("star", "rating", "methodolog", "cms"))
 
 
+def test_thread_label_avoids_ubiquitous_window_phrase(sample_config):
+    # Two near-duplicate stories share "market conditions" with three unrelated
+    # filler stories elsewhere in the window (in-thread share 2/5 = 0.4, below
+    # the 0.5 floor) -- so that phrase must not become the thread's label, even
+    # though every headline in the thread contains it. The thread's own
+    # "special needs plan expansion" wording appears nowhere else in the
+    # window (share 1.0), so that's what should surface instead.
+    target_a = _story(
+        "t1",
+        "Elevance unveils special needs plan expansion amid market conditions",
+        category="competitive_strategy",
+    )
+    target_b = _story(
+        "t2",
+        "Elevance special needs plan expansion accelerates as market conditions shift",
+        category="competitive_strategy",
+    )
+    filler_1 = _story(
+        "f1",
+        "Centene warns of margin pressure amid market conditions this quarter",
+        category="financial_pressure",
+    )
+    filler_2 = _story(
+        "f2",
+        "Molina flags enrollment softness as market conditions weigh on growth",
+        category="financial_pressure",
+    )
+    filler_3 = _story(
+        "f3",
+        "Kaiser broker commissions face scrutiny as market conditions evolve statewide",
+        category="competitive_strategy",
+    )
+    threads, _ = _threads(
+        sample_config, [target_a, target_b, filler_1, filler_2, filler_3]
+    )
+    target = next(
+        t for t in threads if {"t1", "t2"} <= {s["item_id"] for s in t.stories}
+    )
+    assert "market conditions" not in target.label.lower()
+    assert any(w in target.label.lower() for w in ("special needs", "plan expansion"))
+
+
+def test_build_threads_gives_colliding_threads_distinct_labels(sample_config):
+    # Two unrelated single-story clusters (min_stories=1) in the same category
+    # with no shared vocabulary both fall back to the same dominant-category
+    # label ("Competitive / Operational Strategy") when labeled independently
+    # -- the exact collision the diagnosis found on the real page. build_threads
+    # must still hand back distinct labels.
+    solo_x = _story(
+        "x",
+        "UnitedHealthcare pilots new digital front door for member service today",
+        category="competitive_strategy",
+        entities=["UnitedHealthcare"],
+    )
+    solo_y = _story(
+        "y",
+        "Aetna trials revamped virtual concierge tool for policyholders statewide",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+    threads, _ = _threads(sample_config, [solo_x, solo_y], min_stories=1)
+    assert len(threads) == 2
+    labels = [t.label for t in threads]
+    assert len(set(labels)) == 2
+    assert all(
+        label.startswith("Competitive / Operational Strategy") for label in labels
+    )
+
+
 def test_label_falls_back_to_category_when_not_nameable(sample_config):
     # With no distinctive multi-doc vocabulary, the label is the dominant
     # taxonomy label rather than an empty or noisy string.

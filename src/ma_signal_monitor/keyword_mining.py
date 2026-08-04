@@ -73,6 +73,55 @@ def _log_odds(
     return z
 
 
+def distinctive_terms(
+    pos: Counter, neg: Counter, vocab: set[str], *, min_share: float
+) -> list[str]:
+    """Rank ``vocab`` by distinctiveness, not just statistical confidence.
+
+    ``_log_odds``'s z-score answers "how *confident* are we this term is
+    over-represented in ``pos``?" — and confidence grows with raw count. That
+    means a term seen a dozen times in ``pos`` but also dozens of times in
+    ``neg`` (frequent everywhere, only slightly skewed toward ``pos``) can
+    out-rank a term seen only twice, both times in ``pos`` (rare, but
+    entirely ``pos``'s own) — even though a reader would call the second term
+    the distinctive one and the first one boilerplate. Truncating a bare
+    ``_log_odds`` ranking to "top N" therefore tends to surface the pool's
+    most *frequent* shared vocabulary, not its most *characteristic* language.
+
+    This ranks the same way ``_log_odds`` does (same z-scores, computed over
+    the same ``vocab`` background), but first requires a term to clear a
+    **share floor**: at least ``min_share`` of its combined ``pos + neg``
+    occurrences must fall in ``pos`` (``pos[w] / (pos[w] + neg[w]) >=
+    min_share``), and its z-score must be positive (over-represented in
+    ``pos`` at all). That discards the frequent-but-shared terms outright, so
+    among what survives, the z-score ordering is ranking genuinely
+    ``pos``-characteristic language, not just picking the biggest ones.
+
+    Args:
+        pos: In-group term counts (e.g. a thread's own terms).
+        neg: Out-group term counts (e.g. the rest of the window).
+        vocab: Candidate terms to score; passed through to ``_log_odds``
+            unchanged so z-scores match what a direct ``_log_odds`` call over
+            the same background would produce.
+        min_share: Minimum in-group share a term must clear to survive.
+
+    Returns:
+        The subset of ``vocab`` that clears both the share floor and
+        ``z > 0``, ordered most-distinctive first (z-score descending, ties
+        broken toward longer phrases, then alphabetically, so the result is
+        deterministic).
+    """
+    z = _log_odds(pos, neg, vocab)
+    survivors = [
+        w
+        for w in vocab
+        if z[w] > 0
+        and (pos[w] + neg[w]) > 0
+        and pos[w] / (pos[w] + neg[w]) >= min_share
+    ]
+    return sorted(survivors, key=lambda w: (-z[w], -len(w), w))
+
+
 def mine_keywords(
     store: StateStore,
     config: AppConfig,

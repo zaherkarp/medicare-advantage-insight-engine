@@ -20,12 +20,10 @@ paper over a regression. If a change to ``threads.py`` needs a *higher*
 ceiling to pass, that is a real regression, not a fixture problem.
 
 The two label-quality gates (distinct labels; no label built solely from
-window-common terms) are not yet met by the current labeler, so they are
-marked ``xfail(strict=True)`` rather than given a floor: step 2 is expected to
-earn them outright. ``strict=True`` means the moment step 2's fix makes one of
-these pass, pytest reports it as a failure (unexpected pass) -- that failure
-is the signal to delete the marker and fold the gate into the numeric-floor
-table like the other two.
+window-common terms) are plain assertions, same as the numeric floors above --
+step 2 (``keyword_mining.distinctive_terms`` + ``threads._dedupe_labels``)
+earned both outright against this fixture (see the measured-numbers comment
+below), so there is no floor to loosen here, only a bar to keep clearing.
 
 KNOWN LIMITATION -- this fixture UNDERSTATES any entity-related improvement.
 ``sample_config.watched_entities`` carries only four aliases
@@ -77,6 +75,23 @@ _BASE_DATE = date(2026, 7, 1)
 # threads (label quality is step 2's job, untouched here). The ungrouped
 # floor tightens accordingly; the other floor is unchanged since largest-
 # thread share didn't move.
+#
+# Step 2 (keyword_mining.distinctive_terms -- log-odds ranking gated by an
+# in-thread-share floor, so ranking measures distinctiveness rather than
+# raw frequency -- plus threads._dedupe_labels' collision-escalation ladder)
+# re-measures this same fixture at: 81 stories -> 11 threads (unchanged),
+# 45 ungrouped, 0.556 of the window (unchanged), largest thread still 9
+# stories, 0.111 of the window (unchanged) -- clustering is untouched by a
+# labeling-only step, as expected -- and now **11 distinct labels across 11
+# threads** (up from 6/11), with zero labels built solely from window-common
+# (DF > 40%) terms. The resulting labels: "broker · groups", "bonus ·
+# threatens", "court · cms star", "cost trend · earnings guidance",
+# "medical loss · ratio", "network · supplemental benefits",
+# "unitedhealthcare medicare · advantage contract", "value-based primary ·
+# expand", "growth concentrated · advantage enrollment", "aetna · exits",
+# "health raises · cvs". Both label-quality gates below are now plain
+# assertions instead of xfail. The two numeric ceilings are unchanged since
+# this step doesn't touch clustering.
 _UNGROUPED_FRACTION_CEILING = 0.57
 _LARGEST_THREAD_FRACTION_CEILING = 0.15
 
@@ -162,15 +177,6 @@ def test_largest_thread_within_floor(threaded, corpus):
     )
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Thread labels still collide: distinct threads can fall back to the "
-        "same taxonomy label (or the log-odds ranking can surface the same "
-        "distinctive terms for more than one thread). Step 2 disambiguates "
-        "labels so distinct threads get distinct names."
-    ),
-    strict=True,
-)
 def test_thread_labels_are_distinct(threaded):
     threads, _ = threaded
     labels = [t.label for t in threads]
@@ -178,15 +184,6 @@ def test_thread_labels_are_distinct(threaded):
     assert not dupes, f"duplicate thread labels: {dupes}"
 
 
-@pytest.mark.xfail(
-    reason=(
-        "A thread label can still be composed solely of terms that are "
-        "common across the whole window (document-frequency > 40%, e.g. "
-        "'medicare · advantage'), which reads as generic rather than "
-        "distinctive. Step 2 excludes such terms from label candidates."
-    ),
-    strict=True,
-)
 def test_thread_labels_avoid_window_common_terms(threaded, corpus):
     threads, _ = threaded
     df = _window_document_frequency(corpus)
