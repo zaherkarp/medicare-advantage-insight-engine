@@ -3,11 +3,18 @@
 
 Usage:
     python scripts/scorecard.py            # test-suite metrics only (S1, S2, S3, Q1)
-    python scripts/scorecard.py --db PATH  # also archive metrics (C2, F1, F3)
+    python scripts/scorecard.py --db PATH  # also archive metrics (C2, F1, F3, N1)
 
 The archive DB for --db is typically a fresh download of the published site's
 data/state.db, so the numbers reflect production, not a local dev database.
 Feature metrics (C1, C3, Q2, U1) are assessed manually — see docs/goal.md.
+
+N1 (display-floor composition) is not yet a docs/goal.md row — it was added to
+catch a class of noise F3 and source_review.flag_low_yield_sources can't see:
+both measure yield against the 0.3 *alert* threshold, so a source that
+reliably clears the 0.1 *display* floor (archive_min_score) but never alerts
+never shows up as low-yield. N1 measures composition at the display floor
+instead, using the same MA-context predicate the scorer itself gates on.
 """
 
 import argparse
@@ -15,7 +22,7 @@ import json
 import re
 import sqlite3
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -24,9 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import yaml
 
-from ma_signal_monitor.config import load_config
+from ma_signal_monitor.config import AppConfig, load_config
 from ma_signal_monitor.models import NormalizedItem
-from ma_signal_monitor.scoring import score_item
+from ma_signal_monitor.scoring import _has_ma_context, _keyword_in_text, score_item
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _FIXTURE = _PROJECT_ROOT / "tests" / "fixtures" / "golden_set.yaml"
@@ -46,6 +53,97 @@ TOP_PAYERS = {
     "BCBS plans": ["Blue Cross", "Blue Shield", "BCBS"],
     "SCAN": ["SCAN"],
 }
+
+# N1 display-floor composition: same rolling window as the C2 mentions query
+# and the production measurement that motivated ma_context_min_priority (see
+# config/taxonomy.yaml). A source needs at least this many display-floor
+# stories in the window before its composition is reported individually —
+# smaller than F3's archive-wide 25 because this is one 30-day window, not
+# the whole archive's history.
+_DISPLAY_FLOOR_WINDOW_DAYS = 30
+_DISPLAY_FLOOR_SOURCE_MIN_SAMPLE = 10
+_DISPLAY_FLOOR_WORST_N = 5
+
+# Ordered from most to least specific. A story lands in the first tier whose
+# test it satisfies:
+#   ma_vocab         -- strong MA-plan vocabulary (config.ma_boost_terms),
+#                        direct evidence of an MA-market signal on its own.
+#   payer            -- names a watched_entities payer but no ma_boost_terms.
+#   medicare_or_cms  -- on-domain per _has_ma_context (a config.ma_context_terms
+#                        anchor: bare "Medicare"/"CMS"/"risk adjustment"/...)
+#                        but neither of the above — context established, but
+#                        not by itself MA-market or payer-specific evidence.
+#   none             -- fails _has_ma_context entirely: the off-domain noise
+#                        profile ma_context_min_priority exists to gate.
+_CONTEXT_TIERS = ("ma_vocab", "payer", "medicare_or_cms", "none")
+
+
+def _context_tier(text: str, config: AppConfig) -> str:
+    """Classify already-lowercased ``text`` into one of :data:`_CONTEXT_TIERS`.
+
+    Reuses ``scoring._has_ma_context`` for the on/off-domain split (the exact
+    predicate ``score_item``'s MA-context gate applies) so this report and the
+    gate can never drift apart; only the on-domain subdivision into
+    "ma_vocab"/"payer"/"medicare_or_cms" is done here, via the same
+    whole-token ``_keyword_in_text`` matcher scoring.py uses everywhere else.
+    """
+    if not _has_ma_context(text, config):
+        return "none"
+    if any(_keyword_in_text(term, text) for term in config.ma_boost_terms):
+        return "ma_vocab"
+    if any(_keyword_in_text(entity, text) for entity in config.watched_entities):
+        return "payer"
+    return "medicare_or_cms"
+
+
+def display_floor_composition(db_path: Path, config: AppConfig) -> dict:
+    """Bucket recent display-floor stories by MA-context tier (N1).
+
+    Mirrors the production measurement behind ``ma_context_min_priority``:
+    non-duplicate stories at/above ``archive_min_score`` in the last
+    :data:`_DISPLAY_FLOOR_WINDOW_DAYS` days, using each row's *stored*
+    ``relevance_score`` (what actually shipped to the archive), not a fresh
+    re-score — this reports what is on the site today, not a hypothetical.
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cutoff = (
+        datetime.utcnow() - timedelta(days=_DISPLAY_FLOOR_WINDOW_DAYS)
+    ).isoformat()
+    rows = conn.execute(
+        """SELECT source_name, title, summary FROM stories
+           WHERE duplicate_of IS NULL
+             AND COALESCE(relevance_score, 0) >= ?
+             AND COALESCE(published_date, fetched_at) >= ?""",
+        (config.archive_min_score, cutoff),
+    ).fetchall()
+    conn.close()
+
+    overall: Counter = Counter()
+    by_source: dict[str, Counter] = defaultdict(Counter)
+    for row in rows:
+        text = f"{row['title'] or ''} {row['summary'] or ''}".lower()
+        tier = _context_tier(text, config)
+        overall[tier] += 1
+        by_source[row["source_name"]][tier] += 1
+
+    total = sum(overall.values())
+    worst = sorted(
+        (
+            (name, counts)
+            for name, counts in by_source.items()
+            if sum(counts.values()) >= _DISPLAY_FLOOR_SOURCE_MIN_SAMPLE
+        ),
+        key=lambda kv: (kv[1]["none"] / sum(kv[1].values()), kv[1]["none"]),
+        reverse=True,
+    )[:_DISPLAY_FLOOR_WORST_N]
+
+    return {
+        "days": _DISPLAY_FLOOR_WINDOW_DAYS,
+        "total": total,
+        "overall": overall,
+        "worst_sources": worst,
+    }
 
 
 def _golden_item(entry: dict) -> NormalizedItem:
@@ -169,7 +267,7 @@ def main() -> None:
     print(f"Q1  exclusions:             {exclusion_counts(config)}")
 
     if not args.db:
-        print("\n(no --db: skipping archive metrics C2/F1/F3)")
+        print("\n(no --db: skipping archive metrics C2/F1/F3/N1)")
         return
 
     print("\n== Archive (production) ==")
@@ -190,6 +288,33 @@ def main() -> None:
         f"F3  low-yield sources:      {len(archive['low_yield'])} of "
         f"{archive['high_volume_sources']} high-volume (<5% alert-grade)"
     )
+
+    dfc = display_floor_composition(args.db, config)
+    total = dfc["total"]
+    overall = dfc["overall"]
+    print(
+        f"N1  display-floor composition ({dfc['days']}d, {total} stories "
+        f">= {config.archive_min_score} floor, non-duplicate):"
+    )
+    for tier, label in (
+        ("ma_vocab", "MA-specific vocabulary"),
+        ("payer", "names a watched payer"),
+        ("medicare_or_cms", "Medicare/CMS mention only"),
+        ("none", "none of these (off-domain noise)"),
+    ):
+        n = overall.get(tier, 0)
+        share = n / total if total else 0.0
+        marker = "!" if tier == "none" and share > 0.05 else " "
+        print(f"    {marker} {label + ':':<36} {n:>5}  ({share:.1%})")
+    if dfc["worst_sources"]:
+        print(
+            f"    worst sources by off-domain share (>= "
+            f"{_DISPLAY_FLOOR_SOURCE_MIN_SAMPLE} in-window stories):"
+        )
+        for name, counts in dfc["worst_sources"]:
+            n = sum(counts.values())
+            none_n = counts.get("none", 0)
+            print(f"      {none_n / n:.1%} off-domain  ({none_n}/{n})  {name}")
 
 
 if __name__ == "__main__":

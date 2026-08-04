@@ -71,7 +71,7 @@ class TestConfigLoading:
     def test_ma_context_gate_defaults(self, project_root_with_config):
         """MA-context gate defaults are sane when the taxonomy omits them."""
         config = load_config(project_root_with_config)
-        assert config.scoring.ma_context_min_priority == 3
+        assert config.scoring.ma_context_min_priority == 5
         assert config.ma_context_terms == []
 
     def test_archive_min_score_defaults(self, project_root_with_config):
