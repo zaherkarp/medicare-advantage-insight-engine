@@ -122,6 +122,31 @@ relevant:
   - title: '8-K: UnitedHealth Group Incorporated - Results of Operations and Financial Condition'
     source_priority: 4
 
+  # -- ma_context_min_priority 3 -> 5 gate traps (2026-08-04): priority-3 is
+  #    now inside the gate (previously exempt), so these default-priority
+  #    entries exercise the newly-gated tier. Each clears the gate via a
+  #    *different* single anchor (verified to be the only ma_context_terms/
+  #    watched_entities hit in the text) so a later trim of ma_context_terms
+  #    or watched_entities can't silently break recall for the others. See
+  #    config/taxonomy.yaml's scoring.ma_context_min_priority comment for the
+  #    measured rationale.
+  - title: Humana raises full-year guidance after strong enrollment growth
+    summary: The insurer's membership gains and cost trend management offset
+      market share losses at rivals.
+    source_priority: 3  # anchor: watched payer only ("Humana"), no "Medicare"/"CMS"
+  - title: Regional insurer raises premium ahead of Medicare open enrollment period
+    summary: The increase lands as seniors begin comparing coverage options for
+      next year.
+    source_priority: 3  # anchor: bare "Medicare" only, no payer name/"CMS"
+  - title: CMS finalizes benchmark rule as insurers brace for margin pressure
+    summary: The update adjusts payment benchmarks industry-wide starting next
+      fiscal year.
+    source_priority: 3  # anchor: bare "CMS" only, no "Medicare"/payer name
+  - title: Risk adjustment audit finds coding pattern behind insurer margin concerns
+    summary: Investigators say the pattern raised questions about diagnosis
+      documentation practices.
+    source_priority: 3  # anchor: "risk adjustment" only, no "Medicare"/"CMS"/payer
+
   # -- litigation-tracker feeds (fetchers/litigation.py injects the source's
   #    guaranteed topic into each case's boilerplate summary; these guard that
   #    both payer-named and unwatched-plaintiff cases stay alert-grade) --
@@ -257,6 +282,54 @@ irrelevant:
     summary: Newly released state enrollment data show ObamaCare coverage losses could be even
       more severe than initially anticipated, due to Congress's unwillingness to renew enhanced
       subsidies. Monthly enrollment data through...
+
+  # -- ma_context_min_priority 3 -> 5 gate traps (2026-08-04): real production
+  #    rows this change newly drops, taken verbatim (title + summary + actual
+  #    source/priority) from the archive rather than invented. All are
+  #    priority-3 sources (GAO, Modern Healthcare, STAT News, Healthcare Dive)
+  #    that scored at or above the 0.3 alert threshold under the old gate
+  #    (0.35-0.57) purely on incidental category-keyword hits ("regulations",
+  #    "benchmark", "settlement", "staffing", "profits") with no Medicare/CMS/
+  #    payer content anywhere in the text. (House Ways and Means's "Chairman
+  #    Smith Statement on Fed Rate Announcement", also 0.35 and also noise, is
+  #    deliberately NOT here — that source is priority 4 and stays exempt by
+  #    design; it is a known remaining gap, not a regression this change causes.)
+  - title: "Federal Real Property: Further Consolidating DOT Office Space Could Save Hundreds of Millions of Dollars"
+    summary: What GAO Found The Department of Transportation (DOT) and its component
+      agencies are underutilizing their office space department-wide based on the
+      Utilizing Space Efficiently and Improving Technologies (USE IT) Act benchmark
+      of 60 percent utilization. Specifically, GAO found that 89 percent of DOT’s
+      189 office buildings, including the DOT and the Federal Aviation Administration
+      (FAA) headquarters complexes, were underutilized in August and September 2025
+      based on the USE IT benchmark. This w...
+  - title: "Tax Regulations: Opportunities Exist to Improve Economic Analysis and Taxpayer Engagement"
+    summary: The Department of the Treasury and the Internal Revenue Service (IRS)
+      proposed 236 tax regulations and finalized 231 regulations between January 21,
+      2017, and March 31, 2026. These regulations included those that implemented
+      provisions of the sweeping tax law changes of 2017, 2022, and 2025. IRS
+      rulemaking procedures generally provided the public with an opportunity to
+      comment on proposed tax regulations. GAO found that Treasury and IRS could
+      improve the usefulness of regulator...
+  - title: "Science & Tech Spotlight: Geographic Origin of Food and Other Imports"
+    summary: Why This Matters Bad actors may falsify the geographic origin of
+      products to illicitly sell goods or substitute premium products with cheaper
+      products, which can threaten our economy and consumer safety. In 2021, the
+      U.S. International Trade Commission estimated that U.S. commercial fishing
+      may have lost nearly $61 million in operating income due to illegal,
+      unreported, and unregulated seafood imports. Technologies that verify the
+      origin of imported food and agricultural products, like seafoo...
+  - title: Hospitals’ RCM staffing crunch opens door for AI vendors
+    summary: Hospitals are turning to outside revenue cycle vendors as staffing
+      shortages and documentation complexity make AI tools attractive.
+  - title: "STAT+: Telemedicine company touted by Novo Nordisk stressed profits over
+      patient safety, ex-workers say"
+    summary: LifeMD, a popular telehealth company, has been accused by former
+      employees of pressing clinicians to mete out prescriptions more rapidly
+      without sufficient screening and follow-up.
+  - title: CVS Caremark reaches settlement with FTC over insulin suit
+    summary: Terms of the deal announced Tuesday are very similar to those the FTC
+      reached with Express Scripts earlier this year, including requiring the PBM
+      to stop preferring higher cost versions of drugs on standard formularies.
 
   # -- mined health-adjacent easy negatives --
   - title: House, Senate health chairs Creekmore and Bryan say rural health program, spending

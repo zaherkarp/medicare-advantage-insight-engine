@@ -107,9 +107,15 @@ class ScoringConfig:
     ma_term_boost: float = 0.15
     # Sources with priority below this must carry Medicare/MA context (a watched
     # payer or an ma_context_terms match) for their taxonomy-keyword matches to
-    # count as signal. Dedicated MA sources are higher priority and stay fully
-    # sensitive. Set to 0 to disable the gate. See scoring.score_item.
-    ma_context_min_priority: int = 3
+    # count as signal. Raised 3 -> 5 (2026-08-04): everything from priority 3 up
+    # was exempt, and that exempt tier measured 44.2% off-domain in the
+    # display-floor archive against 3.7% for the gated tier. At 5 only the two
+    # priority-5 CMS feeds stay exempt. See the mirrored, measured rationale on
+    # config/taxonomy.yaml's scoring.ma_context_min_priority — including what
+    # this deliberately does NOT fix (Medicare-adjacent-but-not-MA stories,
+    # which clear the gate by design). Set to 0 to disable the gate. See
+    # scoring.score_item.
+    ma_context_min_priority: int = 5
 
 
 @dataclass
@@ -528,7 +534,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         title_keyword_multiplier=scoring_data.get("title_keyword_multiplier", 1.5),
         exclusion_penalty=scoring_data.get("exclusion_penalty", 0.25),
         ma_term_boost=scoring_data.get("ma_term_boost", 0.15),
-        ma_context_min_priority=scoring_data.get("ma_context_min_priority", 3),
+        ma_context_min_priority=scoring_data.get("ma_context_min_priority", 5),
     )
 
 

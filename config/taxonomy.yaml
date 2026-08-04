@@ -283,6 +283,53 @@ scoring:
   # Added once when any ma_boost_terms entry is present (see that list above).
   ma_term_boost: 0.15
   # Sources with priority below this must carry Medicare/MA context (a watched
-  # payer or an ma_context_terms match) before keyword matches count. Dedicated
-  # MA sources are priority 3-5 and stay fully sensitive. 0 disables the gate.
-  ma_context_min_priority: 3
+  # payer or an ma_context_terms match) before keyword matches count. At 5 only
+  # the two priority-5 feeds stay exempt — CMS Newsroom and Federal Register CMS
+  # Rules, both of which publish CMS material by definition. 0 disables the gate.
+  #
+  # Raised 3 -> 5 (2026-08-04). Everything from priority 3 up was exempt, and
+  # that is where essentially all the noise lived. Split by source bucket at the
+  # old threshold, on the real production archive's default 30-day display-floor
+  # window (382 displayed stories, non-duplicate): exempt (priority >= 3) 355
+  # stories / 157 off-domain (44.2%) vs. gated (priority < 3) 27 stories /
+  # 1 off-domain (3.7%). The gate worked; it applied to 7% of the archive.
+  # Re-scoring that window through score_item at each candidate threshold:
+  #   gate  displayed  on-domain  off-domain  noise share
+  #     3        382        224         158       41.4%   <- was
+  #     4        247        224          23        9.3%
+  #     5        228        224           4        1.8%   <- now
+  # "on-domain" = mentions Medicare/CMS/a watched payer, i.e. nearly the same
+  # predicate the gate itself applies — so that column can't by construction
+  # show a recall loss (it would read 224/224 even if the gate were wrongly
+  # eating relevant stories). It is not proof recall held, only that measured
+  # on-domain stories weren't the ones dropped. tests/test_golden_set.py's
+  # precision/recall floors are the independent check, and were extended
+  # alongside this change to probe the newly-gated tiers through several
+  # different context anchors (payer-only, bare "Medicare", "CMS"-only,
+  # "risk adjustment"-only) so a later trim of ma_context_terms cannot quietly
+  # break recall.
+  #
+  # 4 was implemented first and rejected on measurement. Its 23 residual
+  # off-domain stories break down by source priority as 19 at priority 4,
+  # 2 at priority 5, 1 at priority 3, 1 at priority 2 — i.e. the great
+  # majority sat in exactly the tier 4 spares (KFF Health News 6, House Energy
+  # & Commerce 6, House Ways & Means 3, Georgetown CCF 2, Federal Register CMS
+  # Notices 1, CMS MLN Connects 1). Two scored ABOVE the 0.3 alert threshold:
+  # "Chairman Smith Statement on Fed Rate Announcement" (0.35) and a
+  # fraud-crackdown piece (0.85). Moving to 5 gates those 19; the 4 survivors
+  # are all below alert grade and two are genuine CMS Federal Register items.
+  # The recall concern that motivated 4 — dry SEC/litigation filings carrying
+  # no incidental "Medicare"/"CMS" text — did not materialise: the golden set
+  # holds 1.000/1.000 with zero false negatives at 3, 4 and 5 alike.
+  #
+  # WHAT THIS DOES NOT FIX. The gate tests for Medicare *context*, and
+  # ma_context_terms deliberately includes bare "Medicare" and "CMS". Stories
+  # that are Medicare-adjacent but not Medicare Advantage — 340B, MSSP shared
+  # savings (fee-for-service), Medicaid 1115 waivers, provider taxes — clear it
+  # by design. That band is 104 stories and does not move at ANY threshold:
+  # 27.2% of the window at gate 3, 45.6% at gate 5, rising only because the
+  # denominator shrinks. Narrowing it needs a different lever — an
+  # ma_boost_terms-anchored gate, or FFS/Medicaid exclusion vocabulary — which
+  # is the owner-reviewed "Populate exclusions.hard" item in TODO.md and is
+  # deliberately not front-run here.
+  ma_context_min_priority: 5

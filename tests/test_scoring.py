@@ -79,11 +79,21 @@ class TestScoring:
 
     def test_title_keyword_weighted_higher(self, sample_config):
         """Keywords in the title should contribute more than in the body."""
+        # This test is about title-vs-body weighting and nothing else, so take
+        # the MA-context gate out of the picture rather than picking a
+        # source_priority that happens to sit above the current threshold. A
+        # gated item earns no keyword credit at all, so both items would score
+        # identically on source priority alone and the assertion would compare
+        # 0.08 against 0.08 — which is what happens to any fixed priority once
+        # the threshold rises past it. Disabling the gate here (the same escape
+        # hatch test_ma_context_gate_disabled_when_zero uses) keeps this test
+        # correct at every threshold.
+        sample_config.scoring.ma_context_min_priority = 0
         item_title = NormalizedItem(
             item_id="tw001",
             source_name="Test",
             source_type="rss",
-            source_priority=3,
+            source_priority=4,
             source_tags=[],
             title="New enrollment trends in Medicare",
             link="https://x.com/1",
@@ -94,7 +104,7 @@ class TestScoring:
             item_id="tw002",
             source_name="Test",
             source_type="rss",
-            source_priority=3,
+            source_priority=4,
             source_tags=[],
             title="General healthcare news",
             link="https://x.com/2",
