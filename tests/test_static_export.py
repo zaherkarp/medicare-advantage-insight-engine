@@ -1,5 +1,6 @@
 """Tests for the static GitHub Pages export."""
 
+import dataclasses
 import json
 import re
 from datetime import datetime, timedelta
@@ -750,3 +751,109 @@ def test_thread_leads_to_chip_exports_with_no_script_and_resolves(
     # exported page is also script-free.
     for f in sorted((out / "timeline" / "threads").glob("*.html")):
         assert "<script" not in f.read_text()
+
+
+def test_thread_cap_still_exports_every_thread_including_folded_ones(
+    tmp_path, sample_config, temp_db
+):
+    """thread_max_rows caps what the frozen /timeline/threads CHART draws,
+    not what gets exported: every clustered thread -- kept or folded -- still
+    gets its own static detail page, and every href the frozen (capped) lane
+    page emits still resolves to a file this export wrote."""
+    # Three lexically distinct 2-story thread pairs (mirrors
+    # tests/test_web.py's _seed_three_threads_and_a_solo) plus one unrelated
+    # story that stays "Ungrouped signals".
+    _seed_recent(
+        temp_db,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-5",
+        "Aetna faces backlash over prior authorization denial rates for "
+        "Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-6",
+        "Aetna criticized for prior authorization denial rates in Medicare "
+        "Advantage plans",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "solo",
+        "Molina expands footprint into three additional states",
+        category="membership_movement",
+        entities=["Molina"],
+    )
+
+    cfg = dataclasses.replace(sample_config, thread_max_rows=2)
+    out, counts = _build(tmp_path, cfg, temp_db, base="/myrepo")
+
+    # All three threads get their own detail page -- the cap never shrinks
+    # the export, only the frozen lane page's own row count.
+    thread_files = sorted((out / "timeline" / "threads").glob("*.html"))
+    assert [f.name for f in thread_files] == ["th-1.html", "th-3.html", "th-5.html"]
+    assert counts["timelines"] == (
+        1  # root /timeline
+        + 5  # /timeline/w/{7,90,180,365,all}
+        + 1  # /timeline/threads lane
+        + 3  # all three threads' own detail pages, capped or not
+        + len(cfg.categories)
+        + len(PAYER_GROUPS)
+        + len(temp_db.get_state_counts(min_score=cfg.archive_min_score))
+    )
+
+    # The frozen lane page itself only draws the capped rows plus the two
+    # aggregate rows -- 2 kept + "+1 smaller threads" + "Ungrouped signals".
+    lane_page = (out / "timeline" / "threads.html").read_text()
+    assert lane_page.count('class="strip-label') == 4
+    assert "+1 smaller threads" in lane_page
+    assert "Ungrouped signals" in lane_page
+
+    # Every href the (capped) lane page emits into a thread still resolves to
+    # an exported file -- no dangling links, same guarantee as the uncapped
+    # case, and it must never link the "+N smaller threads" aggregate row.
+    hrefs = re.findall(r'href="(/myrepo/timeline/threads/[^"]+)"', lane_page)
+    assert hrefs
+    for href in hrefs:
+        assert (out / href[len("/myrepo/") :]).exists(), f"dangling link: {href}"
+    assert "/myrepo/timeline/threads/smaller-threads" not in lane_page
+
+    # The folded thread's own page is still real and reachable by URL even
+    # though the frozen lane page never links to it.
+    folded_names = {f.name for f in thread_files} - {
+        href.rsplit("/", 1)[-1] + ".html" for href in hrefs
+    }
+    assert folded_names, "expected at least one folded thread with no lane link"
+    for name in folded_names:
+        detail = (out / "timeline" / "threads" / name).read_text()
+        assert "<script" not in detail

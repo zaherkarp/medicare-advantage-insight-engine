@@ -9,6 +9,7 @@ from ma_signal_monitor.threads import (
     _story_terms,
     build_thread_links,
     build_threads,
+    select_threads_for_display,
     thread_bands,
 )
 
@@ -406,6 +407,129 @@ def test_mixed_category_thread_has_no_layer(sample_config):
     assert mixed_thread.layer_order == _NO_LAYER_ORDER
 
 
+# --- select_threads_for_display: capping the CHART's rows ---
+
+
+def _sized_thread(key, total, *, label=None, layer_order=1):
+    """A minimal Thread with a controllable ``.total`` (story count) for
+    exercising select_threads_for_display -- content of the stories
+    themselves is irrelevant to selection, only their count and the
+    thread's key/label."""
+    return Thread(
+        key=key,
+        label=label or key,
+        stories=tuple({"item_id": f"{key}-{i}"} for i in range(total)),
+        dominant_category="cat",
+        mixed=False,
+        layer_key="layer",
+        layer_short="L",
+        layer_label="Layer",
+        layer_order=layer_order,
+    )
+
+
+def test_select_threads_for_display_keeps_everything_under_the_cap():
+    threads = [_sized_thread("a", 5), _sized_thread("b", 2)]
+    kept, folded = select_threads_for_display(threads, 5)
+    assert kept == threads
+    assert folded == []
+
+
+def test_select_threads_for_display_keeps_the_n_largest():
+    small = _sized_thread("small", 2)
+    medium = _sized_thread("medium", 4)
+    large = _sized_thread("large", 9)
+    kept, folded = select_threads_for_display([small, medium, large], 2)
+    assert {t.key for t in kept} == {"large", "medium"}
+    assert {t.key for t in folded} == {"small"}
+
+
+def test_select_threads_for_display_ties_break_on_label():
+    # "aaa" and "bbb" tie on total (3) -- the deterministic tie-break (label
+    # ascending) keeps "aaa" and folds "bbb", never depending on input order.
+    aaa = _sized_thread("k-aaa", 3, label="aaa")
+    bbb = _sized_thread("k-bbb", 3, label="bbb")
+    biggest = _sized_thread("k-big", 9, label="zzz")
+    kept, folded = select_threads_for_display([bbb, biggest, aaa], 2)
+    assert {t.key for t in kept} == {"k-big", "k-aaa"}
+    assert {t.key for t in folded} == {"k-bbb"}
+
+
+def test_select_threads_for_display_preserves_causal_order_of_kept_set():
+    # Causal (input) order deliberately disagrees with size order: the
+    # biggest thread is last, the smallest of the three kept is first.
+    # Selection picks membership by size, but `kept` must still come out in
+    # the ORIGINAL (causal) order, not re-sorted by size.
+    #
+    # All three sit in ONE band so the per-band floor cannot influence
+    # membership here -- this test is about ORDER. The floor's effect on
+    # membership is covered by the band-floor tests below.
+    first = _sized_thread("first", 3, layer_order=1)
+    second = _sized_thread("second", 2, layer_order=1)
+    third = _sized_thread("third", 9, layer_order=1)
+    causal_order = [first, second, third]
+    kept, folded = select_threads_for_display(causal_order, 2)
+    assert [t.key for t in kept] == ["first", "third"]
+    assert [t.key for t in folded] == ["second"]
+
+
+def test_select_threads_for_display_keeps_every_band_represented():
+    # Regression guard for a real failure seen on the production archive:
+    # bands held 35/14/27/1 threads, and a purely size-ranked top-25 kept
+    # ZERO threads from the 1-thread Outcomes band -- the cascade rendered
+    # without the terminal stage it exists to arrive at. A band's sole
+    # occupant must survive the cap even when it is small.
+    big = [_sized_thread(f"big{i}", 9, layer_order=1) for i in range(10)]
+    lone_downstream = _sized_thread("lone", 2, layer_order=4)
+    kept, folded = select_threads_for_display([*big, lone_downstream], 5)
+    assert "lone" in {t.key for t in kept}
+    assert len(kept) == 5
+
+
+def test_select_threads_for_display_band_floor_spends_upstream_first():
+    # When the budget cannot cover every band's floor, the reservation walks
+    # bands in causal order, so upstream bands are served before downstream
+    # ones rather than the choice depending on dict ordering.
+    a = _sized_thread("a", 2, layer_order=1)
+    b = _sized_thread("b", 2, layer_order=2)
+    c = _sized_thread("c", 9, layer_order=3)
+    kept, _ = select_threads_for_display([a, b, c], 2)
+    assert [t.key for t in kept] == ["a", "b"]
+
+
+def test_select_threads_for_display_is_order_independent():
+    # The chosen kept SET never depends on the input list's order, only on
+    # size (then label) -- shuffling the input still keeps the same threads.
+    a = _sized_thread("a", 5, label="a")
+    b = _sized_thread("b", 3, label="b")
+    c = _sized_thread("c", 1, label="c")
+    kept1, folded1 = select_threads_for_display([a, b, c], 2)
+    kept3, folded3 = select_threads_for_display([c, a, b], 2)
+    assert {t.key for t in kept1} == {t.key for t in kept3} == {"a", "b"}
+    assert {t.key for t in folded1} == {t.key for t in folded3} == {"c"}
+
+
+def test_select_threads_for_display_every_thread_lands_exactly_once():
+    threads = [_sized_thread(f"t{i}", i + 1) for i in range(10)]
+    kept, folded = select_threads_for_display(threads, 4)
+    kept_keys = [t.key for t in kept]
+    folded_keys = [t.key for t in folded]
+    assert sorted(kept_keys + folded_keys) == sorted(t.key for t in threads)
+    assert set(kept_keys).isdisjoint(folded_keys)
+    assert len(kept) == 4
+    assert len(folded) == 6
+
+
+def test_select_threads_for_display_zero_or_negative_max_rows_keeps_all():
+    # Defensive: config validation requires >= 1, but the function itself
+    # degrades to "no cap" rather than folding everything, matching the
+    # `len(threads) <= max_rows` no-op branch's spirit.
+    threads = [_sized_thread("a", 5), _sized_thread("b", 2)]
+    kept, folded = select_threads_for_display(threads, 0)
+    assert kept == threads
+    assert folded == []
+
+
 # --- thread_bands: causal-layer band headers ---
 
 
@@ -451,6 +575,41 @@ def test_thread_bands_ungrouped_only_window_gets_its_own_band():
 
 def test_thread_bands_empty_window_has_no_bands():
     assert thread_bands([], has_ungrouped=False) == {}
+
+
+def test_thread_bands_folded_row_alone_opens_the_trailing_unplaced_band():
+    # No ungrouped stories at all, but the cap folded some threads -- the
+    # "+N smaller threads" row still needs its own trailing "Unplaced" band,
+    # not causal placement inherited from the last real thread.
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("c", layer_key="pressure", layer_short="Pressure", layer_order=2),
+    ]
+    assert thread_bands(threads, has_ungrouped=False, has_folded=True) == {
+        0: "Drivers",
+        1: "Pressure",
+        # row 2 is the trailing "+N smaller threads" row (len(threads) == 2).
+        2: "Unplaced",
+    }
+
+
+def test_thread_bands_folded_and_ungrouped_share_one_trailing_band():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+    ]
+    # The "+N smaller threads" row (index 1) and "Ungrouped signals" (index 2,
+    # never given its own entry) share ONE trailing "Unplaced" band.
+    assert thread_bands(threads, has_ungrouped=True, has_folded=True) == {
+        0: "Drivers",
+        1: "Unplaced",
+    }
+
+
+def test_thread_bands_has_folded_default_is_backward_compatible():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+    ]
+    assert thread_bands(threads, has_ungrouped=False) == {0: "Drivers"}
 
 
 # --- build_thread_links: "leads to" cascade between threads ---
@@ -723,3 +882,58 @@ def test_link_ordering_is_deterministic(sample_config):
     forward = build_thread_links([upstream, b, c], edges)
     reverse = build_thread_links([c, b, upstream], edges)
     assert forward == reverse == {"u": "b"}
+
+
+def test_build_thread_links_never_targets_a_thread_outside_the_given_list(
+    sample_config,
+):
+    # Simulates the lane's cap: build_thread_links only ever considers
+    # threads actually passed to it, so computing it over a "kept" subset
+    # (see select_threads_for_display / web/routes._timeline_thread_groups)
+    # can never produce a link to a thread that was folded out of that list --
+    # even when a folded thread would otherwise have been the single best
+    # target (declared edge + precedence + more shared evidence than any
+    # kept alternative).
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # The best possible target: two shared evidence terms (vs. one for the
+    # kept alternative below), so it would win if it were in the running.
+    best_but_folded = _linked_thread(
+        "folded",
+        "star ratings · fallout · methodology",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    # A weaker target (one shared term) that IS kept.
+    weaker_but_kept = _linked_thread(
+        "kept",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-09"],
+    )
+
+    # Computed over the full set, the stronger candidate wins.
+    full = build_thread_links([upstream, best_but_folded, weaker_but_kept], edges)
+    assert full["u"] == "folded"
+
+    # Computed over the kept set only (the folded thread excluded, exactly
+    # as _timeline_thread_groups does), the link falls back to the weaker
+    # candidate rather than dangling at an invisible row -- it never simply
+    # disappears just because the best option isn't rendered.
+    kept_only = build_thread_links([upstream, weaker_but_kept], edges)
+    assert kept_only["u"] == "kept"
+    assert "folded" not in kept_only.values()

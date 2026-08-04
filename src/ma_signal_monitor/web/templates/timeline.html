@@ -60,23 +60,27 @@
       </div>
 
       {# The threads lane (only) carries strip_bands (causal-layer band
-         headers, {row_index: label}) and thread_links (per-row "leads to"
-         chip data, {row_key: {key, label, href}}) — the /timeline topics
-         strip never gets either, so `has-bands`/`strip-band`/`strip-nosep`
-         never render there and the markup stays byte-identical to before
-         this step (see web/static/style.css for why that matters).
+         headers, {row_index: label}), thread_links (per-row "leads to"
+         chip data, {row_key: {key, label, href}}), and muted_rows (row keys
+         that get the muted `.strip-row-muted` treatment — the lane's two
+         trailing aggregate rows, "+N smaller threads" and "Ungrouped
+         signals") — the /timeline topics strip never gets any of the three,
+         so `has-bands`/`strip-band`/`strip-nosep`/`strip-row-muted` never
+         render there and the markup stays byte-identical to before this
+         step (see web/static/style.css for why that matters).
          A band header is its own full-width grid child (`grid-column: 1/-1`
          in CSS) rather than a third cell in a row, so it never disturbs the
          topic-strip's two-columns-per-row assumption. #}
       <div class="topic-strip{% if strip_bands %} has-bands{% endif %}">
         {% for row in strip %}
           {% set is_band_start = strip_bands and loop.index0 in strip_bands %}
+          {% set is_muted = muted_rows and row.key in muted_rows %}
           {% if is_band_start %}
             <div class="strip-band{% if loop.index0 == 0 %} strip-nosep{% endif %}">
               <span class="legend-layer">{{ strip_bands[loop.index0] }}</span>
             </div>
           {% endif %}
-          <div class="strip-label{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}">
+          <div class="strip-label{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}{% if is_muted %} strip-row-muted{% endif %}">
             {% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}<span>{{ row.label }}</span>{% endif %}
             <span class="strip-meta">
               <span class="strip-count">{{ row.total }}</span>
@@ -86,7 +90,7 @@
               {% endif %}
             </span>
           </div>
-          <div class="strip-plot{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}" style="--topic: {{ row.color }}">
+          <div class="strip-plot{% if strip_bands and loop.index0 == 0 or is_band_start %} strip-nosep{% endif %}{% if is_muted %} strip-row-muted{% endif %}" style="--topic: {{ row.color }}">
             {% for t in ticks %}<span class="viz-grid-line" style="left: {{ t.pct }}%" aria-hidden="true"></span>{% endfor %}
             {% for b in row.bubbles %}
               <a class="strip-bubble"

@@ -97,6 +97,17 @@ class TestConfigLoading:
         config = load_config(project_root_with_config)
         assert config.thread_entity_weight == 1.0
 
+    def test_thread_max_rows_defaults(self, project_root_with_config):
+        """thread_max_rows defaults to 25 when app.yaml doesn't set it."""
+        config = load_config(project_root_with_config)
+        assert config.thread_max_rows == 25
+
+    def test_thread_max_rows_loads_from_app_yaml(self, project_root_with_config):
+        app_yaml_path = project_root_with_config / "config" / "app.yaml"
+        app_yaml_path.write_text(yaml.dump({"timeline": {"threads": {"max_rows": 10}}}))
+        config = load_config(project_root_with_config)
+        assert config.thread_max_rows == 10
+
     def test_missing_sources_file_raises(self, tmp_path):
         """FileNotFoundError when sources.yaml is missing."""
         (tmp_path / "config").mkdir()
@@ -188,6 +199,13 @@ class TestConfigValidation:
             yaml.dump({"timeline": {"threads": {"entity_weight": 1.5}}})
         )
         with pytest.raises(ValueError, match="thread_entity_weight"):
+            load_config(project_root_with_config)
+
+    def test_invalid_thread_max_rows_raises(self, project_root_with_config):
+        """ValueError for timeline.threads.max_rows < 1 (0 is not "no cap")."""
+        app_yaml_path = project_root_with_config / "config" / "app.yaml"
+        app_yaml_path.write_text(yaml.dump({"timeline": {"threads": {"max_rows": 0}}}))
+        with pytest.raises(ValueError, match="thread_max_rows"):
             load_config(project_root_with_config)
 
 

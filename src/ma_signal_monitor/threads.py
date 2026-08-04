@@ -118,6 +118,10 @@ _LABEL_MIN_DF = 2
 # Sentinel layer order for a thread whose dominant category sits in no causal
 # layer (or when no causal model is loaded) — sorts it below every placed layer.
 _NO_LAYER_ORDER = 10_000
+# Chart rows reserved per non-empty causal band before the display cap
+# (``thread_max_rows``) is spent by size — see select_threads_for_display for
+# why a purely size-ranked top-N drops whole bands off the cascade.
+_BAND_FLOOR = 2
 
 
 @dataclass(frozen=True)
@@ -703,6 +707,95 @@ def build_threads(
     return threads, ungrouped
 
 
+# --- Display cap: which threads the CHART renders ---
+#
+# Clustering a real production window can legitimately produce far more
+# threads than a strip chart can show readably: measured against the real
+# 30-day archive, 100 threads (most of them 2-story pairs) plus one
+# "Ungrouped signals" row is 101 strip rows, ~2,750px of chart -- while the
+# clustering behind it is perfectly healthy (23.6% ungrouped, purity 0.45,
+# largest thread 2.1%, no chaining). Two ways to shrink that were measured
+# and rejected -- tightening ``min_stories`` and a top-N-per-*band* cap --
+# because both push real, found threads into the "Ungrouped signals" row,
+# which lies about them: those stories DID form a thread, it just isn't
+# drawn. ``select_threads_for_display`` caps the CHART instead: the
+# clusterer's own output is untouched (every thread still gets its own
+# detail page, still counts toward every metric in ``build_threads``), only
+# how many rows the strip draws is bounded.
+
+
+def select_threads_for_display(
+    threads: list[Thread], max_rows: int
+) -> tuple[list[Thread], list[Thread]]:
+    """Split ``threads`` into the CHART's rows (``kept``) and the rest (``folded``).
+
+    Selection is by size (:attr:`Thread.total`) -- ranked descending, ties
+    broken on ``label`` ascending, a total order over content alone so the
+    split never depends on dict/set iteration order (mirrors ``_cluster``'s
+    own determinism discipline) -- but with a **per-band floor applied
+    first**. ``max_rows`` or fewer threads: nothing is capped, ``kept`` is
+    ``threads`` and ``folded`` is empty.
+
+    The floor exists because pure size-ranking silently destroys the thing
+    the lane is for. Measured on the real archive's 30-day window: the
+    causal bands hold 35 / 14 / 27 / 1 / 23 threads (Drivers, Pressure,
+    Response, Outcomes, Unplaced), so a straight top-25 by size kept *zero*
+    Outcomes threads -- the cascade rendered as Drivers -> Pressure ->
+    Response -> Unplaced, omitting the terminal stage the whole cause ->
+    effect story is supposed to arrive at. ``_BAND_FLOOR`` slots per
+    non-empty band are reserved (largest first within each band), and only
+    the remaining budget is allocated globally by size.
+
+    Keeping a small thread solely because it is its band's only occupant is
+    deliberate, and consistent with how this timeline already treats sparse
+    rows: ``timeline_layout.build_strip`` renders an empty topic as a flat
+    row because "a quiet topic is itself signal". A quiet *causal layer* is
+    the same claim -- "nothing has reached Outcomes yet this window" is a
+    finding, and it can only be read off a band that is present.
+
+    Selection decides *membership* only, never *display order*: ``kept``
+    keeps ``threads``' own order (upstream -> downstream, then size, then
+    label -- see ``build_threads``), so a kept thread renders exactly where
+    it would have without any cap at all, still grouped under the right
+    causal band. ``folded`` is likewise left in ``threads``' original
+    order, though the caller only ever aggregates it into one "+N smaller
+    threads" row -- its per-thread order is never itself displayed.
+
+    Both returned lists are always disjoint and their union is exactly
+    ``threads`` (every ``Thread.key`` is unique -- each is a distinct
+    anchor story's ``item_id``), so combined with ``build_threads``' own
+    "every input story lands in exactly one group" guarantee, every story in
+    the window still lands in exactly one *rendered* row once the caller
+    folds ``folded``'s stories into its aggregate row.
+    """
+    if max_rows <= 0 or len(threads) <= max_rows:
+        return threads, []
+
+    # Reserve the per-band floor first, walking bands in causal order so the
+    # reservation itself is deterministic and, when the budget is too small
+    # to cover every band, spends on upstream bands before downstream ones.
+    by_band: dict[tuple[int, str], list[Thread]] = {}
+    for t in threads:
+        by_band.setdefault((t.layer_order, t.layer_short), []).append(t)
+
+    kept_keys: set[str] = set()
+    for band in sorted(by_band):
+        for t in sorted(by_band[band], key=lambda t: (-t.total, t.label))[:_BAND_FLOOR]:
+            if len(kept_keys) >= max_rows:
+                break
+            kept_keys.add(t.key)
+
+    # Spend whatever is left globally by size.
+    for t in sorted(threads, key=lambda t: (-t.total, t.label)):
+        if len(kept_keys) >= max_rows:
+            break
+        kept_keys.add(t.key)
+
+    kept = [t for t in threads if t.key in kept_keys]
+    folded = [t for t in threads if t.key not in kept_keys]
+    return kept, folded
+
+
 # --- Causal cascade: layer bands + "leads to" links between threads ---
 #
 # The lane already places threads on the causal cascade by row order
@@ -716,28 +809,37 @@ def build_threads(
 # mirroring the rest of this module.
 
 
-def thread_bands(threads: list[Thread], *, has_ungrouped: bool) -> dict[int, str]:
+def thread_bands(
+    threads: list[Thread], *, has_ungrouped: bool, has_folded: bool = False
+) -> dict[int, str]:
     """Causal-layer band headers for the /timeline/threads strip.
 
     Returns ``{row_index: band_label}`` for exactly the row indices where a
     new band begins. ``row_index`` lines up with ``threads``' own order --
-    the same order ``_timeline_thread_groups`` feeds ``build_strip`` -- with
-    the trailing "Ungrouped signals" row (when ``has_ungrouped``) counted as
-    row ``len(threads)``, one past the last thread.
+    the same (already display-capped, see ``select_threads_for_display``)
+    order ``_timeline_thread_groups`` feeds ``build_strip`` -- with the
+    trailing aggregate rows counted from ``len(threads)`` onward: the "+N
+    smaller threads" row (when ``has_folded``) if the chart folded any
+    threads, then "Ungrouped signals" (when ``has_ungrouped``). Both
+    aggregate rows are display-only summaries with no causal placement of
+    their own, so together they always open (at most) ONE trailing
+    "Unplaced" band, anchored at row ``len(threads)`` -- never two adjacent
+    bands, and never a causal one, regardless of which of the two rows is
+    actually present.
 
     A band begins wherever ``layer_key`` changes from the previous thread;
     since ``threads`` already sorts by ``layer_order`` (upstream ->
     downstream), this only ever walks forward through the cascade, never
     back. ``layer_key == ""`` -- true for both a ``mixed`` thread (step 4)
     and every unplaced-category thread, and implicitly true of the trailing
-    ungrouped row -- always labels its band "Unplaced", and every
+    aggregate rows -- always labels its band "Unplaced", and every
     consecutive run of such rows shares ONE band: a mixed thread immediately
-    followed by the ungrouped row reads as a single trailing section, not
-    two adjacent ones.
+    followed by the aggregate rows reads as a single trailing section, not
+    several adjacent ones.
 
-    Returns ``{}`` when there is nothing to band (no threads and no
-    ungrouped row -- the caller's empty-window branch never renders the
-    strip at all, so this is mostly a defensive default).
+    Returns ``{}`` when there is nothing to band (no threads and no trailing
+    row -- the caller's empty-window branch never renders the strip at all,
+    so this is mostly a defensive default).
     """
     bands: dict[int, str] = {}
     prev_key: str | None = None  # sentinel: no real layer_key is ever None
@@ -745,7 +847,7 @@ def thread_bands(threads: list[Thread], *, has_ungrouped: bool) -> dict[int, str
         if t.layer_key != prev_key:
             bands[i] = t.layer_short if t.layer_key else "Unplaced"
             prev_key = t.layer_key
-    if has_ungrouped and prev_key != "":
+    if (has_folded or has_ungrouped) and prev_key != "":
         bands[len(threads)] = "Unplaced"
     return bands
 

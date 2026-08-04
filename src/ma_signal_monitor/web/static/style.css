@@ -399,6 +399,14 @@ a.strip-bubble:hover { opacity: 1; box-shadow: 0 0 0 3px rgba(20, 30, 50, 0.08);
    is zeroed here since the band header IS the whole line. */
 .strip-band { grid-column: 1 / -1; padding: 7px 0 3px; }
 .strip-band .legend-layer { margin-left: 0; }
+/* Threads lane's two trailing aggregate rows -- "+N smaller threads" and
+   "Ungrouped signals" (see web/routes.py's muted_rows) -- are summaries
+   standing in for stories the chart didn't draw its own row for, not a
+   thread found on its own, so they read as visually secondary to every
+   other row. Opacity/style only, deliberately no width/height/padding/
+   margin changes: .strip-label and .strip-plot are shared with /timeline's
+   plain topics strip, which never applies this class. */
+.strip-row-muted { opacity: 0.62; font-style: italic; }
 
 .timeline-stories-h {
   font-size: 1.15rem; margin: 30px 0 0; border-bottom: 2px solid var(--border);

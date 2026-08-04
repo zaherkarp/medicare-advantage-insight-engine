@@ -27,7 +27,12 @@ from ma_signal_monitor.payers import (
 )
 from ma_signal_monitor.query_parser import parse_query
 from ma_signal_monitor.storage import VALID_VERDICTS
-from ma_signal_monitor.threads import build_thread_links, build_threads, thread_bands
+from ma_signal_monitor.threads import (
+    build_thread_links,
+    build_threads,
+    select_threads_for_display,
+    thread_bands,
+)
 from ma_signal_monitor.timeline_layout import (
     axis_ticks,
     build_callout_band,
@@ -511,6 +516,16 @@ def _thread_links_view(threads: list, config) -> dict[str, dict]:
     }
 
 
+# Sentinel row keys for the threads lane's two trailing aggregate rows.
+# Neither can ever collide with a real thread's key (a real story's
+# ``item_id``), so equality against these is a safe way to spot them —
+# shared between ``_timeline_thread_groups`` (which emits the rows) and
+# ``_render_timeline`` (which uses them to mark the rows for muted styling;
+# see ``style.css``'s ``.strip-row-muted``).
+THREAD_SMALLER_ROWS_KEY = "smaller-threads"
+THREAD_UNGROUPED_KEY = "ungrouped"
+
+
 def _timeline_thread_groups(
     stories: list[dict],
     config,
@@ -524,27 +539,46 @@ def _timeline_thread_groups(
 ]:
     """Emergent-thread strip groups for the /timeline/threads lane.
 
-    Clusters the window into on-the-fly threads (:func:`threads.build_threads`)
-    and emits the ``(key, label, href, color, stories)`` shape
-    :func:`ma_signal_monitor.timeline_layout.build_strip` expects — one row per
-    thread, colored by its dominant topic and ordered along the causal cascade,
-    plus a trailing "Ungrouped signals" row so every story lands in exactly one
-    row and the chart total still matches the list. Each thread row links to
-    its own page (``/timeline/threads/{key}`` — see ``timeline_thread``),
-    keyed on the thread's anchor so the link survives re-clustering; the
-    trailing ungrouped row has no such identity, so it stays unlinked.
+    Clusters the window into on-the-fly threads (:func:`threads.build_threads`),
+    then caps how many the CHART draws (:func:`threads.select_threads_for_display`,
+    ``config.thread_max_rows``) and emits the ``(key, label, href, color,
+    stories)`` shape :func:`ma_signal_monitor.timeline_layout.build_strip`
+    expects — one row per *kept* thread, colored by its dominant topic and
+    ordered along the causal cascade, then up to two trailing aggregate rows
+    so every story still lands in exactly one row and the chart total still
+    matches the list:
+
+    * ``"+N smaller threads"`` (:data:`THREAD_SMALLER_ROWS_KEY`) — only when
+      the cap actually folded threads. Its ``stories`` is the union of every
+      folded thread's stories, so the strip still plots them and
+      ``strip-count`` still shows the right total; it is never a real
+      thread's identity, so it links nowhere (``href=None``) even though
+      each folded thread still has its own reachable detail page (the
+      static export writes one for every thread, capped or not).
+    * ``"Ungrouped signals"`` (:data:`THREAD_UNGROUPED_KEY`) — the stories
+      that formed no thread at all, unchanged from before this cap existed.
+
+    Each *kept* thread row links to its own page (``/timeline/threads/{key}``
+    — see ``timeline_thread``), keyed on the thread's anchor so the link
+    survives re-clustering; both trailing aggregate rows have no such
+    identity, so they stay unlinked.
 
     Returns ``(groups, legend, strip_bands, thread_links)``:
 
-    * ``legend`` describes each thread with its causal layer, or "Mixed" when
-      the thread spans several categories with no clear majority
-      (:attr:`threads.Thread.mixed`).
+    * ``legend`` describes each *kept* thread with its causal layer, or
+      "Mixed" when the thread spans several categories with no clear
+      majority (:attr:`threads.Thread.mixed`) — folded threads get no swatch,
+      the same reason they get no chart row: a legend entry per folded
+      thread would be exactly as unreadable as the row it stands in for.
     * ``strip_bands`` (:func:`threads.thread_bands`) is the causal-layer band
       header data, row-index-keyed to line up with ``groups``/the strip
       ``build_strip`` renders from it — threads-lane only; the topics strip
       never gets one (callers just never build/pass this for that mode).
     * ``thread_links`` (:func:`_thread_links_view`) is the row-keyed "leads
-      to" chip data for the same strip rows.
+      to" chip data, computed over the *kept* set only — a chip's purpose is
+      to connect two visible rows, so it must never point at a folded
+      thread's row (which doesn't exist on this page) even though that
+      thread's own detail page is real and reachable by URL.
     """
     threads, ungrouped = build_threads(
         stories,
@@ -552,9 +586,10 @@ def _timeline_thread_groups(
         threshold=config.thread_similarity_threshold,
         min_stories=config.thread_min_stories,
     )
+    kept, folded = select_threads_for_display(threads, config.thread_max_rows)
     groups: list[tuple[str, str, str | None, str, list[dict]]] = []
     legend: list[dict] = []
-    for t in threads:
+    for t in kept:
         color = (
             topic_color(t.dominant_category, color_map)
             if t.dominant_category
@@ -573,12 +608,31 @@ def _timeline_thread_groups(
                 "mixed": t.mixed,
             }
         )
+    if folded:
+        folded_stories = [s for t in folded for s in t.stories]
+        groups.append(
+            (
+                THREAD_SMALLER_ROWS_KEY,
+                f"+{len(folded)} smaller threads",
+                None,
+                FALLBACK_TOPIC_COLOR,
+                folded_stories,
+            )
+        )
     if ungrouped:
         groups.append(
-            ("ungrouped", "Ungrouped signals", None, FALLBACK_TOPIC_COLOR, ungrouped)
+            (
+                THREAD_UNGROUPED_KEY,
+                "Ungrouped signals",
+                None,
+                FALLBACK_TOPIC_COLOR,
+                ungrouped,
+            )
         )
-    strip_bands = thread_bands(threads, has_ungrouped=bool(ungrouped))
-    thread_links = _thread_links_view(threads, config)
+    strip_bands = thread_bands(
+        kept, has_ungrouped=bool(ungrouped), has_folded=bool(folded)
+    )
+    thread_links = _thread_links_view(kept, config)
     return groups, legend, strip_bands, thread_links
 
 
@@ -1193,11 +1247,18 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         thread_legend = None
         strip_bands = None
         thread_links = None
+        muted_rows = None
         if threads:
             mode = "threads"
             groups, thread_legend, strip_bands, thread_links = _timeline_thread_groups(
                 stories, config, color_map=color_map
             )
+            # Both trailing aggregate rows (when present) read as visually
+            # secondary to a found thread — see style.css's .strip-row-muted.
+            # Membership is checked by row.key, not by href==None, so a
+            # href-less *topic* row (e.g. "Other") is never accidentally
+            # muted; only the threads lane ever produces these two keys.
+            muted_rows = {THREAD_SMALLER_ROWS_KEY, THREAD_UNGROUPED_KEY}
         else:
             mode = "payers" if category else "topics"
             groups = _timeline_strip_groups(
@@ -1286,6 +1347,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "strip": strip,
                 "legend": legend,
                 "thread_legend": thread_legend,
+                "muted_rows": muted_rows,
                 "strip_bands": strip_bands,
                 "thread_links": thread_links,
                 "view_toggle": view_toggle,

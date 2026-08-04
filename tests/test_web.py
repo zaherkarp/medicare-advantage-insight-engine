@@ -1427,3 +1427,178 @@ def test_timeline_topics_page_has_no_band_headers(client):
     assert resp.status_code == 200
     assert 'class="strip-band' not in resp.text
     assert "has-bands" not in resp.text
+
+
+def _seed_three_threads_and_a_solo(store):
+    """Three lexically distinct 2-story thread pairs plus one unrelated
+    story -- clusters (at sample_config's default threshold) into exactly
+    three 2-story threads and one "Ungrouped signals" story, for exercising
+    thread_max_rows without a large synthetic corpus."""
+    _seed_recent(
+        store,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        store,
+        "th-4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        store,
+        "th-5",
+        "Aetna faces backlash over prior authorization denial rates for "
+        "Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        store,
+        "th-6",
+        "Aetna criticized for prior authorization denial rates in Medicare "
+        "Advantage plans",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        store,
+        "solo",
+        "Molina expands footprint into three additional states",
+        category="membership_movement",
+        entities=["Molina"],
+    )
+
+
+def test_timeline_threads_lane_caps_rows_and_folds_smaller_threads(
+    sample_config, temp_db
+):
+    # Three 2-story threads + one ungrouped story, capped at 2 rows: the
+    # chart must render exactly cap (2) + smaller-threads (1) + ungrouped
+    # (1) = 4 rows, never the full uncapped 4 (3 threads + ungrouped).
+    _seed_three_threads_and_a_solo(temp_db)
+    cfg = dataclasses.replace(sample_config, thread_max_rows=2)
+    client = TestClient(create_app(cfg, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+
+    assert text.count('class="strip-label') == 4  # cap + smaller-threads + ungrouped
+    assert "+1 smaller threads" in text
+    assert "Ungrouped signals" in text
+
+    # The aggregate row is a plain label, never a link -- it names no single
+    # thread's page.
+    assert re.search(r"<span>\+1 smaller threads</span>", text)
+    assert not re.search(r"<a[^>]*>\+1 smaller threads</a>", text)
+
+    # Both aggregate rows get the muted modifier on both their label and plot
+    # cells (2 rows x 2 cells each); the geometry classes (.strip-label,
+    # .strip-plot) are untouched, only the extra modifier is added.
+    assert text.count("strip-row-muted") == 4
+
+
+def test_timeline_threads_lane_no_smaller_threads_row_under_cap(sample_config, temp_db):
+    # Same fixture, default cap (25) -- well above 3 threads, so nothing
+    # folds and the aggregate row never appears at all.
+    _seed_three_threads_and_a_solo(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    assert "smaller threads" not in resp.text
+    assert resp.text.count('class="strip-label') == 4  # 3 threads + ungrouped
+    # The muted modifier still applies to the (always-present-here) ungrouped
+    # row's label+plot cells -- just not to any "+N smaller threads" row,
+    # since none exists under the cap.
+    assert resp.text.count("strip-row-muted") == 2
+
+
+def test_timeline_threads_lane_leads_to_chip_never_points_at_a_folded_thread(
+    sample_config, temp_db
+):
+    # A causal cascade (policy -> financial, both mentioning Humana) plus
+    # enough extra threads to push the cap below the total, with the linked
+    # pair deliberately the SMALLEST two threads so they're the ones folded.
+    _seed_dated(
+        temp_db,
+        "L1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=10,
+    )
+    _seed_dated(
+        temp_db,
+        "L2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=9,
+    )
+    _seed_dated(
+        temp_db,
+        "L3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=2,
+    )
+    _seed_dated(
+        temp_db,
+        "L4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=1,
+    )
+    # A bigger, unrelated thread (3 stories) that must outrank the 2-story
+    # linked pair on size and so gets kept while the linked pair folds.
+    _seed_recent(
+        temp_db,
+        "big-1",
+        "Aetna faces backlash over prior authorization denial rates for "
+        "Medicare Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "big-2",
+        "Aetna criticized for prior authorization denial rates in Medicare "
+        "Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "big-3",
+        "Aetna under fire over prior authorization denial rates across "
+        "Medicare Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    cfg = dataclasses.replace(sample_config, thread_max_rows=1)
+    client = TestClient(create_app(cfg, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+    assert "+2 smaller threads" in text
+    # No "leads to" chip at all: both ends of the only declared link folded.
+    assert 'class="strip-link"' not in text

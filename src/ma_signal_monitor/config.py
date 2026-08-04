@@ -215,6 +215,32 @@ class AppConfig:
     # config validation caps it at 1.0, so this can only dampen entity pull,
     # never amplify it beyond its natural IDF weight.
     thread_entity_weight: float = 1.0
+    # Chart cap: the /timeline/threads strip renders at most this many thread
+    # rows; the rest fold into one "+N smaller threads" aggregate row (see
+    # threads.select_threads_for_display / web/routes._timeline_thread_groups).
+    # Clustering itself is untouched by this knob -- every thread still gets
+    # its own detail page (static_export.py exports one per thread regardless
+    # of this cap) -- it only bounds how many rows the CHART draws.
+    #
+    # Added after validating against the real archive (see
+    # thread_similarity_threshold's comment for the sweep): the real 30-day
+    # window (382 stories) clusters into 100 threads + 1 "Ungrouped signals"
+    # row = 101 strip rows, ~2,750px of chart -- unreadable, even though the
+    # clustering behind it is healthy (23.6% ungrouped, purity 0.45, largest
+    # thread 2.1%, no chaining). Tightening min_stories (42 rows, but 54.5%
+    # ungrouped) and a top-N-per-band cap (26 rows, but 68.8% ungrouped) were
+    # both measured and rejected: both push real, found threads into
+    # "Ungrouped signals", which lies about them -- those stories DID form a
+    # thread. Capping the CHART instead keeps the clusterer's output honest
+    # and just bounds what's drawn.
+    #
+    # Must be >= 1 (thread_min_stories' own shape) -- 0 is not "no cap", it's
+    # invalid. A number at/above the realistic thread count (e.g. 10_000)
+    # effectively disables the cap, the same way a very high similarity
+    # ceiling would; there's no separate escape hatch for that on purpose,
+    # so a config that wants "uncapped" says so honestly with a big number
+    # rather than a magic sentinel.
+    thread_max_rows: int = 25
 
     # Processing settings
     max_item_age_days: int = 7
@@ -600,6 +626,7 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     config.thread_entity_weight = threads.get(
         "entity_weight", config.thread_entity_weight
     )
+    config.thread_max_rows = threads.get("max_rows", config.thread_max_rows)
 
     storage = data.get("storage", {})
     config.seen_item_retention_days = storage.get(
@@ -707,6 +734,9 @@ def _validate_config(config: AppConfig) -> None:
             "thread_entity_weight must be between 0.0 and 1.0, got: "
             f"{config.thread_entity_weight}"
         )
+
+    if config.thread_max_rows < 1:
+        raise ValueError(f"thread_max_rows must be >= 1, got: {config.thread_max_rows}")
 
     # Only validate the causal model when one is actually loaded — the whole
     # feature is opt-in via config/causal_model.yaml. Checking either list keeps
