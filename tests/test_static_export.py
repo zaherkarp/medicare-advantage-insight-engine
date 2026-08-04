@@ -1,6 +1,7 @@
 """Tests for the static GitHub Pages export."""
 
 import json
+import re
 from datetime import datetime, timedelta
 
 from ma_signal_monitor.digest import generate_digest
@@ -579,3 +580,82 @@ def test_timeline_pages_exported(tmp_path, sample_config, temp_db):
     window_all = (out / "timeline" / "w" / "all.html").read_text()
     assert "all time" in window_all
     assert "/myrepo/story/tl-1.html" in window_all
+
+
+def _seed_recent(store, item_id, title, *, category, entities=None):
+    """A story dated ``now`` so it lands inside the timeline's default window."""
+    item = NormalizedItem(
+        item_id=item_id,
+        source_name="Healthcare Dive",
+        source_type="rss",
+        source_priority=3,
+        source_tags=["industry"],
+        title=title,
+        link=f"https://example.com/{item_id}",
+        published_date=datetime.utcnow(),
+        summary=f"{title} summary.",
+    )
+    store.upsert_story(
+        ScoredItem(
+            item=item,
+            relevance_score=0.7,
+            matched_categories=[category],
+            matched_entities=entities or [],
+        ),
+        primary_category=category,
+        states=[],
+    )
+
+
+def test_thread_detail_pages_exported(tmp_path, sample_config, temp_db):
+    """Each clustered thread gets its own static detail page, data-derived
+    like /timeline/states/{code}, and the frozen lane page's row links all
+    resolve to files this export actually wrote (no dangling hrefs)."""
+    _seed_recent(
+        temp_db,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        temp_db,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    # An unrelated recent story stays "Ungrouped signals" -- it must not get
+    # a thread detail page of its own.
+    _seed_recent(
+        temp_db,
+        "solo",
+        "Aetna launches value-based care partnership network",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+
+    out, counts = _build(tmp_path, sample_config, temp_db, base="/myrepo")
+
+    thread_files = sorted((out / "timeline" / "threads").glob("*.html"))
+    assert [f.name for f in thread_files] == ["th-1.html"]
+    detail = thread_files[0].read_text()
+    assert re.search(r"star|ratings|methodolog", detail, re.I)
+
+    assert counts["timelines"] == (
+        1  # root /timeline
+        + 5  # /timeline/w/{7,90,180,365,all}
+        + 1  # /timeline/threads lane
+        + 1  # the one thread's own detail page
+        + len(sample_config.categories)
+        + len(PAYER_GROUPS)
+        + len(temp_db.get_state_counts(min_score=sample_config.archive_min_score))
+    )
+
+    # This step's main failure mode: every href the frozen lane page emits
+    # into a thread must correspond to a file actually written.
+    lane_page = (out / "timeline" / "threads.html").read_text()
+    hrefs = re.findall(r'href="(/myrepo/timeline/threads/[^"]+)"', lane_page)
+    assert hrefs  # sanity: the lane actually linked at least one thread
+    for href in hrefs:
+        assert (out / href[len("/myrepo/") :]).exists(), f"dangling link: {href}"

@@ -1181,3 +1181,150 @@ def test_timeline_threads_disabled_returns_404(sample_config, temp_db):
     cfg = dataclasses.replace(sample_config, threads_enabled=False)
     client = TestClient(create_app(cfg, temp_db))
     assert client.get("/timeline/threads").status_code == 404
+
+
+def _seed_star_thread(store):
+    """The two-story Star Ratings thread shared by the detail-route tests.
+
+    th-1 and th-2 tie on relevance_score (both default to 0.6), so the
+    item_id tie-break in threads.py's member ranking anchors the thread on
+    "th-1" -- deterministic, so these tests can assert the exact key rather
+    than discovering it by scraping the strip row's href.
+    """
+    _seed_recent(
+        store,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-3",
+        "Aetna launches value-based care partnership network",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+
+
+def test_timeline_thread_row_links_to_detail_page_that_resolves(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    lane = client.get("/timeline/threads")
+    assert 'href="/timeline/threads/th-1"' in lane.text
+
+    detail = client.get("/timeline/threads/th-1")
+    assert detail.status_code == 200
+    assert re.search(r"star|ratings|methodolog", detail.text, re.I)
+    # Both thread members show up in the detail page's story list, the
+    # unrelated solo story does not.
+    assert detail.text.count('class="story-card"') == 2
+    assert "th-3" not in detail.text
+
+
+def test_timeline_thread_unknown_key_404s(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads/not-a-real-key")
+    assert resp.status_code == 404
+
+
+def test_timeline_thread_dissolved_anchor_redirects_to_story(sample_config, temp_db):
+    # th-3 is a real item_id but forms no thread on its own (it's the lone
+    # "Ungrouped signals" story) -- graceful degradation sends the reader to
+    # the story itself rather than 404ing on a key that once could have
+    # anchored something.
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads/th-3", follow_redirects=False)
+    assert resp.status_code in (302, 307)
+    assert resp.headers["location"] == "/story/th-3"
+
+
+def test_timeline_threads_disabled_detail_route_also_404s(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    cfg = dataclasses.replace(sample_config, threads_enabled=False)
+    client = TestClient(create_app(cfg, temp_db))
+    assert client.get("/timeline/threads/th-1").status_code == 404
+
+
+def test_timeline_thread_mixed_chip_renders(sample_config, temp_db):
+    # Four near-duplicate headlines split 50/50 across two categories cluster
+    # into one thread with no clear majority -- both the lane's legend and
+    # the thread's own detail page must render a "Mixed" chip rather than an
+    # arbitrarily-picked causal layer.
+    _seed_recent(
+        temp_db,
+        "m1",
+        "Prior authorization crackdown hits Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    _seed_recent(
+        temp_db,
+        "m2",
+        "Prior authorization crackdown squeezes Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    _seed_recent(
+        temp_db,
+        "m3",
+        "Prior authorization crackdown rattles Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    _seed_recent(
+        temp_db,
+        "m4",
+        "Prior authorization crackdown worries Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    fillers = [
+        (
+            "f1",
+            "Aetna launches value-based care partnership network for seniors",
+            "competitive_strategy",
+        ),
+        (
+            "f2",
+            "Humana announces new leadership team amid strategic overhaul",
+            "competitive_strategy",
+        ),
+        (
+            "f3",
+            "Centene reports quarterly earnings above analyst expectations",
+            "financial_pressure",
+        ),
+        (
+            "f4",
+            "Molina expands footprint into three additional states",
+            "membership_movement",
+        ),
+        (
+            "f5",
+            "Kaiser opens new telehealth clinics across rural regions",
+            "competitive_strategy",
+        ),
+        (
+            "f6",
+            "Elevance unveils digital front door for member engagement",
+            "competitive_strategy",
+        ),
+    ]
+    for item_id, title, category in fillers:
+        _seed_recent(temp_db, item_id, title, category=category)
+
+    client = TestClient(create_app(sample_config, temp_db))
+    lane = client.get("/timeline/threads")
+    assert lane.status_code == 200
+    assert "Mixed" in lane.text
+
+    detail = client.get("/timeline/threads/m1")
+    assert detail.status_code == 200
+    assert "Mixed" in detail.text
+    assert detail.text.count('class="story-card"') == 4

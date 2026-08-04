@@ -62,9 +62,9 @@ _LABEL_MIN_SHARE = 0.5
 # by relevance are threaded and the rest fold into "ungrouped" (surfaced, never
 # silently dropped).
 #
-# LOWERED from 1500 to 500 by step 3 (IDF-weighted cosine + average-linkage):
-# 1500 no longer holds. Candidate generation (the inverted index + rare-term
-# blocking) is unchanged and was never the bottleneck; what got more
+# Held at 1500 through the move to IDF-weighted cosine + average-linkage,
+# but the cost profile did change. Candidate generation (the inverted index +
+# rare-term blocking) is unchanged and was never the bottleneck; what got more
 # expensive is merging. Single-linkage union-find is near-O(candidate pairs);
 # average-linkage's merge guard needs each live cluster's running
 # similarity-sum to every other cluster it borders (``links`` in
@@ -119,17 +119,34 @@ _NO_LAYER_ORDER = 10_000
 class Thread:
     """One emergent cluster of related stories in the window.
 
+    ``key`` is the thread's **anchor**: the stable ``item_id`` of its
+    highest-relevance member (``stories[0]`` — see ``build_threads``' member
+    ranking). Threads are never persisted — ``build_threads`` recomputes them
+    fresh on every request from whatever window the store returns at that
+    moment — so a positional key (an index into that request's clustering)
+    would point at a different thread, or nothing, on the very next ingest
+    cycle. Hashing the full membership would be just as fragile the other
+    way: any new story joining the thread would change the hash, breaking the
+    link on nearly every ingest. The anchor survives both: new stories joining
+    the thread never move it, and it only changes when a higher-relevance
+    story joins or the anchor itself ages out of the window.
+
     ``label`` is the thread's on-the-fly name — its most distinctive terms, or
     the dominant taxonomy label when the cluster is too small/uniform to name.
     The ``layer_*`` fields place the thread on the declared causal model via its
     dominant category; ``layer_order`` drives the upstream → downstream row order
-    (``_NO_LAYER_ORDER`` when the thread can't be placed).
+    (``_NO_LAYER_ORDER`` when the thread can't be placed). ``mixed`` is True
+    when the thread spans several categories with no clear majority among
+    them — see ``_category_split`` — in which case ``dominant_category`` and
+    every ``layer_*`` field are left empty/sentinel rather than guessing a
+    placement from a coin-flip tie-break.
     """
 
     key: str
     label: str
     stories: tuple[dict, ...]
     dominant_category: str
+    mixed: bool
     layer_key: str
     layer_short: str
     layer_label: str
@@ -319,11 +336,25 @@ def _cluster(
     return list(groups.values())
 
 
-def _dominant_category(stories: list[dict], config: AppConfig) -> str:
-    """Most common real ``primary_category`` in a cluster ("" if all unlabeled).
+def _category_split(stories: list[dict], config: AppConfig) -> tuple[str, bool]:
+    """Dominant category (if any holds a clear majority) plus a mixed flag.
 
-    Ties break toward the higher taxonomy weight (mirroring ``classify_item``),
-    then the key, so the choice is deterministic.
+    Counts each story's real ``primary_category`` (``uncategorized`` stories
+    don't count). Ties among counts break toward the higher taxonomy weight
+    (mirroring ``classify_item``), then the key, so the choice is
+    deterministic. The count leader only wins as ``dominant`` when it holds
+    *more than half* of the thread's stories (``len(stories)``, not just the
+    categorized ones) — a payer-bucket thread spanning several categories
+    with no clear majority gets placed on an arbitrary causal layer otherwise,
+    a coin flip step 5's causal links would then inherit.
+
+    Returns ``(dominant, mixed)``:
+
+    * no story is categorized at all -> ``("", False)`` — there is nothing to
+      be "mixed" about, just an absence of category signal;
+    * some stories are categorized but no category clears the >50% bar ->
+      ``("", True)``;
+    * a category clears the bar -> ``(that category, False)``.
     """
     weights = {c.key: c.weight for c in config.categories}
     counts: Counter = Counter()
@@ -332,8 +363,17 @@ def _dominant_category(stories: list[dict], config: AppConfig) -> str:
         if cat != "uncategorized":
             counts[cat] += 1
     if not counts:
-        return ""
-    return max(counts, key=lambda k: (counts[k], weights.get(k, 0.0), k))
+        return "", False
+    top = max(counts, key=lambda k: (counts[k], weights.get(k, 0.0), k))
+    if counts[top] / len(stories) > 0.5:
+        return top, False
+    return "", True
+
+
+def _dominant_category(stories: list[dict], config: AppConfig) -> str:
+    """Most common real ``primary_category`` in a cluster ("" if all unlabeled
+    or if none holds a clear majority — see ``_category_split``)."""
+    return _category_split(stories, config)[0]
 
 
 def _prefer_bigrams(ranked: list[str]) -> list[str]:
@@ -599,18 +639,28 @@ def build_threads(
         if len(members) < min_stories:
             ungrouped.extend(threaded[i] for i in members)
             continue
+        # Descending relevance, ties broken on item_id -- a total order over
+        # content alone, so the anchor (stories[0], see `key` below) never
+        # depends on DB fetch order. Plain `-(score or 0.0)` sorts descending
+        # without needing `reverse=True` (which would also reverse the
+        # item_id tie-break).
         ranked = sorted(
             members,
-            key=lambda i: threaded[i].get("relevance_score") or 0.0,
-            reverse=True,
+            key=lambda i: (
+                -(threaded[i].get("relevance_score") or 0.0),
+                threaded[i].get("item_id") or "",
+            ),
         )
         cluster_stories = [threaded[i] for i in ranked]
-        dominant = _dominant_category(cluster_stories, config)
+        dominant, mixed = _category_split(cluster_stories, config)
         layer = lm.get(dominant) if dominant else None
         fallback = (
             get_category_label(dominant, config) if dominant else "General signals"
         )
-        key = f"thread-{min(members)}"
+        # The anchor: this thread's highest-relevance member's stable item_id
+        # (stories[0], per the ranking above) -- see Thread.key's docstring
+        # for why this, not a positional index or a full-membership hash.
+        key = cluster_stories[0].get("item_id") or f"thread-{min(members)}"
         members_by_key[key] = members
         threads.append(
             Thread(
@@ -618,6 +668,7 @@ def build_threads(
                 label=_label(members, doc_terms, global_terms, fallback),
                 stories=tuple(cluster_stories),
                 dominant_category=dominant,
+                mixed=mixed,
                 layer_key=layer.key if layer else "",
                 layer_short=layer.short if layer else "",
                 layer_label=layer.label if layer else "",

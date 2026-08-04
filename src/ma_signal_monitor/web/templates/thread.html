@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.label }} — Signal Timeline — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>{{ thread.label }}</h1>
+    <p class="subtitle">An emergent story thread — signals the timeline
+      clustered together from their own shared language, not a fixed topic.</p>
+    <p class="muted">
+      {{ thread.total }} signal{{ '' if thread.total == 1 else 's' }} in {{ window_label }}
+      {% if thread.mixed %}
+        <span class="legend-layer">Mixed</span>
+      {% elif thread.layer_label %}
+        <span class="legend-layer">{{ thread.layer_label }}</span>
+      {% endif %}
+    </p>
+  </section>
+
+  {% include "_story_list.html" %}
+{% endblock %}

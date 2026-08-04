@@ -288,3 +288,114 @@ def test_dominant_category_empty_when_all_uncategorized(sample_config):
 
 def test_empty_window_returns_no_threads(sample_config):
     assert build_threads([], sample_config, threshold=0.28, min_stories=2) == ([], [])
+
+
+def test_anchor_key_is_order_independent(sample_config):
+    # _STAR_A/_STAR_B tie on relevance_score (both 0.5); the item_id tie-break
+    # (threads.py's member ranking) makes the anchor -- and so the thread's
+    # key -- fully determined by content, never by which order build_threads
+    # happened to see the input list in (mirroring
+    # test_clustering_is_order_independent, but for identity rather than
+    # membership).
+    forward, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    reverse, _ = _threads(sample_config, [_SOLO, _STAR_B, _STAR_A])
+    assert forward[0].key == reverse[0].key == "a"
+
+
+def test_anchor_key_survives_new_low_relevance_story_joining(sample_config):
+    # A third, much-lower-relevance near-duplicate joining the thread on a
+    # later ingest cycle must not change its key -- threads aren't persisted,
+    # so build_threads reclusters from scratch every request, and the whole
+    # point of anchoring on the top member is that a URL keeps working across
+    # that. Only a *higher*-relevance story joining, or the anchor aging out
+    # of the window, should ever change it (see Thread.key's docstring).
+    before, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    star_c = _story(
+        "h",
+        "CMS finalizes Star Ratings methodology change for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+        score=0.05,
+    )
+    after, _ = _threads(sample_config, [_STAR_A, _STAR_B, star_c, _SOLO])
+    after_thread = next(
+        t for t in after if {"a", "b"} <= {s["item_id"] for s in t.stories}
+    )
+    assert "h" in {s["item_id"] for s in after_thread.stories}
+    assert before[0].key == after_thread.key == "a"
+
+
+def test_mixed_category_thread_has_no_layer(sample_config):
+    # Four near-duplicate headlines about the same event, split 50/50 across
+    # two categories -- no category clears the >50% majority bar, so the
+    # thread must be placed nowhere on the causal model rather than guessing
+    # from a coin-flip tie-break (see threads._category_split). A pile of
+    # unrelated filler keeps the shared vocabulary's document frequency below
+    # the candidate-generation blocking cap (_DF_BLOCK_FRACTION) so the four
+    # target stories still cluster together despite writing near-identically.
+    mix_a1 = _story(
+        "m1",
+        "Prior authorization crackdown hits Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    mix_a2 = _story(
+        "m2",
+        "Prior authorization crackdown squeezes Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    mix_b1 = _story(
+        "m3",
+        "Prior authorization crackdown rattles Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    mix_b2 = _story(
+        "m4",
+        "Prior authorization crackdown worries Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    fillers = [
+        _story(
+            "f1",
+            "Aetna launches value-based care partnership network for seniors",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f2",
+            "Humana announces new leadership team amid strategic overhaul",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f3",
+            "Centene reports quarterly earnings above analyst expectations",
+            category="financial_pressure",
+        ),
+        _story(
+            "f4",
+            "Molina expands footprint into three additional states",
+            category="membership_movement",
+        ),
+        _story(
+            "f5",
+            "Kaiser opens new telehealth clinics across rural regions",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f6",
+            "Elevance unveils digital front door for member engagement",
+            category="competitive_strategy",
+        ),
+    ]
+    threads, _ = _threads(sample_config, [mix_a1, mix_a2, mix_b1, mix_b2, *fillers])
+    mixed_thread = next(
+        t
+        for t in threads
+        if {"m1", "m2", "m3", "m4"} <= {s["item_id"] for s in t.stories}
+    )
+    assert mixed_thread.mixed is True
+    assert mixed_thread.dominant_category == ""
+    assert mixed_thread.layer_key == ""
+    assert mixed_thread.layer_short == ""
+    assert mixed_thread.layer_label == ""
+    from ma_signal_monitor.threads import _NO_LAYER_ORDER
+
+    assert mixed_thread.layer_order == _NO_LAYER_ORDER

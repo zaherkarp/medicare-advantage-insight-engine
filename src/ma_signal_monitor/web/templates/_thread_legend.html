@@ -1,12 +1,14 @@
 {# Legend for the /timeline/threads emergent lane. Expects `thread_legend` — a
-   list of {key, label, color, total, layer} in display (causal) order. Each
-   entry is an on-the-fly thread: a swatch in its dominant topic's color, the
-   emergent label, its causal layer (when placed), and the story count. Reuses
-   the topic-legend item styles; renders nothing when falsy. #}
+   list of {key, label, color, total, layer, mixed} in display (causal) order.
+   Each entry is an on-the-fly thread: a swatch in its dominant topic's color,
+   the emergent label, its causal layer (when placed) or a "Mixed" chip (when
+   the thread spans several categories with no clear majority — see
+   threads.Thread.mixed), and the story count. Reuses the topic-legend item
+   styles; renders nothing when falsy. #}
 {% if thread_legend %}
   <div class="timeline-legend timeline-legend-threads">
     {% for e in thread_legend %}
-      <span class="legend-item" style="--topic: {{ e.color }}"><span class="legend-swatch" aria-hidden="true"></span>{{ e.label }}{% if e.layer %} <span class="legend-layer">{{ e.layer }}</span>{% endif %} <span class="chip-count">{{ e.total }}</span></span>
+      <span class="legend-item" style="--topic: {{ e.color }}"><span class="legend-swatch" aria-hidden="true"></span>{{ e.label }}{% if e.mixed %} <span class="legend-layer">Mixed</span>{% elif e.layer %} <span class="legend-layer">{{ e.layer }}</span>{% endif %} <span class="chip-count">{{ e.total }}</span></span>
     {% endfor %}
   </div>
 {% endif %}
