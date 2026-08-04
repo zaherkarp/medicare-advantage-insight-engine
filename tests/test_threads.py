@@ -1,6 +1,17 @@
 """Tests for emergent story-thread clustering (threads.py)."""
 
-from ma_signal_monitor.threads import _dominant_category, build_threads
+from ma_signal_monitor import causal
+from ma_signal_monitor.threads import (
+    _NO_LAYER_ORDER,
+    Thread,
+    _cluster,
+    _dominant_category,
+    _story_terms,
+    build_thread_links,
+    build_threads,
+    select_threads_for_display,
+    thread_bands,
+)
 
 
 def _story(item_id, title, *, category=None, entities=None, score=0.5, summary=None):
@@ -51,9 +62,39 @@ _SOLO = _story(
     category="competitive_strategy",
     entities=["Aetna"],
 )
+# Same company, different watched-entity aliases from the same payer group
+# ("UnitedHealthcare" and "UnitedHealth" both map to payers.PAYER_GROUPS'
+# "unitedhealthcare" group). Titles deliberately share too little vocabulary
+# to cluster on title tokens alone (title-only Jaccard 0.25, below the 0.28
+# default threshold) -- clustering must come from the canonical entity token.
+# Note: only "UnitedHealthcare" is in sample_config.watched_entities (see
+# conftest.py); "UnitedHealth" isn't. That's fine here -- build_threads reads
+# whatever is already on story["entities"], independent of the watch list
+# that gated real detection, so this still exercises the fix directly.
+_UHC_A = _story(
+    "f",
+    "UnitedHealthcare billing practices draw scrutiny",
+    category="competitive_strategy",
+    entities=["UnitedHealthcare"],
+)
+_UHC_B = _story(
+    "g",
+    "UnitedHealth billing practices anger providers",
+    category="competitive_strategy",
+    entities=["UnitedHealth"],
+)
 
 
-def _threads(config, stories, *, threshold=0.28, min_stories=2):
+# NOTE: this default is on the IDF-weighted-cosine scale (similarity.py),
+# unrelated to config/app.yaml's thread_similarity_threshold -- see that
+# file's comment (set by scripts/calibrate_threads.py) for the production
+# value. 0.1 is picked by hand against exactly the hand-built fixtures below:
+# every "must merge" pair here scores >= 0.12 (the tightest is _UHC_A/_UHC_B,
+# folded through canonical payer-group tokens rather than raw title overlap),
+# and every "must stay apart" pair scores 0.0 (these fixtures share no
+# vocabulary at all across categories/companies), so the exact value only
+# needs to sit anywhere in (0.0, 0.12].
+def _threads(config, stories, *, threshold=0.1, min_stories=2):
     return build_threads(stories, config, threshold=threshold, min_stories=min_stories)
 
 
@@ -61,6 +102,30 @@ def test_related_stories_cluster_unrelated_stay_apart(sample_config):
     threads, ungrouped = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
     assert len(threads) == 1
     assert {s["item_id"] for s in threads[0].stories} == {"a", "b"}
+    assert [s["item_id"] for s in ungrouped] == ["e"]
+
+
+def test_story_terms_folds_aliases_to_one_group_token():
+    # "UnitedHealthcare" and "UnitedHealth" are different watched-entity
+    # aliases of the same payers.PAYER_GROUPS group -- _story_terms must fold
+    # both to the same opaque "@<slug>" token rather than keeping them as two
+    # distinct raw-string tokens (the fragmentation bug this step fixes).
+    assert "@unitedhealthcare" in _story_terms(_UHC_A)
+    assert "@unitedhealthcare" in _story_terms(_UHC_B)
+    # An alias with no payer group (e.g. "CMS") still falls back to the
+    # previous lowercased-string behavior.
+    assert "cms" in _story_terms(_STAR_A)
+
+
+def test_different_aliases_of_same_payer_group_cluster_together(sample_config):
+    # Same fix, at the build_threads level: two stories about the same
+    # company under different aliases share too little title vocabulary to
+    # cluster on title tokens alone (title-only Jaccard 0.25, below the 0.28
+    # default threshold) but must still land in one thread once the aliases
+    # are folded to a shared canonical entity token.
+    threads, ungrouped = _threads(sample_config, [_UHC_A, _UHC_B, _SOLO])
+    assert len(threads) == 1
+    assert {s["item_id"] for s in threads[0].stories} == {"f", "g"}
     assert [s["item_id"] for s in ungrouped] == ["e"]
 
 
@@ -88,6 +153,28 @@ def test_clustering_is_order_independent(sample_config):
     assert as_sets == bs_sets == {frozenset({"a", "b"}), frozenset({"c", "d"})}
 
 
+def test_average_linkage_merge_guard_blocks_chaining():
+    # A and B share two window-rare terms; B and C share two different
+    # window-rare terms; A and C share nothing. Single-linkage would chain
+    # A -> B -> C into one cluster purely through the B bridge, even though
+    # A and C have nothing in common -- the exact failure this step fixes
+    # (see threads._cluster's docstring). Both A-B and B-C individually clear
+    # the threshold on their own, but once A merges with B (or B with C),
+    # the merged cluster's AVERAGE similarity to the third story drops below
+    # threshold (each bridging pair's score is roughly halved once spread
+    # across a 2-story cluster), so the merge guard blocks the second merge.
+    a = {"alpha", "bravo", "common1", "common2"}
+    b = {"common1", "common2", "delta", "echo"}
+    c = {"delta", "echo", "foxtrot", "golf"}
+    groups = _cluster([a, b, c], threshold=0.2)
+    as_sets = {frozenset(g) for g in groups}
+    # A and C must never land in the same group, however B ends up grouped.
+    assert not any({0, 2} <= s for s in as_sets)
+    # Sanity: this is a real anti-chaining case, not merge-guard-blocks-all --
+    # exactly one of the two bridging pairs still merges.
+    assert {0, 1} in as_sets or {1, 2} in as_sets
+
+
 def test_threads_ordered_along_causal_cascade(sample_config):
     # Input order puts the downstream thread first; output must still cascade.
     threads, _ = _threads(sample_config, [_MLR_A, _MLR_B, _STAR_A, _STAR_B])
@@ -96,7 +183,16 @@ def test_threads_ordered_along_causal_cascade(sample_config):
 
 
 def test_thread_placed_on_dominant_category_layer(sample_config):
-    threads, _ = _threads(sample_config, [_STAR_A, _STAR_B])
+    # _SOLO is window context only (unrelated, stays ungrouped): with only
+    # two documents in the whole window, IDF-weighted cosine would otherwise
+    # be a degenerate case -- every term STAR_A/STAR_B share appears in 100%
+    # of a 2-doc window, so its IDF collapses to log(2/2) == 0 and the pair's
+    # similarity would score 0.0 regardless of how similar the headlines
+    # read. A third, unrelated story keeps the shared terms' document
+    # frequency below the window size, which is the realistic case IDF
+    # assumes (see similarity.idf_weights).
+    threads, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    assert len(threads) == 1
     assert threads[0].dominant_category == "policy_regulatory"
     assert threads[0].layer_key == "drivers"
     assert threads[0].layer_label == "Structural & Policy Drivers"
@@ -106,6 +202,75 @@ def test_thread_labeled_from_distinctive_terms(sample_config):
     threads, _ = _threads(sample_config, [_STAR_A, _STAR_B, _MLR_A, _MLR_B])
     star = next(t for t in threads if t.dominant_category == "policy_regulatory")
     assert any(w in star.label.lower() for w in ("star", "rating", "methodolog", "cms"))
+
+
+def test_thread_label_avoids_ubiquitous_window_phrase(sample_config):
+    # Two near-duplicate stories share "market conditions" with three unrelated
+    # filler stories elsewhere in the window (in-thread share 2/5 = 0.4, below
+    # the 0.5 floor) -- so that phrase must not become the thread's label, even
+    # though every headline in the thread contains it. The thread's own
+    # "special needs plan expansion" wording appears nowhere else in the
+    # window (share 1.0), so that's what should surface instead.
+    target_a = _story(
+        "t1",
+        "Elevance unveils special needs plan expansion amid market conditions",
+        category="competitive_strategy",
+    )
+    target_b = _story(
+        "t2",
+        "Elevance special needs plan expansion accelerates as market conditions shift",
+        category="competitive_strategy",
+    )
+    filler_1 = _story(
+        "f1",
+        "Centene warns of margin pressure amid market conditions this quarter",
+        category="financial_pressure",
+    )
+    filler_2 = _story(
+        "f2",
+        "Molina flags enrollment softness as market conditions weigh on growth",
+        category="financial_pressure",
+    )
+    filler_3 = _story(
+        "f3",
+        "Kaiser broker commissions face scrutiny as market conditions evolve statewide",
+        category="competitive_strategy",
+    )
+    threads, _ = _threads(
+        sample_config, [target_a, target_b, filler_1, filler_2, filler_3]
+    )
+    target = next(
+        t for t in threads if {"t1", "t2"} <= {s["item_id"] for s in t.stories}
+    )
+    assert "market conditions" not in target.label.lower()
+    assert any(w in target.label.lower() for w in ("special needs", "plan expansion"))
+
+
+def test_build_threads_gives_colliding_threads_distinct_labels(sample_config):
+    # Two unrelated single-story clusters (min_stories=1) in the same category
+    # with no shared vocabulary both fall back to the same dominant-category
+    # label ("Competitive / Operational Strategy") when labeled independently
+    # -- the exact collision the diagnosis found on the real page. build_threads
+    # must still hand back distinct labels.
+    solo_x = _story(
+        "x",
+        "UnitedHealthcare pilots new digital front door for member service today",
+        category="competitive_strategy",
+        entities=["UnitedHealthcare"],
+    )
+    solo_y = _story(
+        "y",
+        "Aetna trials revamped virtual concierge tool for policyholders statewide",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+    threads, _ = _threads(sample_config, [solo_x, solo_y], min_stories=1)
+    assert len(threads) == 2
+    labels = [t.label for t in threads]
+    assert len(set(labels)) == 2
+    assert all(
+        label.startswith("Competitive / Operational Strategy") for label in labels
+    )
 
 
 def test_label_falls_back_to_category_when_not_nameable(sample_config):
@@ -129,3 +294,646 @@ def test_dominant_category_empty_when_all_uncategorized(sample_config):
 
 def test_empty_window_returns_no_threads(sample_config):
     assert build_threads([], sample_config, threshold=0.28, min_stories=2) == ([], [])
+
+
+def test_anchor_key_is_order_independent(sample_config):
+    # _STAR_A/_STAR_B tie on relevance_score (both 0.5); the item_id tie-break
+    # (threads.py's member ranking) makes the anchor -- and so the thread's
+    # key -- fully determined by content, never by which order build_threads
+    # happened to see the input list in (mirroring
+    # test_clustering_is_order_independent, but for identity rather than
+    # membership).
+    forward, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    reverse, _ = _threads(sample_config, [_SOLO, _STAR_B, _STAR_A])
+    assert forward[0].key == reverse[0].key == "a"
+
+
+def test_anchor_key_survives_new_low_relevance_story_joining(sample_config):
+    # A third, much-lower-relevance near-duplicate joining the thread on a
+    # later ingest cycle must not change its key -- threads aren't persisted,
+    # so build_threads reclusters from scratch every request, and the whole
+    # point of anchoring on the top member is that a URL keeps working across
+    # that. Only a *higher*-relevance story joining, or the anchor aging out
+    # of the window, should ever change it (see Thread.key's docstring).
+    before, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    star_c = _story(
+        "h",
+        "CMS finalizes Star Ratings methodology change for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+        score=0.05,
+    )
+    after, _ = _threads(sample_config, [_STAR_A, _STAR_B, star_c, _SOLO])
+    after_thread = next(
+        t for t in after if {"a", "b"} <= {s["item_id"] for s in t.stories}
+    )
+    assert "h" in {s["item_id"] for s in after_thread.stories}
+    assert before[0].key == after_thread.key == "a"
+
+
+def test_mixed_category_thread_has_no_layer(sample_config):
+    # Four near-duplicate headlines about the same event, split 50/50 across
+    # two categories -- no category clears the >50% majority bar, so the
+    # thread must be placed nowhere on the causal model rather than guessing
+    # from a coin-flip tie-break (see threads._category_split). A pile of
+    # unrelated filler keeps the shared vocabulary's document frequency below
+    # the candidate-generation blocking cap (_DF_BLOCK_FRACTION) so the four
+    # target stories still cluster together despite writing near-identically.
+    mix_a1 = _story(
+        "m1",
+        "Prior authorization crackdown hits Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    mix_a2 = _story(
+        "m2",
+        "Prior authorization crackdown squeezes Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    mix_b1 = _story(
+        "m3",
+        "Prior authorization crackdown rattles Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    mix_b2 = _story(
+        "m4",
+        "Prior authorization crackdown worries Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    fillers = [
+        _story(
+            "f1",
+            "Aetna launches value-based care partnership network for seniors",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f2",
+            "Humana announces new leadership team amid strategic overhaul",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f3",
+            "Centene reports quarterly earnings above analyst expectations",
+            category="financial_pressure",
+        ),
+        _story(
+            "f4",
+            "Molina expands footprint into three additional states",
+            category="membership_movement",
+        ),
+        _story(
+            "f5",
+            "Kaiser opens new telehealth clinics across rural regions",
+            category="competitive_strategy",
+        ),
+        _story(
+            "f6",
+            "Elevance unveils digital front door for member engagement",
+            category="competitive_strategy",
+        ),
+    ]
+    threads, _ = _threads(sample_config, [mix_a1, mix_a2, mix_b1, mix_b2, *fillers])
+    mixed_thread = next(
+        t
+        for t in threads
+        if {"m1", "m2", "m3", "m4"} <= {s["item_id"] for s in t.stories}
+    )
+    assert mixed_thread.mixed is True
+    assert mixed_thread.dominant_category == ""
+    assert mixed_thread.layer_key == ""
+    assert mixed_thread.layer_short == ""
+    assert mixed_thread.layer_label == ""
+    from ma_signal_monitor.threads import _NO_LAYER_ORDER
+
+    assert mixed_thread.layer_order == _NO_LAYER_ORDER
+
+
+# --- select_threads_for_display: capping the CHART's rows ---
+
+
+def _sized_thread(key, total, *, label=None, layer_order=1):
+    """A minimal Thread with a controllable ``.total`` (story count) for
+    exercising select_threads_for_display -- content of the stories
+    themselves is irrelevant to selection, only their count and the
+    thread's key/label."""
+    return Thread(
+        key=key,
+        label=label or key,
+        stories=tuple({"item_id": f"{key}-{i}"} for i in range(total)),
+        dominant_category="cat",
+        mixed=False,
+        layer_key="layer",
+        layer_short="L",
+        layer_label="Layer",
+        layer_order=layer_order,
+    )
+
+
+def test_select_threads_for_display_keeps_everything_under_the_cap():
+    threads = [_sized_thread("a", 5), _sized_thread("b", 2)]
+    kept, folded = select_threads_for_display(threads, 5)
+    assert kept == threads
+    assert folded == []
+
+
+def test_select_threads_for_display_keeps_the_n_largest():
+    small = _sized_thread("small", 2)
+    medium = _sized_thread("medium", 4)
+    large = _sized_thread("large", 9)
+    kept, folded = select_threads_for_display([small, medium, large], 2)
+    assert {t.key for t in kept} == {"large", "medium"}
+    assert {t.key for t in folded} == {"small"}
+
+
+def test_select_threads_for_display_ties_break_on_label():
+    # "aaa" and "bbb" tie on total (3) -- the deterministic tie-break (label
+    # ascending) keeps "aaa" and folds "bbb", never depending on input order.
+    aaa = _sized_thread("k-aaa", 3, label="aaa")
+    bbb = _sized_thread("k-bbb", 3, label="bbb")
+    biggest = _sized_thread("k-big", 9, label="zzz")
+    kept, folded = select_threads_for_display([bbb, biggest, aaa], 2)
+    assert {t.key for t in kept} == {"k-big", "k-aaa"}
+    assert {t.key for t in folded} == {"k-bbb"}
+
+
+def test_select_threads_for_display_preserves_causal_order_of_kept_set():
+    # Causal (input) order deliberately disagrees with size order: the
+    # biggest thread is last, the smallest of the three kept is first.
+    # Selection picks membership by size, but `kept` must still come out in
+    # the ORIGINAL (causal) order, not re-sorted by size.
+    #
+    # All three sit in ONE band so the per-band floor cannot influence
+    # membership here -- this test is about ORDER. The floor's effect on
+    # membership is covered by the band-floor tests below.
+    first = _sized_thread("first", 3, layer_order=1)
+    second = _sized_thread("second", 2, layer_order=1)
+    third = _sized_thread("third", 9, layer_order=1)
+    causal_order = [first, second, third]
+    kept, folded = select_threads_for_display(causal_order, 2)
+    assert [t.key for t in kept] == ["first", "third"]
+    assert [t.key for t in folded] == ["second"]
+
+
+def test_select_threads_for_display_keeps_every_band_represented():
+    # Regression guard for a real failure seen on the production archive:
+    # bands held 35/14/27/1 threads, and a purely size-ranked top-25 kept
+    # ZERO threads from the 1-thread Outcomes band -- the cascade rendered
+    # without the terminal stage it exists to arrive at. A band's sole
+    # occupant must survive the cap even when it is small.
+    big = [_sized_thread(f"big{i}", 9, layer_order=1) for i in range(10)]
+    lone_downstream = _sized_thread("lone", 2, layer_order=4)
+    kept, folded = select_threads_for_display([*big, lone_downstream], 5)
+    assert "lone" in {t.key for t in kept}
+    assert len(kept) == 5
+
+
+def test_select_threads_for_display_band_floor_spends_upstream_first():
+    # When the budget cannot cover every band's floor, the reservation walks
+    # bands in causal order, so upstream bands are served before downstream
+    # ones rather than the choice depending on dict ordering.
+    a = _sized_thread("a", 2, layer_order=1)
+    b = _sized_thread("b", 2, layer_order=2)
+    c = _sized_thread("c", 9, layer_order=3)
+    kept, _ = select_threads_for_display([a, b, c], 2)
+    assert [t.key for t in kept] == ["a", "b"]
+
+
+def test_select_threads_for_display_is_order_independent():
+    # The chosen kept SET never depends on the input list's order, only on
+    # size (then label) -- shuffling the input still keeps the same threads.
+    a = _sized_thread("a", 5, label="a")
+    b = _sized_thread("b", 3, label="b")
+    c = _sized_thread("c", 1, label="c")
+    kept1, folded1 = select_threads_for_display([a, b, c], 2)
+    kept3, folded3 = select_threads_for_display([c, a, b], 2)
+    assert {t.key for t in kept1} == {t.key for t in kept3} == {"a", "b"}
+    assert {t.key for t in folded1} == {t.key for t in folded3} == {"c"}
+
+
+def test_select_threads_for_display_every_thread_lands_exactly_once():
+    threads = [_sized_thread(f"t{i}", i + 1) for i in range(10)]
+    kept, folded = select_threads_for_display(threads, 4)
+    kept_keys = [t.key for t in kept]
+    folded_keys = [t.key for t in folded]
+    assert sorted(kept_keys + folded_keys) == sorted(t.key for t in threads)
+    assert set(kept_keys).isdisjoint(folded_keys)
+    assert len(kept) == 4
+    assert len(folded) == 6
+
+
+def test_select_threads_for_display_zero_or_negative_max_rows_keeps_all():
+    # Defensive: config validation requires >= 1, but the function itself
+    # degrades to "no cap" rather than folding everything, matching the
+    # `len(threads) <= max_rows` no-op branch's spirit.
+    threads = [_sized_thread("a", 5), _sized_thread("b", 2)]
+    kept, folded = select_threads_for_display(threads, 0)
+    assert kept == threads
+    assert folded == []
+
+
+# --- thread_bands: causal-layer band headers ---
+
+
+def _band_thread(key, *, layer_key, layer_short, layer_order, mixed=False):
+    """A minimal Thread for exercising thread_bands (no stories needed)."""
+    return Thread(
+        key=key,
+        label=key,
+        stories=(),
+        dominant_category="" if mixed else "cat",
+        mixed=mixed,
+        layer_key=layer_key,
+        layer_short=layer_short,
+        layer_label=layer_short,
+        layer_order=layer_order,
+    )
+
+
+def test_thread_bands_marks_each_layer_transition():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("b", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("c", layer_key="pressure", layer_short="Pressure", layer_order=2),
+    ]
+    assert thread_bands(threads, has_ungrouped=False) == {0: "Drivers", 2: "Pressure"}
+
+
+def test_thread_bands_folds_mixed_and_ungrouped_into_one_unplaced_band():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread(
+            "m", layer_key="", layer_short="", layer_order=_NO_LAYER_ORDER, mixed=True
+        ),
+    ]
+    # The mixed thread (row 1) and the trailing ungrouped row (row 2) share one
+    # "Unplaced" band, not two adjacent ones.
+    assert thread_bands(threads, has_ungrouped=True) == {0: "Drivers", 1: "Unplaced"}
+
+
+def test_thread_bands_ungrouped_only_window_gets_its_own_band():
+    assert thread_bands([], has_ungrouped=True) == {0: "Unplaced"}
+
+
+def test_thread_bands_empty_window_has_no_bands():
+    assert thread_bands([], has_ungrouped=False) == {}
+
+
+def test_thread_bands_folded_row_alone_opens_the_trailing_unplaced_band():
+    # No ungrouped stories at all, but the cap folded some threads -- the
+    # "+N smaller threads" row still needs its own trailing "Unplaced" band,
+    # not causal placement inherited from the last real thread.
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+        _band_thread("c", layer_key="pressure", layer_short="Pressure", layer_order=2),
+    ]
+    assert thread_bands(threads, has_ungrouped=False, has_folded=True) == {
+        0: "Drivers",
+        1: "Pressure",
+        # row 2 is the trailing "+N smaller threads" row (len(threads) == 2).
+        2: "Unplaced",
+    }
+
+
+def test_thread_bands_folded_and_ungrouped_share_one_trailing_band():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+    ]
+    # The "+N smaller threads" row (index 1) and "Ungrouped signals" (index 2,
+    # never given its own entry) share ONE trailing "Unplaced" band.
+    assert thread_bands(threads, has_ungrouped=True, has_folded=True) == {
+        0: "Drivers",
+        1: "Unplaced",
+    }
+
+
+def test_thread_bands_has_folded_default_is_backward_compatible():
+    threads = [
+        _band_thread("a", layer_key="drivers", layer_short="Drivers", layer_order=1),
+    ]
+    assert thread_bands(threads, has_ungrouped=False) == {0: "Drivers"}
+
+
+# --- build_thread_links: "leads to" cascade between threads ---
+
+
+def _linked_thread(
+    key,
+    label,
+    *,
+    category,
+    layer_key,
+    layer_short,
+    layer_order,
+    dates,
+    entities=None,
+    mixed=False,
+):
+    """A Thread built directly (bypassing clustering) so evidence/precedence
+    inputs (label, entities, event_date) are under exact test control."""
+    stories = tuple(
+        {"item_id": f"{key}-{i}", "entities": entities or [], "event_date": d}
+        for i, d in enumerate(dates)
+    )
+    return Thread(
+        key=key,
+        label=label,
+        stories=stories,
+        dominant_category="" if mixed else category,
+        mixed=mixed,
+        layer_key="" if mixed else layer_key,
+        layer_short="" if mixed else layer_short,
+        layer_label="" if mixed else layer_short,
+        layer_order=_NO_LAYER_ORDER if mixed else layer_order,
+    )
+
+
+def test_link_requires_edge_precedence_and_evidence_all_three(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01", "2024-01-02"],
+    )
+
+    # All three hold (edge, precedence, and a shared "star ratings" label
+    # term) -> a link.
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10", "2024-01-11"],
+    )
+    assert build_thread_links([upstream, downstream], edges) == {"u": "d"}
+
+    # Edge + precedence hold, but no shared evidence term -> no link.
+    no_evidence = _linked_thread(
+        "d2",
+        "cost trend · margin pressure",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10", "2024-01-11"],
+    )
+    assert build_thread_links([upstream, no_evidence], edges) == {}
+
+    # Edge + evidence hold, but the "downstream" thread is dated BEFORE the
+    # upstream one -> no link.
+    no_precedence = _linked_thread(
+        "d3",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2023-12-01", "2023-12-02"],
+    )
+    assert build_thread_links([upstream, no_precedence], edges) == {}
+
+    # Precedence + evidence hold, but no declared edge connects the two
+    # categories (policy_regulatory -> membership_movement isn't declared in
+    # sample_config) -> no link.
+    no_edge = _linked_thread(
+        "d4",
+        "star ratings · unrelated",
+        category="membership_movement",
+        layer_key="outcomes",
+        layer_short="Outcomes",
+        layer_order=4,
+        dates=["2024-01-10"],
+    )
+    assert build_thread_links([upstream, no_edge], edges) == {}
+
+
+def test_link_direction_is_never_reversed(sample_config):
+    # Even if a downstream-category thread's dates happen to precede an
+    # upstream-category thread's (noisy real-world ordering), the model's
+    # declared direction must win: no financial_pressure -> policy_regulatory
+    # link may ever be produced (no such edge is declared -- only the reverse).
+    early_financial = _linked_thread(
+        "early",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-01"],
+    )
+    late_policy = _linked_thread(
+        "late",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-10"],
+    )
+    edges = causal.edge_map(sample_config)
+    assert build_thread_links([early_financial, late_policy], edges) == {}
+
+
+def test_empty_causal_model_yields_no_links(sample_config):
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+    )
+    assert build_thread_links([upstream, downstream], {}) == {}
+
+
+def test_at_most_one_outgoing_link_per_thread(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # Two valid downstream targets sharing evidence with `upstream`:
+    # policy_regulatory -> financial_pressure (weight 1.0) and
+    # policy_regulatory -> competitive_strategy (weight 0.7). `lower_weight`
+    # is dated BEFORE `higher_weight` so financial_pressure -> competitive_
+    # strategy (a real declared edge too) can't itself produce a second,
+    # confounding link between the two candidates -- this test isolates
+    # `upstream`'s own one-link-max choice, not the whole graph's link count.
+    higher_weight = _linked_thread(
+        "b",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    lower_weight = _linked_thread(
+        "c",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-03"],
+    )
+    links = build_thread_links([upstream, higher_weight, lower_weight], edges)
+    assert list(links.keys()) == ["u"]
+    assert links["u"] == "b"  # weight 1.0 * overlap beats weight 0.7 * overlap
+
+
+def test_mixed_thread_never_sources_or_receives_a_link(sample_config):
+    edges = causal.edge_map(sample_config)
+    downstream = _linked_thread(
+        "d",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+    )
+    mixed_source = _linked_thread(
+        "m",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+        mixed=True,
+    )
+    assert build_thread_links([mixed_source, downstream], edges) == {}
+
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    mixed_target = _linked_thread(
+        "m2",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-10"],
+        mixed=True,
+    )
+    assert build_thread_links([upstream, mixed_target], edges) == {}
+
+
+def test_link_ordering_is_deterministic(sample_config):
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # Same date arrangement as test_at_most_one_outgoing_link_per_thread --
+    # `c` dated before `b` so the graph produces exactly one link (`u -> b`)
+    # regardless of walk order, keeping this test about ORDER independence
+    # rather than also re-proving the one-link-per-source rule.
+    b = _linked_thread(
+        "b",
+        "star ratings · fallout",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    c = _linked_thread(
+        "c",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-03"],
+    )
+    forward = build_thread_links([upstream, b, c], edges)
+    reverse = build_thread_links([c, b, upstream], edges)
+    assert forward == reverse == {"u": "b"}
+
+
+def test_build_thread_links_never_targets_a_thread_outside_the_given_list(
+    sample_config,
+):
+    # Simulates the lane's cap: build_thread_links only ever considers
+    # threads actually passed to it, so computing it over a "kept" subset
+    # (see select_threads_for_display / web/routes._timeline_thread_groups)
+    # can never produce a link to a thread that was folded out of that list --
+    # even when a folded thread would otherwise have been the single best
+    # target (declared edge + precedence + more shared evidence than any
+    # kept alternative).
+    edges = causal.edge_map(sample_config)
+    upstream = _linked_thread(
+        "u",
+        "star ratings · methodology",
+        category="policy_regulatory",
+        layer_key="drivers",
+        layer_short="Drivers",
+        layer_order=1,
+        dates=["2024-01-01"],
+    )
+    # The best possible target: two shared evidence terms (vs. one for the
+    # kept alternative below), so it would win if it were in the running.
+    best_but_folded = _linked_thread(
+        "folded",
+        "star ratings · fallout · methodology",
+        category="financial_pressure",
+        layer_key="pressure",
+        layer_short="Pressure",
+        layer_order=2,
+        dates=["2024-01-08"],
+    )
+    # A weaker target (one shared term) that IS kept.
+    weaker_but_kept = _linked_thread(
+        "kept",
+        "star ratings · response",
+        category="competitive_strategy",
+        layer_key="response",
+        layer_short="Response",
+        layer_order=3,
+        dates=["2024-01-09"],
+    )
+
+    # Computed over the full set, the stronger candidate wins.
+    full = build_thread_links([upstream, best_but_folded, weaker_but_kept], edges)
+    assert full["u"] == "folded"
+
+    # Computed over the kept set only (the folded thread excluded, exactly
+    # as _timeline_thread_groups does), the link falls back to the weaker
+    # candidate rather than dangling at an invisible row -- it never simply
+    # disappears just because the best option isn't rendered.
+    kept_only = build_thread_links([upstream, weaker_but_kept], edges)
+    assert kept_only["u"] == "kept"
+    assert "folded" not in kept_only.values()

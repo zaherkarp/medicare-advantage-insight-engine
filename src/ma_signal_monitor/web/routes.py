@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from ma_signal_monitor.angles import _causal_model_view, build_angles
+from ma_signal_monitor.causal import edge_map
 from ma_signal_monitor.geo import STATE_NAMES, state_name
 from ma_signal_monitor.payers import (
     ALIAS_TO_GROUP,
@@ -26,7 +27,12 @@ from ma_signal_monitor.payers import (
 )
 from ma_signal_monitor.query_parser import parse_query
 from ma_signal_monitor.storage import VALID_VERDICTS
-from ma_signal_monitor.threads import build_threads
+from ma_signal_monitor.threads import (
+    build_thread_links,
+    build_threads,
+    select_threads_for_display,
+    thread_bands,
+)
 from ma_signal_monitor.timeline_layout import (
     axis_ticks,
     build_callout_band,
@@ -416,21 +422,163 @@ def _timeline_strip_groups(
     return groups
 
 
+def _timeline_window_stories(
+    store,
+    *,
+    category: str | None = None,
+    state: str | None = None,
+    entity_aliases: list[str] | None = None,
+    min_score: float,
+    window_start,
+    now: datetime,
+    limit: int = TIMELINE_MAX_STORIES,
+) -> list[dict]:
+    """Fetch and date-filter one windowed story list, ``_story_view``-shaped.
+
+    Shared by :func:`_render_timeline`, the ``/timeline/threads/{key}`` detail
+    route, and ``static_export.py`` — all three need exactly the same window a
+    reader would see, so the fetch + date filter live here once rather than in
+    three copies that could silently drift apart. ``since`` bounds the store
+    query on the left; each row's own event day is then re-checked against
+    ``[window_start, now.date()]`` so a bad/future-dated story never leaks
+    into the chart or the list beneath it (the same rule
+    :mod:`timeline_layout`'s bucketing applies).
+    """
+    rows = store.get_stories(
+        category=category,
+        state=state,
+        entity_aliases=entity_aliases,
+        min_score=min_score,
+        since=window_start.isoformat(),
+        limit=limit,
+    )
+    stories = []
+    for r in rows:
+        s = _story_view(r)
+        try:
+            event_day = datetime.fromisoformat(s["event_date"]).date()
+        except (ValueError, TypeError):
+            continue
+        if window_start <= event_day <= now.date():
+            stories.append(s)
+    return stories
+
+
+def _default_window_threads(store, config) -> tuple[list, list[dict]]:
+    """Recluster the timeline's default window into threads.
+
+    Threads aren't persisted — :func:`threads.build_threads` recomputes them
+    fresh per call — so the thread-detail route and the static export (which
+    can't carry a live ``?days=`` query) both need to reproduce exactly the
+    window the un-scoped ``/timeline/threads`` lane clusters at its default
+    lookback (``TIMELINE_DEFAULT_DAYS``, ignoring any ``?days=`` a reader
+    might have applied when they clicked through — the same reason a thread
+    row's href carries no ``scope_qs``, unlike the topic/payer strip rows).
+    This is the one place that resolution happens, so the two call sites
+    can't drift. Returns the same ``(threads, ungrouped)`` shape as
+    ``build_threads``.
+    """
+    now = datetime.utcnow()
+    window_start = now.date() - timedelta(days=TIMELINE_DEFAULT_DAYS - 1)
+    stories = _timeline_window_stories(
+        store,
+        min_score=config.archive_min_score,
+        window_start=window_start,
+        now=now,
+    )
+    return build_threads(
+        stories,
+        config,
+        threshold=config.thread_similarity_threshold,
+        min_stories=config.thread_min_stories,
+    )
+
+
+def _thread_links_view(threads: list, config) -> dict[str, dict]:
+    """Row-keyed "leads to" chip data: ``{source_key: {key, label, href}}``.
+
+    Thin view layer over :func:`threads.build_thread_links` — resolves each
+    surviving target key to the thread it names (for its label) and the page
+    it links to, the same ``/timeline/threads/{key}`` URL every other thread
+    reference on this page uses. Shared by the lane (forward chips) and the
+    thread-detail route (which inverts it for the reciprocal "caused by"
+    back-link) so the link rule is computed in exactly one place.
+    """
+    links = build_thread_links(threads, edge_map(config))
+    by_key = {t.key: t for t in threads}
+    return {
+        source: {
+            "key": target,
+            "label": by_key[target].label,
+            "href": f"/timeline/threads/{target}",
+        }
+        for source, target in links.items()
+    }
+
+
+# Sentinel row keys for the threads lane's two trailing aggregate rows.
+# Neither can ever collide with a real thread's key (a real story's
+# ``item_id``), so equality against these is a safe way to spot them —
+# shared between ``_timeline_thread_groups`` (which emits the rows) and
+# ``_render_timeline`` (which uses them to mark the rows for muted styling;
+# see ``style.css``'s ``.strip-row-muted``).
+THREAD_SMALLER_ROWS_KEY = "smaller-threads"
+THREAD_UNGROUPED_KEY = "ungrouped"
+
+
 def _timeline_thread_groups(
     stories: list[dict],
     config,
     *,
     color_map: dict[str, str],
-) -> tuple[list[tuple[str, str, str | None, str, list[dict]]], list[dict]]:
+) -> tuple[
+    list[tuple[str, str, str | None, str, list[dict]]],
+    list[dict],
+    dict[int, str],
+    dict[str, dict],
+]:
     """Emergent-thread strip groups for the /timeline/threads lane.
 
-    Clusters the window into on-the-fly threads (:func:`threads.build_threads`)
-    and emits the ``(key, label, href, color, stories)`` shape
-    :func:`ma_signal_monitor.timeline_layout.build_strip` expects — one row per
-    thread, colored by its dominant topic and ordered along the causal cascade,
-    plus a trailing "Ungrouped signals" row so every story lands in exactly one
-    row and the chart total still matches the list. Returns ``(groups, legend)``;
-    the legend describes each thread with its causal layer.
+    Clusters the window into on-the-fly threads (:func:`threads.build_threads`),
+    then caps how many the CHART draws (:func:`threads.select_threads_for_display`,
+    ``config.thread_max_rows``) and emits the ``(key, label, href, color,
+    stories)`` shape :func:`ma_signal_monitor.timeline_layout.build_strip`
+    expects — one row per *kept* thread, colored by its dominant topic and
+    ordered along the causal cascade, then up to two trailing aggregate rows
+    so every story still lands in exactly one row and the chart total still
+    matches the list:
+
+    * ``"+N smaller threads"`` (:data:`THREAD_SMALLER_ROWS_KEY`) — only when
+      the cap actually folded threads. Its ``stories`` is the union of every
+      folded thread's stories, so the strip still plots them and
+      ``strip-count`` still shows the right total; it is never a real
+      thread's identity, so it links nowhere (``href=None``) even though
+      each folded thread still has its own reachable detail page (the
+      static export writes one for every thread, capped or not).
+    * ``"Ungrouped signals"`` (:data:`THREAD_UNGROUPED_KEY`) — the stories
+      that formed no thread at all, unchanged from before this cap existed.
+
+    Each *kept* thread row links to its own page (``/timeline/threads/{key}``
+    — see ``timeline_thread``), keyed on the thread's anchor so the link
+    survives re-clustering; both trailing aggregate rows have no such
+    identity, so they stay unlinked.
+
+    Returns ``(groups, legend, strip_bands, thread_links)``:
+
+    * ``legend`` describes each *kept* thread with its causal layer, or
+      "Mixed" when the thread spans several categories with no clear
+      majority (:attr:`threads.Thread.mixed`) — folded threads get no swatch,
+      the same reason they get no chart row: a legend entry per folded
+      thread would be exactly as unreadable as the row it stands in for.
+    * ``strip_bands`` (:func:`threads.thread_bands`) is the causal-layer band
+      header data, row-index-keyed to line up with ``groups``/the strip
+      ``build_strip`` renders from it — threads-lane only; the topics strip
+      never gets one (callers just never build/pass this for that mode).
+    * ``thread_links`` (:func:`_thread_links_view`) is the row-keyed "leads
+      to" chip data, computed over the *kept* set only — a chip's purpose is
+      to connect two visible rows, so it must never point at a folded
+      thread's row (which doesn't exist on this page) even though that
+      thread's own detail page is real and reachable by URL.
     """
     threads, ungrouped = build_threads(
         stories,
@@ -438,15 +586,18 @@ def _timeline_thread_groups(
         threshold=config.thread_similarity_threshold,
         min_stories=config.thread_min_stories,
     )
+    kept, folded = select_threads_for_display(threads, config.thread_max_rows)
     groups: list[tuple[str, str, str | None, str, list[dict]]] = []
     legend: list[dict] = []
-    for t in threads:
+    for t in kept:
         color = (
             topic_color(t.dominant_category, color_map)
             if t.dominant_category
             else FALLBACK_TOPIC_COLOR
         )
-        groups.append((t.key, t.label, None, color, list(t.stories)))
+        groups.append(
+            (t.key, t.label, f"/timeline/threads/{t.key}", color, list(t.stories))
+        )
         legend.append(
             {
                 "key": t.key,
@@ -454,13 +605,35 @@ def _timeline_thread_groups(
                 "color": color,
                 "total": t.total,
                 "layer": t.layer_label,
+                "mixed": t.mixed,
             }
+        )
+    if folded:
+        folded_stories = [s for t in folded for s in t.stories]
+        groups.append(
+            (
+                THREAD_SMALLER_ROWS_KEY,
+                f"+{len(folded)} smaller threads",
+                None,
+                FALLBACK_TOPIC_COLOR,
+                folded_stories,
+            )
         )
     if ungrouped:
         groups.append(
-            ("ungrouped", "Ungrouped signals", None, FALLBACK_TOPIC_COLOR, ungrouped)
+            (
+                THREAD_UNGROUPED_KEY,
+                "Ungrouped signals",
+                None,
+                FALLBACK_TOPIC_COLOR,
+                ungrouped,
+            )
         )
-    return groups, legend
+    strip_bands = thread_bands(
+        kept, has_ungrouped=bool(ungrouped), has_folded=bool(folded)
+    )
+    thread_links = _thread_links_view(kept, config)
+    return groups, legend, strip_bands, thread_links
 
 
 def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
@@ -1050,26 +1223,15 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         now = datetime.utcnow()
         window_start = now.date() - timedelta(days=days - 1)
 
-        rows = store.get_stories(
+        stories = _timeline_window_stories(
+            store,
             category=category,
             state=state,
             entity_aliases=entity_aliases,
             min_score=floor,
-            since=window_start.isoformat(),
-            limit=TIMELINE_MAX_STORIES,
+            window_start=window_start,
+            now=now,
         )
-        stories = []
-        for r in rows:
-            s = _story_view(r)
-            # Drop rows whose event day falls outside the window (future-dated
-            # or misparsed) so the chart and the list beneath it agree — the
-            # same rule daily_series applies while bucketing.
-            try:
-                event_day = datetime.fromisoformat(s["event_date"]).date()
-            except (ValueError, TypeError):
-                continue
-            if window_start <= event_day <= now.date():
-                stories.append(s)
 
         # Round-trips the resolved window (including "all") into scoped links,
         # so a linked topic/payer/state page reopens at the same lookback.
@@ -1083,11 +1245,20 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             fallback_color=FALLBACK_TOPIC_COLOR,
         )
         thread_legend = None
+        strip_bands = None
+        thread_links = None
+        muted_rows = None
         if threads:
             mode = "threads"
-            groups, thread_legend = _timeline_thread_groups(
+            groups, thread_legend, strip_bands, thread_links = _timeline_thread_groups(
                 stories, config, color_map=color_map
             )
+            # Both trailing aggregate rows (when present) read as visually
+            # secondary to a found thread — see style.css's .strip-row-muted.
+            # Membership is checked by row.key, not by href==None, so a
+            # href-less *topic* row (e.g. "Other") is never accidentally
+            # muted; only the threads lane ever produces these two keys.
+            muted_rows = {THREAD_SMALLER_ROWS_KEY, THREAD_UNGROUPED_KEY}
         else:
             mode = "payers" if category else "topics"
             groups = _timeline_strip_groups(
@@ -1176,6 +1347,9 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "strip": strip,
                 "legend": legend,
                 "thread_legend": thread_legend,
+                "muted_rows": muted_rows,
+                "strip_bands": strip_bands,
+                "thread_links": thread_links,
                 "view_toggle": view_toggle,
                 "stories": stories[:TIMELINE_LIST_MAX],
                 "total": total,
@@ -1251,6 +1425,62 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
             "each named from its own language and placed on the causal cascade.",
             base_path="/timeline/threads",
             threads=True,
+        )
+
+    @app.get("/timeline/threads/{key}", response_model=None)
+    def timeline_thread(request: Request, key: str) -> HTMLResponse | RedirectResponse:
+        """One emergent thread's own page, keyed on its anchor story's item_id.
+
+        Threads aren't persisted, so unlike ``/timeline/topics/{key}`` or
+        ``/timeline/payers/{slug}`` there is no static registry to validate
+        ``key`` against — this reclusters the same default window
+        ``/timeline/threads`` itself freezes at export time
+        (:func:`_default_window_threads`) and looks the key up there instead,
+        mirroring ``/story/{item_id}``'s query-then-None-check shape.
+
+        Graceful degradation: if reclustering no longer produces a thread at
+        this key — the window moved on, or the thread merged/dissolved/shrank
+        below ``thread_min_stories`` — but the key is still a real story's
+        ``item_id`` (true whenever it was ever some thread's anchor), redirect
+        to that story's own page: once a thread dissolves, its anchor story is
+        the best available answer. A key that never named anything real 404s.
+        """
+        config = request.app.state.config
+        if not config.threads_enabled:
+            raise HTTPException(status_code=404, detail="Threads lane disabled")
+        store = request.app.state.store
+        threads, _ungrouped = _default_window_threads(store, config)
+        thread = next((t for t in threads if t.key == key), None)
+        if thread is None:
+            if store.get_story(key) is not None:
+                return RedirectResponse(f"/story/{key}", status_code=302)
+            raise HTTPException(status_code=404, detail="Thread not found")
+        _days, _token, window_label = _resolve_window(
+            str(TIMELINE_DEFAULT_DAYS), store, min_score=config.archive_min_score
+        )
+        # The reciprocal of the lane's forward "leads to" chip: every thread
+        # whose single outgoing link (threads.build_thread_links allows at
+        # most one per SOURCE, not per target) points at this one, so the
+        # cascade reads in both directions from either end.
+        by_key = {t.key: t for t in threads}
+        caused_by = [
+            {"key": src, "label": by_key[src].label, "href": f"/timeline/threads/{src}"}
+            for src, link in _thread_links_view(threads, config).items()
+            if link["key"] == key
+        ]
+        return templates.TemplateResponse(
+            request,
+            "thread.html",
+            {
+                "thread": thread,
+                "window_label": window_label,
+                "stories": list(thread.stories),
+                "caused_by": caused_by,
+                "base_path": f"/timeline/threads/{key}",
+                "days_qs": "",
+                "page": 1,
+                "total_pages": 1,
+            },
         )
 
     @app.get("/timeline/topics/{category_key}", response_class=HTMLResponse)

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.label }} — Signal Timeline — MA Signal Monitor{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <h1>{{ thread.label }}</h1>
+    <p class="subtitle">An emergent story thread — signals the timeline
+      clustered together from their own shared language, not a fixed topic.</p>
+    <p class="muted">
+      {{ thread.total }} signal{{ '' if thread.total == 1 else 's' }} in {{ window_label }}
+      {% if thread.mixed %}
+        <span class="legend-layer">Mixed</span>
+      {% elif thread.layer_label %}
+        <span class="legend-layer">{{ thread.layer_label }}</span>
+      {% endif %}
+    </p>
+    {# Reciprocal of the lane's forward "leads to" chip (see timeline.html):
+       every upstream thread whose own single outgoing link points here, so
+       the cascade reads in both directions. Same JS-free arrow idiom as
+       angles.html (~lines 19-26), flipped to point back upstream. #}
+    {% if caused_by %}
+      <p class="muted thread-caused-by">
+        <span class="angle-sep" aria-hidden="true">←</span><span class="sr-only"> caused by </span>
+        {% for c in caused_by %}{% if not loop.first %}, {% endif %}<a href="{{ c.href }}">{{ c.label }}</a>{% endfor %}
+      </p>
+    {% endif %}
+  </section>
+
+  {% include "_story_list.html" %}
+{% endblock %}

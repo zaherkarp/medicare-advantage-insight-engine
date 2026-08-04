@@ -53,13 +53,77 @@ processing:
 timeline:
   threads:
     enabled: true
-    # Title/entity-token Jaccard at/above this joins two stories into one thread.
-    # Keep it BELOW delivery.dedup.similarity_threshold (0.6): a thread is looser
-    # than a near-duplicate.
-    similarity_threshold: 0.28
+    # Title/entity-token similarity at/above this joins two stories into one
+    # thread, scored with IDF-weighted cosine + average-linkage (see
+    # threads._cluster / similarity.weighted_cosine), not plain Jaccard +
+    # single-linkage. The scale is unrelated to
+    # delivery.dedup.similarity_threshold (0.6, plain Jaccard) -- do not
+    # compare the two numbers directly.
+    #
+    # Recalibrated by scripts/calibrate_threads.py, which sweeps candidate
+    # thresholds and reports, per threshold: thread count, ungrouped %,
+    # largest-thread %, and single-category purity (fraction of threads whose
+    # members all share one primary_category). Swept over
+    # tests/fixtures/thread_corpus.yaml (81 stories, narrow 4-alias test
+    # config) and a richer 83-story corpus scored through the real taxonomy
+    # (33 watched entities, 6 categories) -- summary at threshold 0.13
+    # (picked: lowest swept value at which single-category purity clears the
+    # pre-average-linkage baseline on BOTH corpora, well inside the ~35%
+    # largest-thread ceiling):
+    #
+    #   corpus                     before (old Jaccard+single-link @0.28)      after (IDF-cosine+avg-link @0.13)
+    #   thread_corpus.yaml fixture  11 threads, 56% ungrouped, 11% largest, 55% pure   20 threads, 26% ungrouped, 7% largest, 65% pure
+    #   83-story real-taxonomy      18 threads, 41% ungrouped, 11% largest, 44% pure   23 threads, 18% ungrouped, 7% largest, 48% pure
+    #
+    # Full swept table (0.02-0.30) is in the step-3 PR description.
+    #
+    # VALIDATED against the real archive (6,701 stories; 382 in the default
+    # 30-day window at archive_min_score, non-duplicate). The production sweep
+    # confirms 0.13 rather than moving it:
+    #
+    #   thr    threads  ungrouped%  largest%  purity
+    #   0.10        97       14.9%      3.4%    0.36
+    #   0.12        99       21.7%      2.6%    0.43
+    #   0.13       100       23.6%      2.1%    0.45   <-- shipped
+    #   0.16        89       37.2%      1.8%    0.52
+    #   0.20        74       50.0%      1.6%    0.55
+    #
+    # Below 0.13 purity falls away faster than ungrouped improves; above it,
+    # ungrouped climbs steeply for little purity gain. Largest-thread share
+    # never binds on real data (2.1% at 0.13 -- no chaining).
+    #
+    # To re-run after the archive grows, fetch it the same way deploy-pages.yml
+    # does and point the script at it:
+    #   curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db -o /tmp/prod.db
+    #   python scripts/calibrate_threads.py --db /tmp/prod.db --days 30
+    similarity_threshold: 0.13
     # A cluster needs at least this many stories to show as its own thread row;
     # smaller clusters fold into the "Ungrouped signals" row.
     min_stories: 2
+    # Relative weight for entity-group tokens vs. title tokens in the
+    # similarity metric: multiplies the IDF of `@`-prefixed payer-group
+    # tokens (threads._cluster). 1.0 leaves payer-token IDF untouched; config
+    # validation caps this at 1.0, so it can only dampen entity pull, never
+    # amplify it beyond its natural IDF weight. Untuned -- 1.0 is the neutral
+    # default, not a calibrated value.
+    entity_weight: 1.0
+    # Chart cap: the strip renders at most this many thread rows; the rest
+    # fold into one muted "+N smaller threads" row (still counted, still gets
+    # its own detail page -- see config.py's thread_max_rows comment).
+    #
+    # WHY 25: measured against the real archive (same 30-day/382-story window
+    # as similarity_threshold's sweep above). At the shipped threshold
+    # (0.13) that window clusters into 100 threads + 1 ungrouped row = 101
+    # strip rows, ~2,750px of chart -- unreadable, even though the
+    # clustering itself is healthy (23.6% ungrouped, purity 0.45, largest
+    # thread 2.1%). 59 of the 100 threads are 2-story pairs, so a size-
+    # ranked top-25 keeps the window's biggest, most substantial threads
+    # front and center and folds the long tail of small ones into one
+    # honest summary row instead of hundreds of pixels of 2-dot rows.
+    # Tightening min_stories or capping per-band both push real, found
+    # threads into "Ungrouped signals" instead -- measured and rejected,
+    # see thread_max_rows' comment in config.py for the numbers.
+    max_rows: 25
 
 # Storage settings
 storage:

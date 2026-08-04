@@ -1181,3 +1181,424 @@ def test_timeline_threads_disabled_returns_404(sample_config, temp_db):
     cfg = dataclasses.replace(sample_config, threads_enabled=False)
     client = TestClient(create_app(cfg, temp_db))
     assert client.get("/timeline/threads").status_code == 404
+
+
+def _seed_star_thread(store):
+    """The two-story Star Ratings thread shared by the detail-route tests.
+
+    th-1 and th-2 tie on relevance_score (both default to 0.6), so the
+    item_id tie-break in threads.py's member ranking anchors the thread on
+    "th-1" -- deterministic, so these tests can assert the exact key rather
+    than discovering it by scraping the strip row's href.
+    """
+    _seed_recent(
+        store,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-3",
+        "Aetna launches value-based care partnership network",
+        category="competitive_strategy",
+        entities=["Aetna"],
+    )
+
+
+def test_timeline_thread_row_links_to_detail_page_that_resolves(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    lane = client.get("/timeline/threads")
+    assert 'href="/timeline/threads/th-1"' in lane.text
+
+    detail = client.get("/timeline/threads/th-1")
+    assert detail.status_code == 200
+    assert re.search(r"star|ratings|methodolog", detail.text, re.I)
+    # Both thread members show up in the detail page's story list, the
+    # unrelated solo story does not.
+    assert detail.text.count('class="story-card"') == 2
+    assert "th-3" not in detail.text
+
+
+def test_timeline_thread_unknown_key_404s(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads/not-a-real-key")
+    assert resp.status_code == 404
+
+
+def test_timeline_thread_dissolved_anchor_redirects_to_story(sample_config, temp_db):
+    # th-3 is a real item_id but forms no thread on its own (it's the lone
+    # "Ungrouped signals" story) -- graceful degradation sends the reader to
+    # the story itself rather than 404ing on a key that once could have
+    # anchored something.
+    _seed_star_thread(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads/th-3", follow_redirects=False)
+    assert resp.status_code in (302, 307)
+    assert resp.headers["location"] == "/story/th-3"
+
+
+def test_timeline_threads_disabled_detail_route_also_404s(sample_config, temp_db):
+    _seed_star_thread(temp_db)
+    cfg = dataclasses.replace(sample_config, threads_enabled=False)
+    client = TestClient(create_app(cfg, temp_db))
+    assert client.get("/timeline/threads/th-1").status_code == 404
+
+
+def test_timeline_thread_mixed_chip_renders(sample_config, temp_db):
+    # Four near-duplicate headlines split 50/50 across two categories cluster
+    # into one thread with no clear majority -- both the lane's legend and
+    # the thread's own detail page must render a "Mixed" chip rather than an
+    # arbitrarily-picked causal layer.
+    _seed_recent(
+        temp_db,
+        "m1",
+        "Prior authorization crackdown hits Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    _seed_recent(
+        temp_db,
+        "m2",
+        "Prior authorization crackdown squeezes Medicare Advantage insurers nationwide",
+        category="policy_regulatory",
+    )
+    _seed_recent(
+        temp_db,
+        "m3",
+        "Prior authorization crackdown rattles Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    _seed_recent(
+        temp_db,
+        "m4",
+        "Prior authorization crackdown worries Medicare Advantage insurers nationwide",
+        category="financial_pressure",
+    )
+    fillers = [
+        (
+            "f1",
+            "Aetna launches value-based care partnership network for seniors",
+            "competitive_strategy",
+        ),
+        (
+            "f2",
+            "Humana announces new leadership team amid strategic overhaul",
+            "competitive_strategy",
+        ),
+        (
+            "f3",
+            "Centene reports quarterly earnings above analyst expectations",
+            "financial_pressure",
+        ),
+        (
+            "f4",
+            "Molina expands footprint into three additional states",
+            "membership_movement",
+        ),
+        (
+            "f5",
+            "Kaiser opens new telehealth clinics across rural regions",
+            "competitive_strategy",
+        ),
+        (
+            "f6",
+            "Elevance unveils digital front door for member engagement",
+            "competitive_strategy",
+        ),
+    ]
+    for item_id, title, category in fillers:
+        _seed_recent(temp_db, item_id, title, category=category)
+
+    client = TestClient(create_app(sample_config, temp_db))
+    lane = client.get("/timeline/threads")
+    assert lane.status_code == 200
+    assert "Mixed" in lane.text
+
+    detail = client.get("/timeline/threads/m1")
+    assert detail.status_code == 200
+    assert "Mixed" in detail.text
+    assert detail.text.count('class="story-card"') == 4
+
+
+def _seed_dated(store, item_id, title, *, category, entities=None, days_ago=0):
+    """Like _seed_recent, but with a controllable event date -- needed to
+    exercise build_thread_links' temporal-precedence rule, which _seed_recent
+    (always "now") can't."""
+    _seed_story(
+        store,
+        item_id,
+        title,
+        category=category,
+        entities=entities,
+        published=datetime.utcnow() - timedelta(days=days_ago),
+    )
+
+
+def _seed_causal_cascade(store):
+    """A Star Ratings (policy) thread followed, later in the window, by an MLR
+    (financial) thread -- both mentioning Humana, so build_thread_links has a
+    declared edge (policy_regulatory -> financial_pressure), temporal
+    precedence, AND shared thread-level evidence (the "@humana" payer token)
+    all at once, and should draw exactly one "leads to" link between them."""
+    _seed_dated(
+        store,
+        "L1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=10,
+    )
+    _seed_dated(
+        store,
+        "L2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=9,
+    )
+    _seed_dated(
+        store,
+        "L3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=2,
+    )
+    _seed_dated(
+        store,
+        "L4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=1,
+    )
+
+
+def test_timeline_threads_lane_renders_band_header_and_leads_to_chip(
+    sample_config, temp_db
+):
+    _seed_causal_cascade(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+
+    # Causal-layer band header, reusing the existing .legend-layer chip style.
+    assert 'class="strip-band' in text
+    assert re.search(r'class="strip-band[^"]*">\s*<span class="legend-layer">', text)
+
+    # The "leads to" chip: the reused angle-sep/sr-only idiom, arrow visible,
+    # "leading to" for assistive tech only, and a real link to the target
+    # thread's own page.
+    assert 'class="strip-link"' in text
+    assert re.search(
+        r'class="strip-link"><span class="angle-sep" aria-hidden="true">→</span>'
+        r'<span class="sr-only"> leading to </span><a href="(/timeline/threads/[^"]+)"',
+        text,
+    )
+    hrefs = re.findall(
+        r'class="strip-link">.*?<a href="(/timeline/threads/[^"]+)"', text
+    )
+    assert hrefs
+
+    # The reciprocal back-link shows up on the downstream thread's own page.
+    target_key = hrefs[0].rsplit("/", 1)[-1]
+    detail = client.get(f"/timeline/threads/{target_key}")
+    assert detail.status_code == 200
+    assert re.search(
+        r'<span class="angle-sep" aria-hidden="true">←</span>'
+        r'<span class="sr-only"> caused by </span>',
+        detail.text,
+    )
+
+
+def test_timeline_topics_page_has_no_band_headers(client):
+    resp = client.get("/timeline")
+    assert resp.status_code == 200
+    assert 'class="strip-band' not in resp.text
+    assert "has-bands" not in resp.text
+
+
+def _seed_three_threads_and_a_solo(store):
+    """Three lexically distinct 2-story thread pairs plus one unrelated
+    story -- clusters (at sample_config's default threshold) into exactly
+    three 2-story threads and one "Ungrouped signals" story, for exercising
+    thread_max_rows without a large synthetic corpus."""
+    _seed_recent(
+        store,
+        "th-1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["CMS"],
+    )
+    _seed_recent(
+        store,
+        "th-3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        store,
+        "th-4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+    )
+    _seed_recent(
+        store,
+        "th-5",
+        "Aetna faces backlash over prior authorization denial rates for "
+        "Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        store,
+        "th-6",
+        "Aetna criticized for prior authorization denial rates in Medicare "
+        "Advantage plans",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        store,
+        "solo",
+        "Molina expands footprint into three additional states",
+        category="membership_movement",
+        entities=["Molina"],
+    )
+
+
+def test_timeline_threads_lane_caps_rows_and_folds_smaller_threads(
+    sample_config, temp_db
+):
+    # Three 2-story threads + one ungrouped story, capped at 2 rows: the
+    # chart must render exactly cap (2) + smaller-threads (1) + ungrouped
+    # (1) = 4 rows, never the full uncapped 4 (3 threads + ungrouped).
+    _seed_three_threads_and_a_solo(temp_db)
+    cfg = dataclasses.replace(sample_config, thread_max_rows=2)
+    client = TestClient(create_app(cfg, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+
+    assert text.count('class="strip-label') == 4  # cap + smaller-threads + ungrouped
+    assert "+1 smaller threads" in text
+    assert "Ungrouped signals" in text
+
+    # The aggregate row is a plain label, never a link -- it names no single
+    # thread's page.
+    assert re.search(r"<span>\+1 smaller threads</span>", text)
+    assert not re.search(r"<a[^>]*>\+1 smaller threads</a>", text)
+
+    # Both aggregate rows get the muted modifier on both their label and plot
+    # cells (2 rows x 2 cells each); the geometry classes (.strip-label,
+    # .strip-plot) are untouched, only the extra modifier is added.
+    assert text.count("strip-row-muted") == 4
+
+
+def test_timeline_threads_lane_no_smaller_threads_row_under_cap(sample_config, temp_db):
+    # Same fixture, default cap (25) -- well above 3 threads, so nothing
+    # folds and the aggregate row never appears at all.
+    _seed_three_threads_and_a_solo(temp_db)
+    client = TestClient(create_app(sample_config, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    assert "smaller threads" not in resp.text
+    assert resp.text.count('class="strip-label') == 4  # 3 threads + ungrouped
+    # The muted modifier still applies to the (always-present-here) ungrouped
+    # row's label+plot cells -- just not to any "+N smaller threads" row,
+    # since none exists under the cap.
+    assert resp.text.count("strip-row-muted") == 2
+
+
+def test_timeline_threads_lane_leads_to_chip_never_points_at_a_folded_thread(
+    sample_config, temp_db
+):
+    # A causal cascade (policy -> financial, both mentioning Humana) plus
+    # enough extra threads to push the cap below the total, with the linked
+    # pair deliberately the SMALLEST two threads so they're the ones folded.
+    _seed_dated(
+        temp_db,
+        "L1",
+        "CMS finalizes Star Ratings methodology for Medicare Advantage",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=10,
+    )
+    _seed_dated(
+        temp_db,
+        "L2",
+        "CMS Star Ratings methodology update for Medicare Advantage plans",
+        category="policy_regulatory",
+        entities=["Humana"],
+        days_ago=9,
+    )
+    _seed_dated(
+        temp_db,
+        "L3",
+        "Humana warns of rising medical loss ratio and margin pressure",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=2,
+    )
+    _seed_dated(
+        temp_db,
+        "L4",
+        "Humana flags rising medical loss ratio squeezing margin",
+        category="financial_pressure",
+        entities=["Humana"],
+        days_ago=1,
+    )
+    # A bigger, unrelated thread (3 stories) that must outrank the 2-story
+    # linked pair on size and so gets kept while the linked pair folds.
+    _seed_recent(
+        temp_db,
+        "big-1",
+        "Aetna faces backlash over prior authorization denial rates for "
+        "Medicare Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "big-2",
+        "Aetna criticized for prior authorization denial rates in Medicare "
+        "Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    _seed_recent(
+        temp_db,
+        "big-3",
+        "Aetna under fire over prior authorization denial rates across "
+        "Medicare Advantage plans nationwide",
+        category="policy_regulatory",
+        entities=["Aetna"],
+    )
+    cfg = dataclasses.replace(sample_config, thread_max_rows=1)
+    client = TestClient(create_app(cfg, temp_db))
+    resp = client.get("/timeline/threads")
+    assert resp.status_code == 200
+    text = resp.text
+    assert "+2 smaller threads" in text
+    # No "leads to" chip at all: both ends of the only declared link folded.
+    assert 'class="strip-link"' not in text
