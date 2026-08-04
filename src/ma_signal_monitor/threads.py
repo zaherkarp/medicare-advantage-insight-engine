@@ -11,11 +11,16 @@ the app's guardrail: deterministic, no ML, no embeddings, no network.
 
 The pieces are all reused primitives:
 
-* **Cluster** — title + entity token-Jaccard single-linkage, the same
-  :func:`ma_signal_monitor.similarity.jaccard` the near-duplicate grouper uses,
-  at a *looser* threshold (a thread is broader than a near-duplicate). Candidate
-  pairs come from a shared-term inverted index with rare-term blocking, so the
-  pairwise work stays well below the naive all-pairs cost.
+* **Cluster** — title + entity tokens, scored with IDF-weighted cosine
+  (:func:`ma_signal_monitor.similarity.weighted_cosine`) rather than plain
+  Jaccard, so window-ubiquitous words ("medicare", "advantage" — over half the
+  window, in practice) barely move the score while a thread's own
+  discriminating vocabulary does. Candidate pairs still come from a
+  shared-term inverted index with rare-term blocking, so the pairwise work
+  stays well below the naive all-pairs cost. Merging is *average*-linkage with
+  a merge guard (mean cross-cluster similarity must itself clear the
+  threshold), not single-linkage — single-linkage lets one bridging story
+  transitively chain two unrelated threads into one; see :func:`_cluster`.
 * **Label** — the terms most *distinctive* of a thread versus the rest of the
   window, via the keyword-mining n-gram + weighted-log-odds machinery gated by
   an in-thread-share floor (:func:`ma_signal_monitor.keyword_mining._terms` /
@@ -36,7 +41,12 @@ from ma_signal_monitor.classify import get_category_label
 from ma_signal_monitor.config import AppConfig
 from ma_signal_monitor.keyword_mining import _terms, distinctive_terms
 from ma_signal_monitor.payers import ALIAS_TO_GROUP
-from ma_signal_monitor.similarity import jaccard, title_terms
+from ma_signal_monitor.similarity import (
+    idf_norm,
+    idf_weights,
+    title_terms,
+    weighted_cosine,
+)
 
 # A thread label shows at most this many distinctive terms (joined by " · ").
 LABEL_TERMS = 2
@@ -51,6 +61,47 @@ _LABEL_MIN_SHARE = 0.5
 # the timeline's TIMELINE_MAX_STORIES fetch cap. Above it, only the top stories
 # by relevance are threaded and the rest fold into "ungrouped" (surfaced, never
 # silently dropped).
+#
+# LOWERED from 1500 to 500 by step 3 (IDF-weighted cosine + average-linkage):
+# 1500 no longer holds. Candidate generation (the inverted index + rare-term
+# blocking) is unchanged and was never the bottleneck; what got more
+# expensive is merging. Single-linkage union-find is near-O(candidate pairs);
+# average-linkage's merge guard needs each live cluster's running
+# similarity-sum to every other cluster it borders (``links`` in
+# ``_cluster``), and merging two clusters costs O(degree) to re-key those
+# sums onto the merged cluster. In the worst case that arises for real MA
+# windows -- one dominant, densely-overlapping news cycle (a single big CMS
+# announcement covered near-identically by many outlets), the same pathology
+# the merge guard exists to prevent -- a cluster's degree grows with its
+# size, so total merge cost approaches O(n^2), not the O(n) union-find of the
+# old code.
+#
+# Measured two ways, because the two disagree by ~5x and only one of them
+# resembles production traffic:
+#
+#   n stories   adversarial (tiny shared vocabulary,   realistic (real MA
+#               maximal candidate density)             headlines, ~9.8 terms/story)
+#   500         ~0.44s                                 ~0.13s
+#   1200        --                                     ~0.59s
+#   1500        ~5.4s                                  ~0.98s
+#   2000        --                                     ~1.95s
+#
+# The cap stays at 1500 (its pre-average-linkage value) on the realistic
+# column, for a correctness reason that outweighs the adversarial one: this
+# cap is not free headroom, it is a *silent truncation* -- everything past it
+# is diverted straight into the "Ungrouped signals" row. ``routes`` fetches up
+# to ``TIMELINE_MAX_STORIES`` (5000) per window, and the production archive
+# already holds ~595 public-grade stories (docs/loop.md, iteration 5), so an
+# "All"-window render clusters ~595. A 500 cap would dump ~16% of that window
+# into the junk drawer -- reintroducing, on the widest view, the exact failure
+# this lane was rebuilt to remove -- and would get worse as the archive grows.
+#
+# The adversarial 5.4s case needs a 1500-story window whose headlines share a
+# tiny vocabulary; that is an ingest pathology, not normal coverage, and the
+# merge guard is what stops it becoming one giant thread. If it is ever
+# observed for real, the fix is algorithmic (cap cluster degree, or fall back
+# to single-linkage above some size), not a lower cap that quietly hides
+# stories.
 MAX_CLUSTER_INPUT = 1500
 # A blocking term appearing in more than this fraction of the window is too
 # common to discriminate threads, so it is not used to propose candidate pairs
@@ -130,29 +181,67 @@ def _story_terms(story: dict) -> set[str]:
     return terms
 
 
-def _cluster(term_sets: list[set[str]], threshold: float) -> list[list[int]]:
-    """Single-linkage clusters of story indices by token-Jaccard ≥ ``threshold``.
+def _cluster(
+    term_sets: list[set[str]], threshold: float, *, entity_weight: float = 1.0
+) -> list[list[int]]:
+    """Average-linkage clusters of story indices by IDF-weighted cosine.
 
-    Candidate pairs come from a shared-term inverted index with rare-term
-    blocking (ubiquitous terms are skipped as blocking keys), so the pairwise
-    Jaccard work stays bounded well below the naive all-pairs cost. Returns index
-    groups (each ordered ascending); every input index lands in exactly one group,
-    singletons included. Union-find connectivity makes the result independent of
-    term/iteration order, so clustering is deterministic across runs.
+    Two invariants from the original single-linkage version are preserved
+    unchanged:
+
+    * **Candidate generation.** Candidate pairs still come from a shared-term
+      inverted index with rare-term blocking (ubiquitous terms are skipped as
+      blocking keys), so the pairwise work stays bounded well below the naive
+      all-pairs cost. IDF weights are computed once for the whole ``term_sets``
+      window (:func:`~ma_signal_monitor.similarity.idf_weights`), not per
+      pair; likewise each document's vector norm
+      (:func:`~ma_signal_monitor.similarity.idf_norm`) is computed once and
+      reused. ``entity_weight`` (``config.thread_entity_weight``) scales the
+      IDF of ``@``-prefixed payer-group tokens only (see ``_story_terms``),
+      so payer identity's pull on clustering is tunable independent of title
+      vocabulary; ``1.0`` (the default) leaves IDF untouched.
+    * **Determinism.** Every candidate pair is scored once, then merges are
+      applied greedily in descending similarity, ties broken on
+      ``(min(i, j), max(i, j))`` — a total order over a fixed list, so the
+      result never depends on dict/set iteration order (verified by
+      ``tests/test_threads.py::test_clustering_is_order_independent``).
+
+    What changed is the merge rule itself, to fix single-linkage chaining: a
+    single bridging story (``A~B``, ``B~C``, ``A`` and ``C`` themselves
+    unrelated) used to be enough to transitively merge ``A`` and ``C`` into
+    one cluster. Here, merging clusters ``P`` and ``Q`` requires their
+    *average* inter-cluster similarity — the mean similarity over all
+    ``|P| x |Q|`` cross pairs, with any non-candidate pair (no shared
+    unblocked term) counted as ``0.0`` — to itself clear ``threshold``, not
+    just the one pair that proposed the merge. A single bridge story can no
+    longer drag two large, mostly-dissimilar clusters together: it only pulls
+    the average up by ``1 / (|P| x |Q|)`` worth of weight.
+
+    Implementation: rather than recomputing the full cross-cluster average
+    from scratch after every merge (the naive O(n^2)-per-merge approach), each
+    live cluster keeps a running similarity-sum to every other cluster it
+    shares a candidate-pair edge with (``links``). Merging ``P`` and ``Q``
+    combines their edge lists by addition — ``sum(P|Q, X) == sum(P, X) +
+    sum(Q, X)`` — which costs O(degree(P) + degree(Q)), so total work across
+    every merge is amortized against the number of candidate-pair edges
+    rather than the number of stories squared (see ``MAX_CLUSTER_INPUT``'s
+    comment for the worst-case density this bound still doesn't save you
+    from, and why that constant was lowered).
+
+    Returns index groups (each ordered ascending); every input index lands in
+    exactly one group, singletons included.
     """
     n = len(term_sets)
-    parent = list(range(n))
+    if n == 0:
+        return []
 
-    def find(x: int) -> int:
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]  # path halving
-            x = parent[x]
-        return x
-
-    def union(a: int, b: int) -> None:
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            parent[max(ra, rb)] = min(ra, rb)  # smaller index stays root
+    weights = idf_weights(term_sets)
+    if entity_weight != 1.0:
+        weights = {
+            t: (w * entity_weight if t.startswith("@") else w)
+            for t, w in weights.items()
+        }
+    norms = [idf_norm(ts, weights) for ts in term_sets]
 
     df: Counter = Counter()
     for ts in term_sets:
@@ -165,17 +254,64 @@ def _cluster(term_sets: list[set[str]], threshold: float) -> list[list[int]]:
             if df[t] <= df_cap:
                 index.setdefault(t, []).append(i)
 
-    checked: set[tuple[int, int]] = set()
+    # Score every candidate pair exactly once (i < j: postings within a term
+    # are appended in ascending i, so a_pos < b_pos already implies i < j).
+    pair_sims: dict[tuple[int, int], float] = {}
     for members in index.values():
         for a_pos in range(len(members)):
             i = members[a_pos]
             for b_pos in range(a_pos + 1, len(members)):
-                j = members[b_pos]  # i < j: postings appended in ascending i
-                if find(i) == find(j) or (i, j) in checked:
+                j = members[b_pos]
+                if (i, j) in pair_sims:
                     continue
-                checked.add((i, j))
-                if jaccard(term_sets[i], term_sets[j]) >= threshold:
-                    union(i, j)
+                pair_sims[(i, j)] = weighted_cosine(
+                    term_sets[i], term_sets[j], weights, norms[i], norms[j]
+                )
+
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]  # path halving
+            x = parent[x]
+        return x
+
+    size = {i: 1 for i in range(n)}
+    # links[root][other_root] = summed weighted_cosine of every candidate pair
+    # currently spanning the two clusters. Undirected: stored under both
+    # endpoints for O(1) lookup. A cluster pair absent from this dict has no
+    # candidate-pair edge between them, i.e. their whole cross-similarity is
+    # implicitly 0.0 -- exactly the "absent pairs count as 0.0" contract.
+    links: dict[int, dict[int, float]] = {i: {} for i in range(n)}
+    for (i, j), sim in pair_sims.items():
+        links[i][j] = links[i].get(j, 0.0) + sim
+        links[j][i] = links[j].get(i, 0.0) + sim
+
+    # Fixed, deterministic merge order: descending similarity of each
+    # candidate pair's ORIGINAL (pre-merge) score, ties broken by (i, j) --
+    # never by dict/set iteration order.
+    order = sorted(pair_sims, key=lambda p: (-pair_sims[p], p[0], p[1]))
+
+    for i, j in order:
+        ri, rj = find(i), find(j)
+        if ri == rj:
+            continue
+        avg = links[ri].get(rj, 0.0) / (size[ri] * size[rj])
+        if avg < threshold:
+            continue
+
+        lo, hi = (ri, rj) if ri < rj else (rj, ri)  # smaller index stays root
+        parent[hi] = lo
+        size[lo] = size[ri] + size[rj]
+
+        hi_links = links.pop(hi)
+        del hi_links[lo]  # the lo<->hi edge is now internal to the merged cluster
+        lo_links = links[lo]
+        del lo_links[hi]
+        for neighbor, s in hi_links.items():
+            lo_links[neighbor] = lo_links.get(neighbor, 0.0) + s
+            neighbor_links = links[neighbor]
+            neighbor_links[lo] = neighbor_links.get(lo, 0.0) + neighbor_links.pop(hi)
 
     groups: dict[int, list[int]] = {}
     for i in range(n):
@@ -454,7 +590,7 @@ def build_threads(
         global_terms.update(dt)
 
     lm = layer_map(config)
-    groups = _cluster(term_sets, threshold)
+    groups = _cluster(term_sets, threshold, entity_weight=config.thread_entity_weight)
 
     threads: list[Thread] = []
     ungrouped: list[dict] = list(overflow)

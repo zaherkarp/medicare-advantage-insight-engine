@@ -92,8 +92,24 @@ _BASE_DATE = date(2026, 7, 1)
 # "health raises · cvs". Both label-quality gates below are now plain
 # assertions instead of xfail. The two numeric ceilings are unchanged since
 # this step doesn't touch clustering.
-_UNGROUPED_FRACTION_CEILING = 0.57
-_LARGEST_THREAD_FRACTION_CEILING = 0.15
+#
+# Step 3 (similarity.idf_weights/weighted_cosine replacing plain Jaccard, and
+# threads._cluster switching from single-linkage to average-linkage with a
+# merge guard -- see threads.py's module docstring) re-measures this same
+# fixture, now at the recalibrated ``sample_config.thread_similarity_threshold
+# == 0.13`` (a different scale than the old 0.28 -- see config.py's comment):
+# 81 stories -> 20 threads (up from 11), 21 ungrouped, 0.259 of the window
+# (down from 0.556), largest thread 6 stories, 0.074 of the window (down from
+# 0.111 -- the chaining-regression canary moving the *right* direction, not
+# just flat), and 20 distinct labels across 20 threads (no collisions), still
+# zero labels built solely from window-common terms. Both numeric ceilings
+# tighten accordingly. (Single-category purity, the anti-chaining metric the
+# plan measures directly, isn't gated here since this fixture's 4-alias
+# watch list barely exercises the failure mode being fixed -- see the sweep
+# in scripts/calibrate_threads.py / config/app.yaml's comment for that
+# number against both this fixture and a richer real-taxonomy corpus.)
+_UNGROUPED_FRACTION_CEILING = 0.27
+_LARGEST_THREAD_FRACTION_CEILING = 0.08
 
 
 def _load_corpus() -> list[dict]:

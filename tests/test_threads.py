@@ -1,6 +1,11 @@
 """Tests for emergent story-thread clustering (threads.py)."""
 
-from ma_signal_monitor.threads import _dominant_category, _story_terms, build_threads
+from ma_signal_monitor.threads import (
+    _cluster,
+    _dominant_category,
+    _story_terms,
+    build_threads,
+)
 
 
 def _story(item_id, title, *, category=None, entities=None, score=0.5, summary=None):
@@ -74,7 +79,16 @@ _UHC_B = _story(
 )
 
 
-def _threads(config, stories, *, threshold=0.28, min_stories=2):
+# NOTE: this default is on the IDF-weighted-cosine scale (similarity.py),
+# unrelated to config/app.yaml's thread_similarity_threshold -- see that
+# file's comment (set by scripts/calibrate_threads.py) for the production
+# value. 0.1 is picked by hand against exactly the hand-built fixtures below:
+# every "must merge" pair here scores >= 0.12 (the tightest is _UHC_A/_UHC_B,
+# folded through canonical payer-group tokens rather than raw title overlap),
+# and every "must stay apart" pair scores 0.0 (these fixtures share no
+# vocabulary at all across categories/companies), so the exact value only
+# needs to sit anywhere in (0.0, 0.12].
+def _threads(config, stories, *, threshold=0.1, min_stories=2):
     return build_threads(stories, config, threshold=threshold, min_stories=min_stories)
 
 
@@ -133,6 +147,28 @@ def test_clustering_is_order_independent(sample_config):
     assert as_sets == bs_sets == {frozenset({"a", "b"}), frozenset({"c", "d"})}
 
 
+def test_average_linkage_merge_guard_blocks_chaining():
+    # A and B share two window-rare terms; B and C share two different
+    # window-rare terms; A and C share nothing. Single-linkage would chain
+    # A -> B -> C into one cluster purely through the B bridge, even though
+    # A and C have nothing in common -- the exact failure this step fixes
+    # (see threads._cluster's docstring). Both A-B and B-C individually clear
+    # the threshold on their own, but once A merges with B (or B with C),
+    # the merged cluster's AVERAGE similarity to the third story drops below
+    # threshold (each bridging pair's score is roughly halved once spread
+    # across a 2-story cluster), so the merge guard blocks the second merge.
+    a = {"alpha", "bravo", "common1", "common2"}
+    b = {"common1", "common2", "delta", "echo"}
+    c = {"delta", "echo", "foxtrot", "golf"}
+    groups = _cluster([a, b, c], threshold=0.2)
+    as_sets = {frozenset(g) for g in groups}
+    # A and C must never land in the same group, however B ends up grouped.
+    assert not any({0, 2} <= s for s in as_sets)
+    # Sanity: this is a real anti-chaining case, not merge-guard-blocks-all --
+    # exactly one of the two bridging pairs still merges.
+    assert {0, 1} in as_sets or {1, 2} in as_sets
+
+
 def test_threads_ordered_along_causal_cascade(sample_config):
     # Input order puts the downstream thread first; output must still cascade.
     threads, _ = _threads(sample_config, [_MLR_A, _MLR_B, _STAR_A, _STAR_B])
@@ -141,7 +177,16 @@ def test_threads_ordered_along_causal_cascade(sample_config):
 
 
 def test_thread_placed_on_dominant_category_layer(sample_config):
-    threads, _ = _threads(sample_config, [_STAR_A, _STAR_B])
+    # _SOLO is window context only (unrelated, stays ungrouped): with only
+    # two documents in the whole window, IDF-weighted cosine would otherwise
+    # be a degenerate case -- every term STAR_A/STAR_B share appears in 100%
+    # of a 2-doc window, so its IDF collapses to log(2/2) == 0 and the pair's
+    # similarity would score 0.0 regardless of how similar the headlines
+    # read. A third, unrelated story keeps the shared terms' document
+    # frequency below the window size, which is the realistic case IDF
+    # assumes (see similarity.idf_weights).
+    threads, _ = _threads(sample_config, [_STAR_A, _STAR_B, _SOLO])
+    assert len(threads) == 1
     assert threads[0].dominant_category == "policy_regulatory"
     assert threads[0].layer_key == "drivers"
     assert threads[0].layer_label == "Structural & Policy Drivers"

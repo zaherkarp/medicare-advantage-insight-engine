@@ -53,16 +53,46 @@ processing:
 timeline:
   threads:
     enabled: true
-    # Title/entity-token Jaccard at/above this joins two stories into one thread.
-    # Keep it BELOW delivery.dedup.similarity_threshold (0.6): a thread is looser
-    # than a near-duplicate.
-    similarity_threshold: 0.28
+    # Title/entity-token similarity at/above this joins two stories into one
+    # thread, scored with IDF-weighted cosine + average-linkage (see
+    # threads._cluster / similarity.weighted_cosine), not plain Jaccard +
+    # single-linkage. The scale is unrelated to
+    # delivery.dedup.similarity_threshold (0.6, plain Jaccard) -- do not
+    # compare the two numbers directly.
+    #
+    # Recalibrated by scripts/calibrate_threads.py, which sweeps candidate
+    # thresholds and reports, per threshold: thread count, ungrouped %,
+    # largest-thread %, and single-category purity (fraction of threads whose
+    # members all share one primary_category). Swept over
+    # tests/fixtures/thread_corpus.yaml (81 stories, narrow 4-alias test
+    # config) and a richer 83-story corpus scored through the real taxonomy
+    # (33 watched entities, 6 categories) -- summary at threshold 0.13
+    # (picked: lowest swept value at which single-category purity clears the
+    # pre-average-linkage baseline on BOTH corpora, well inside the ~35%
+    # largest-thread ceiling):
+    #
+    #   corpus                     before (old Jaccard+single-link @0.28)      after (IDF-cosine+avg-link @0.13)
+    #   thread_corpus.yaml fixture  11 threads, 56% ungrouped, 11% largest, 55% pure   20 threads, 26% ungrouped, 7% largest, 65% pure
+    #   83-story real-taxonomy      18 threads, 41% ungrouped, 11% largest, 44% pure   23 threads, 18% ungrouped, 7% largest, 48% pure
+    #
+    # Full swept table (0.02-0.30) is in the step-3 PR description.
+    #
+    # CAVEAT: no production state.db was available when this was calibrated
+    # (only an 11-story seed -- far too thin a window to measure against).
+    # Both corpora above are synthetic. Re-run
+    # scripts/calibrate_threads.py --db <real state.db> against a real
+    # archive before trusting this as production-tuned, and adjust if the
+    # real-archive sweep disagrees.
+    similarity_threshold: 0.13
     # A cluster needs at least this many stories to show as its own thread row;
     # smaller clusters fold into the "Ungrouped signals" row.
     min_stories: 2
     # Relative weight for entity-group tokens vs. title tokens in the
-    # similarity metric. Not yet consumed by the clusterer -- declared now so
-    # the knob exists; a later step wires it into the weighted Jaccard.
+    # similarity metric: multiplies the IDF of `@`-prefixed payer-group
+    # tokens (threads._cluster). 1.0 leaves payer-token IDF untouched; config
+    # validation caps this at 1.0, so it can only dampen entity pull, never
+    # amplify it beyond its natural IDF weight. Untuned -- 1.0 is the neutral
+    # default, not a calibrated value.
     entity_weight: 1.0
 
 # Storage settings

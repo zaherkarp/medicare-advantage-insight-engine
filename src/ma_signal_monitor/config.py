@@ -192,17 +192,28 @@ class AppConfig:
 
     # Layered-timeline emergent story threads (timeline.threads in app.yaml). The
     # /timeline/threads lane clusters the window into on-the-fly threads by
-    # headline+entity token-Jaccard (deliberately looser than
+    # headline+entity IDF-weighted cosine (deliberately looser than
     # ``dedup_similarity_threshold`` — a thread is broader than a near-duplicate),
     # names each from its most distinctive terms, and orders them along the
     # declared causal model. All deterministic (no ML). Disabled -> the lane 404s.
     threads_enabled: bool = True
-    thread_similarity_threshold: float = 0.28
+    # On the IDF-weighted-cosine scale, NOT the old plain-Jaccard scale (0.28
+    # was that metric's calibration and is meaningless here) -- mirrors
+    # config/app.yaml's calibrated ``timeline.threads.similarity_threshold``,
+    # see that file's comment for the full sweep and the caveat that it is
+    # calibrated on synthetic corpora only (no production state.db was
+    # available to validate against). Kept in sync with app.yaml so a config
+    # missing this key (e.g. ``sample_config`` in tests, built without
+    # loading app.yaml) still gets a scale-appropriate value instead of
+    # silently falling back to the old metric's number.
+    thread_similarity_threshold: float = 0.13
     thread_min_stories: int = 2
     # Relative weight for entity-group tokens vs. title tokens in the thread
-    # similarity metric. Deliberately unused as of this commit — declared and
-    # validated now so the knob exists; step 3 wires it into the clusterer's
-    # weighted Jaccard.
+    # similarity metric: multiplies the IDF of ``@``-prefixed payer-group
+    # tokens before the clusterer's weighted-cosine score is computed
+    # (threads._cluster). 1.0 (the default) leaves payer-token IDF untouched;
+    # config validation caps it at 1.0, so this can only dampen entity pull,
+    # never amplify it beyond its natural IDF weight.
     thread_entity_weight: float = 1.0
 
     # Processing settings
