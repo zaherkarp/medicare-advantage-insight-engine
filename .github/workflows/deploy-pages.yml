@@ -26,6 +26,7 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -52,10 +53,65 @@ jobs:
       - name: Restore archive DB from the published site
         run: |
           mkdir -p data
-          if curl -fsSL "$PAGES_URL/data/state.db" -o data/state.db; then
-            echo "Restored prior archive ($(stat -c%s data/state.db) bytes)."
+
+          # Probe first so a genuine "nothing published yet" (404) can be told
+          # apart from "the archive exists but I failed to fetch it" — a plain
+          # curl failure used to collapse both into "start fresh", which meant
+          # a transient Pages/CDN error would silently proceed with an empty
+          # DB and later overwrite the real production archive. No -f here:
+          # we want the actual status code, not curl failing on a 4xx/5xx.
+          #
+          # A 404 is the one status that lets the run proceed without a DB, so
+          # it's the one a false positive would be fatal on: `compare` can't
+          # catch it either, since a cold start has no prior row count to
+          # compare against. Pages serves this file from a CDN and swaps the
+          # whole site on each deploy, so a probe landing mid-swap can 404 for
+          # an archive that really exists. Require the 404 to be stable across
+          # spaced attempts before believing it; a genuine cold start stays
+          # 404 on every attempt, while a swap-window blip resolves.
+          # curl already prints 000 via -w on a connection-level failure, so
+          # assign-then-default rather than `|| echo` (which would concatenate
+          # a second 000 onto curl's own).
+          probe() {
+            local code
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -I \
+              "$PAGES_URL/data/state.db" 2>/dev/null) || code="000"
+            printf '%s' "${code:-000}"
+          }
+
+          status="$(probe)"
+          if [ "$status" = "404" ]; then
+            for attempt in 1 2 3; do
+              sleep 10
+              status="$(probe)"
+              echo "Re-probe $attempt/3 after initial 404: HTTP $status"
+              [ "$status" = "404" ] || break
+            done
+          fi
+
+          if [ "$status" = "404" ]; then
+            echo "No prior archive published (404 on 4 spaced probes) — legitimate cold start. Starting fresh."
+            echo "ARCHIVE_ROWS_BEFORE=0" >> "$GITHUB_ENV"
+          elif [ "$status" != "200" ]; then
+            echo "::error::Archive probe for $PAGES_URL/data/state.db returned HTTP $status (expected 200 or 404)."
+            echo "Aborting deliberately: proceeding would risk ingesting into an empty/partial DB and then overwriting the real published archive at publish time."
+            exit 1
           else
-            echo "No prior archive found; starting fresh."
+            tmp_db="$(mktemp)"
+            if ! curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --max-time 180 \
+                 "$PAGES_URL/data/state.db" -o "$tmp_db"; then
+              echo "::error::Failed to download the published archive after retries, even though it exists (HTTP 200 on probe)."
+              echo "Aborting deliberately: proceeding with no/partial archive would overwrite the real production archive at publish time."
+              exit 1
+            fi
+            if ! rows=$(python scripts/archive_guard.py validate "$tmp_db"); then
+              echo "::error::Downloaded archive failed validation (corrupt, truncated, or missing the core table)."
+              echo "Aborting deliberately: proceeding with a broken archive would overwrite the real production archive at publish time."
+              exit 1
+            fi
+            mv "$tmp_db" data/state.db
+            echo "Restored prior archive ($rows rows, $(stat -c%s data/state.db) bytes)."
+            echo "ARCHIVE_ROWS_BEFORE=$rows" >> "$GITHUB_ENV"
           fi
 
       - name: Ingest latest signals
@@ -89,6 +145,10 @@ jobs:
           GISCUS_THEME: ${{ vars.GISCUS_THEME || 'light' }}
         run: |
           python scripts/build_static.py --base-path "$STATIC_BASE_PATH" --out site
+          # Last line of defense: refuse to publish if the archive shrank
+          # catastrophically since the restore step (see archive_guard.py for
+          # the tolerance and the retention-pruning evidence behind it).
+          python scripts/archive_guard.py compare --before "$ARCHIVE_ROWS_BEFORE" --after data/state.db
           # Persist the DB inside the published site so the next run restores it.
           mkdir -p site/data
           cp data/state.db site/data/state.db

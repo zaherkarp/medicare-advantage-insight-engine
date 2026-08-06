@@ -110,6 +110,27 @@ including sub-floor noise and near-duplicates); the feed, topics, states, and
 search apply the display floor and duplicate grouping. The gap is exactly how
 much a source contributes vs. how much reaches readers.
 
+## Archive Restore Failures (deploy-pages.yml)
+
+### "Aborting deliberately" / the restore step fails
+
+This is intentional, not a bug. The published archive DB could not be
+downloaded or failed validation (`scripts/archive_guard.py validate`), so the
+job stopped instead of silently ingesting into an empty DB and overwriting
+the real production archive on publish. See [Operations →
+Archive-Restore Safety](operations.md#archive-restore-safety-deploy-pagesyml)
+for the full behavior. Re-run the workflow once GitHub Pages/Actions is
+healthy again — nothing was lost, since the failure happens before the
+publish step ever runs.
+
+### "CATASTROPHIC SHRINK" from `archive_guard.py compare`
+
+The `stories` row count dropped far more than normal retention pruning
+(`config/app.yaml`'s `story_retention_days`) could explain between restore
+and publish. The build step refused to publish. Investigate before re-running
+manually — this usually means the restored archive was already wrong, or
+something upstream (a bad `--rescore`, a bug in ingestion) deleted rows.
+
 ## Missing Config
 
 ### "Sources config not found: config/sources.yaml"
