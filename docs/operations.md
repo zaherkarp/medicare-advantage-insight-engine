@@ -211,3 +211,22 @@ storage:
   seen_item_retention_days: 90
   delivery_log_retention_days: 30
 ```
+
+## Archive-Restore Safety (`deploy-pages.yml`)
+
+The production `stories` archive lives only inside the published GitHub Pages
+site — each `deploy-pages.yml` run downloads it, ingests into it, and
+republishes it. A failed or partial download used to be indistinguishable
+from "no archive has ever been published," so a transient Pages/CDN error
+could silently proceed with an empty DB and overwrite the real archive.
+
+The restore step now tells those cases apart deliberately:
+
+- **Genuine cold start** (HTTP 404 on four spaced HEAD probes): proceeds with no DB, as before. The 404 must be *stable* — it is the only status that lets the run continue without an archive, and `compare` cannot catch a false positive here (a cold start has no prior row count to compare against). Pages swaps the whole site on each deploy, so a single probe landing mid-swap can 404 for an archive that really exists; a real cold start stays 404 on every attempt.
+- **Archive exists but can't be fetched or fails validation** (`scripts/archive_guard.py validate` — integrity check + core-table check): the job **fails on purpose** rather than continue. Proceeding is exactly what destroys the archive.
+- As a second checkpoint, the "Build static site" step runs `archive_guard.py compare` before overwriting the published DB, and fails the job instead of publishing if the row count dropped catastrophically.
+
+If a run fails at either checkpoint, no data was lost — the previously
+published archive is untouched. Just re-run the workflow (`workflow_dispatch`
+or wait for the next schedule) once GitHub Pages/Actions is healthy again;
+the next successful restore picks up right where the archive left off.
