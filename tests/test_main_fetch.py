@@ -101,6 +101,30 @@ def test_fetch_workers_one_is_sequential(monkeypatch, sample_config):
     assert threads == {threading.main_thread().name}
 
 
+def test_fetch_passes_contact_email_only_to_sec_sources(monkeypatch, sample_config):
+    """SEC EDGAR needs an email-bearing UA that other sources don't (and
+    shouldn't be forced to accept as a kwarg they don't define)."""
+    sample_config.sources = [_source("rss-one"), _source("sec-one", type_="sec")]
+    sample_config.sec_contact_email = "ops@example.com"
+    calls = {}
+
+    def fake_rss(source, **kwargs):
+        calls[source.name] = kwargs
+        return []
+
+    def fake_sec(source, **kwargs):
+        calls[source.name] = kwargs
+        return []
+
+    monkeypatch.setitem(main_mod._FETCHERS, "rss", fake_rss)
+    monkeypatch.setitem(main_mod._FETCHERS, "sec", fake_sec)
+
+    _fetch_all_sources(sample_config)
+
+    assert "contact_email" not in calls["rss-one"]
+    assert calls["sec-one"]["contact_email"] == "ops@example.com"
+
+
 def test_fetch_skips_disabled_and_unknown_types(monkeypatch, sample_config):
     sample_config.sources = [
         _source("on"),

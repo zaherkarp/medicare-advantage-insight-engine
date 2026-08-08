@@ -51,13 +51,17 @@ def _fetch_one_source(source, config: AppConfig) -> list[RawFeedItem]:
             "Unknown source type '%s' for '%s', skipping", source.type, source.name
         )
         return []
+    kwargs = {
+        "timeout": config.request_timeout,
+        "user_agent": config.user_agent,
+        "max_items": config.max_items_per_source,
+    }
+    if source.type == "sec":
+        # SEC EDGAR needs an email-bearing UA distinct from the general
+        # user_agent used by every other source — see fetchers/sec.py.
+        kwargs["contact_email"] = config.sec_contact_email
     try:
-        return fetcher(
-            source,
-            timeout=config.request_timeout,
-            user_agent=config.user_agent,
-            max_items=config.max_items_per_source,
-        )
+        return fetcher(source, **kwargs)
     except Exception as e:
         logger.error("Error fetching '%s': %s", source.name, e)
         # Continue with other sources — one bad feed shouldn't stop the run

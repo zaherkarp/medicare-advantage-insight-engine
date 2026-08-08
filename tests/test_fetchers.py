@@ -1,10 +1,15 @@
 """Tests for the SEC and CMS feed fetchers (delegating to the shared core)."""
 
+import pytest
 import responses
 
 from ma_signal_monitor.config import SourceConfig
 from ma_signal_monitor.fetchers.cms import fetch_cms
-from ma_signal_monitor.fetchers.sec import fetch_sec
+from ma_signal_monitor.fetchers.sec import (
+    MissingSecContactError,
+    compose_sec_user_agent,
+    fetch_sec,
+)
 
 _SEC_ATOM = """<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
@@ -54,11 +59,62 @@ def test_fetch_sec_parses_edgar_atom():
         priority=4,
         tags=["financial", "sec"],
     )
-    items = fetch_sec(source)
+    items = fetch_sec(source, contact_email="ops@example.com")
     assert len(items) == 2
     assert items[0].source_name == "SEC EDGAR - UnitedHealth Group"
     assert "UNITEDHEALTH" in items[0].title
     assert items[0].link.startswith("https://www.sec.gov/Archives/")
+
+
+@responses.activate
+def test_fetch_sec_sends_email_bearing_user_agent():
+    """sec.gov 403s any User-Agent without a contact email; the outbound
+    request must carry one composed from contact_email, not the bare
+    general-purpose user_agent."""
+    url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000731766&type=8-K&output=atom"
+    responses.add(responses.GET, url, body=_SEC_ATOM, status=200)
+    source = SourceConfig(name="SEC EDGAR - UnitedHealth Group", type="sec", url=url)
+
+    fetch_sec(
+        source,
+        user_agent="MA-Signal-Monitor/1.0 (Educational/Research)",
+        contact_email="ops@example.com",
+    )
+
+    sent_ua = responses.calls[0].request.headers["User-Agent"]
+    assert sent_ua == "MA-Signal-Monitor/1.0 (Educational/Research) ops@example.com"
+
+
+def test_fetch_sec_raises_without_contact_email():
+    """No contact configured must fail loudly, not silently 403 like the
+    historical default did — proceeding here would just reproduce that bug."""
+    source = SourceConfig(
+        name="SEC EDGAR - UnitedHealth Group",
+        type="sec",
+        url="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany",
+    )
+    with pytest.raises(MissingSecContactError):
+        fetch_sec(source)
+
+
+class TestComposeSecUserAgent:
+    def test_appends_contact_email(self):
+        ua = compose_sec_user_agent("MA-Signal-Monitor/1.0", "ops@example.com")
+        assert ua == "MA-Signal-Monitor/1.0 ops@example.com"
+
+    def test_empty_contact_email_raises(self):
+        with pytest.raises(MissingSecContactError):
+            compose_sec_user_agent("MA-Signal-Monitor/1.0", "")
+
+    def test_contact_email_without_at_sign_raises(self):
+        """A merely descriptive UA (no email) is exactly what 403s on the
+        real endpoint, so this must be rejected the same as an empty string."""
+        with pytest.raises(MissingSecContactError):
+            compose_sec_user_agent("MA-Signal-Monitor/1.0", "contact via repo")
+
+    def test_whitespace_only_contact_email_raises(self):
+        with pytest.raises(MissingSecContactError):
+            compose_sec_user_agent("MA-Signal-Monitor/1.0", "   ")
 
 
 @responses.activate
@@ -84,7 +140,7 @@ def test_fetcher_handles_http_error_gracefully():
     url = "https://www.sec.gov/bad"
     responses.add(responses.GET, url, status=500)
     source = SourceConfig(name="SEC EDGAR - Bad", type="sec", url=url)
-    assert fetch_sec(source) == []  # error isolated, returns empty
+    assert fetch_sec(source, contact_email="ops@example.com") == []  # error isolated
 
 
 _LITIGATION_RSS = """<?xml version="1.0" encoding="UTF-8"?>
