@@ -72,9 +72,18 @@ jobs:
           # curl already prints 000 via -w on a connection-level failure, so
           # assign-then-default rather than `|| echo` (which would concatenate
           # a second 000 onto curl's own).
+          #
+          # -L is required, not optional. PAGES_URL is built from
+          # <owner>.github.io/<repo>, but a repo with a custom domain configured
+          # answers that host with a 301 to the custom domain — so without -L
+          # the probe reports 301, the "unexpected status" branch fires, and the
+          # deploy aborts on every run even though the archive is fine. The
+          # download below already uses -L; the probe has to agree with it or it
+          # is answering a different question than the one that matters.
+          # %{http_code} reports the status after redirects are followed.
           probe() {
             local code
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -I \
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -I -L \
               "$PAGES_URL/data/state.db" 2>/dev/null) || code="000"
             printf '%s' "${code:-000}"
           }
