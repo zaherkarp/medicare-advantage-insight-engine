@@ -39,9 +39,16 @@ up.
   pages (goal.md C3, would take U1 to 4/4). Blocked on a download feasibility
   spike — the monthly files are ZIP-in-CSV and the documented URLs 404. Confirm a
   reachable file + parent-org column before planning.
-- [ ] **Semantic / LLM scoring.** Would add a paid dependency to a deliberately
-  free/local app (Guardrail 4). Approve or decline; if approved, start as an
-  advisory re-ranker gated by the golden set.
+- [x] **Semantic / LLM scoring.** ~~Would add a paid dependency to a deliberately
+  free/local app (Guardrail 4).~~ **Decided 2026-08-08:** Guardrail 4 amended
+  with a *research-only* exemption — paid embedding/LLM APIs are allowed inside
+  `src/ma_signal_monitor/research/` and the `[research]` extra, and remain
+  prohibited in the application itself. Semantic retrieval is therefore pursued
+  as a measured research condition (evaluated against BM25 and the existing
+  transparent scorer), **not** as a change to production scoring. Any later
+  proposal to move a semantic signal into the app is a separate owner decision
+  and would still start as an advisory re-ranker gated by the golden set. See
+  [`docs/research/00-repository-assessment.md`](docs/research/00-repository-assessment.md).
 - [ ] **Slack renderer.** Needs a target Slack workspace/webhook.
 - [ ] **Cron cadence cost.** Pages 2h / alerts 3h increases GitHub Actions usage
   (free for public repos) — confirm the pace is acceptable.
