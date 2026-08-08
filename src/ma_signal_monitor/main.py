@@ -27,7 +27,7 @@ from ma_signal_monitor.fetchers.rss import fetch_rss
 from ma_signal_monitor.fetchers.sec import fetch_sec
 from ma_signal_monitor.geo import detect_states
 from ma_signal_monitor.logging_setup import setup_logging
-from ma_signal_monitor.models import RawFeedItem
+from ma_signal_monitor.models import RawFeedItem, SourceFetchOutcome
 from ma_signal_monitor.normalize import normalize_items
 from ma_signal_monitor.scoring import score_items
 from ma_signal_monitor.storage import StateStore
@@ -43,16 +43,27 @@ _FETCHERS = {
 }
 
 
-def _fetch_one_source(source, config: AppConfig) -> list[RawFeedItem]:
-    """Fetch a single source, returning [] on any error (logged, never raised)."""
+def _fetch_one_source(
+    source, config: AppConfig
+) -> tuple[list[RawFeedItem], SourceFetchOutcome]:
+    """Fetch a single source, returning [] on any error (logged, never raised).
+
+    Also returns a SourceFetchOutcome so a source that's actually broken
+    (raises / non-200) is distinguishable from one that's simply quiet
+    (fetched fine, 0 items) — both used to collapse to a bare [] here, which
+    is how 16 sources went silently broken for months. See
+    models.SourceFetchOutcome and storage.log_source_fetches.
+    """
     fetcher = _FETCHERS.get(source.type)
     if not fetcher:
         logger.warning(
             "Unknown source type '%s' for '%s', skipping", source.type, source.name
         )
-        return []
+        return [], SourceFetchOutcome(
+            source.name, "error", 0, f"Unknown source type '{source.type}'"
+        )
     try:
-        return fetcher(
+        items = fetcher(
             source,
             timeout=config.request_timeout,
             user_agent=config.user_agent,
@@ -61,10 +72,14 @@ def _fetch_one_source(source, config: AppConfig) -> list[RawFeedItem]:
     except Exception as e:
         logger.error("Error fetching '%s': %s", source.name, e)
         # Continue with other sources — one bad feed shouldn't stop the run
-        return []
+        return [], SourceFetchOutcome(source.name, "error", 0, str(e))
+    status = "ok" if items else "empty"
+    return items, SourceFetchOutcome(source.name, status, len(items))
 
 
-def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
+def _fetch_all_sources(
+    config: AppConfig,
+) -> tuple[list[RawFeedItem], list[SourceFetchOutcome]]:
     """Fetch items from all enabled sources, handling errors per-source.
 
     Sources are fetched concurrently (``fetch_workers`` threads; each fetch is
@@ -73,37 +88,47 @@ def _fetch_all_sources(config: AppConfig) -> list[RawFeedItem]:
     order. Set ``FETCH_WORKERS=1`` to fall back to strictly sequential
     fetching.
     """
-    all_items: list[RawFeedItem] = []
     enabled_sources = [s for s in config.sources if s.enabled]
 
     if config.fetch_workers <= 1:
-        results = (_fetch_one_source(s, config) for s in enabled_sources)
+        results = [_fetch_one_source(s, config) for s in enabled_sources]
     else:
         workers = min(config.fetch_workers, max(1, len(enabled_sources)))
         with ThreadPoolExecutor(max_workers=workers) as pool:
             results = list(
                 pool.map(lambda s: _fetch_one_source(s, config), enabled_sources)
             )
-    for items in results:
+
+    all_items: list[RawFeedItem] = []
+    outcomes: list[SourceFetchOutcome] = []
+    for items, outcome in results:
         all_items.extend(items)
+        outcomes.append(outcome)
 
     logger.info(
         "Fetched %d total items from %d sources", len(all_items), len(enabled_sources)
     )
-    return all_items
+    return all_items, outcomes
 
 
-def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> None:
+def _persist_stories(
+    scored, alerts, config: AppConfig, store: StateStore
+) -> dict[str, int]:
     """Write all scored items into the browsable story archive.
 
     Pairs each item with its public draft (only items above the relevance
     threshold get an alert/draft) and detects referenced U.S. states.
+
+    Returns {source_name: n_persisted}, so the caller can log it alongside
+    each source's fetch outcome — the read that would catch a source whose
+    items fetch fine but silently fail to reach the archive.
     """
     drafts_by_id = {a.scored_item.item.item_id: a.public_draft for a in alerts}
     # Label near-duplicate stories (same story from several sources) so the
     # browsable feed shows one representative; the archive still keeps every row.
     dup_map = assign_story_duplicates(scored, store, config)
     persisted = 0
+    persisted_by_source: dict[str, int] = {}
     for s in scored:
         try:
             primary = classify_item(s, config)
@@ -117,9 +142,13 @@ def _persist_stories(scored, alerts, config: AppConfig, store: StateStore) -> No
                 threshold_at_score=config.min_relevance_score,
             )
             persisted += 1
+            persisted_by_source[s.item.source_name] = (
+                persisted_by_source.get(s.item.source_name, 0) + 1
+            )
         except Exception as e:
             logger.warning("Failed to persist story '%s': %s", s.item.title[:50], e)
     logger.info("Persisted %d stories to archive", persisted)
+    return persisted_by_source
 
 
 def _harvest_candidates(
@@ -193,10 +222,12 @@ def run(
         "alerts_failed": 0,
         "errors": 0,
     }
+    fetch_outcomes: list[SourceFetchOutcome] = []
+    persisted_by_source: dict[str, int] = {}
 
     try:
         # 1. Fetch
-        raw_items = _fetch_all_sources(config)
+        raw_items, fetch_outcomes = _fetch_all_sources(config)
         summary["items_fetched"] = len(raw_items)
 
         if not raw_items:
@@ -237,7 +268,7 @@ def run(
         #     (richer than the alert stream, which is threshold-gated).
         #     Persist BEFORE dedup so the archive keeps every scored item —
         #     dedup only trims the webhook stream, not the archive.
-        _persist_stories(scored, alerts, config, store)
+        persisted_by_source = _persist_stories(scored, alerts, config, store)
 
         # 5c. Suppress near-duplicate alert firings (same story from multiple
         #     sources, within this run and vs. recently-delivered alerts).
@@ -279,6 +310,12 @@ def run(
         logger.exception("Pipeline error: %s", e)
         summary["errors"] += 1
     finally:
+        # Record every enabled source's fetch outcome for this run — even on
+        # an early return (nothing fetched / all duplicates) or a pipeline
+        # error — so a source that never persists is visible on its own,
+        # without needing a `stories` row to exist. See storage.py's
+        # source_fetch_log / get_source_fetch_health.
+        store.log_source_fetches(run_id, fetch_outcomes, persisted_by_source)
         store.end_run(
             run_id,
             items_fetched=summary["items_fetched"],

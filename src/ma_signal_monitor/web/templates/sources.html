@@ -6,6 +6,11 @@
     <p class="subtitle">Every feed monitored for Medicare Advantage signals.</p>
     <p class="muted">{{ enabled_count }} active of {{ source_count }} configured ·
       default cadence: {{ default_cadence }}</p>
+    {% if silent_count %}
+      <p class="review-flag">⚠ {{ silent_count }} source{{ '' if silent_count == 1 else 's' }}
+        gone silent — no archived item in a while despite being enabled. See
+        each source's "silent" badge below for why.</p>
+    {% endif %}
   </section>
 
   {% for group, items in groups.items() %}
@@ -35,7 +40,10 @@
               </td>
               <td>{{ s.cadence }}</td>
               <td>{% if s.enabled %}<span class="badge badge-on">active</span>
-                  {% else %}<span class="badge badge-off">disabled</span>{% endif %}</td>
+                  {% else %}<span class="badge badge-off">disabled</span>{% endif %}
+                {% if s.silent_reason %}
+                  <span class="badge badge-off" title="{{ s.silent_reason }}">silent</span>
+                {% endif %}</td>
             </tr>
           {% endfor %}
         </tbody>

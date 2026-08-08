@@ -43,6 +43,7 @@ ma-signal-discover = "ma_signal_monitor.discovery.cli:discover_main"
 ma-signal-candidates = "ma_signal_monitor.discovery.cli:candidates_main"
 ma-signal-feedback = "ma_signal_monitor.feedback_cli:main"
 ma-signal-backfill = "ma_signal_monitor.backfill:main"
+ma-signal-source-health = "ma_signal_monitor.source_health_cli:main"
 
 [tool.setuptools.package-data]
 ma_signal_monitor = ["web/templates/*.html", "web/static/*"]

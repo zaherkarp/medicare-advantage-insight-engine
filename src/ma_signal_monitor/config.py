@@ -317,6 +317,15 @@ class AppConfig:
     source_review_yield_floor: float = 0.05
     source_review_max_score_floor: float = 0.2
 
+    # Silent-source detection (see source_health.py / storage.get_source_fetch_health).
+    # An enabled source is flagged once this many days pass with no persisted
+    # item — whether it has never persisted one at all (e.g. the 13 SEC EDGAR
+    # 403s) or stopped after a run of success. Distinct from source-yield
+    # review above: that flags a *working* source that's low-quality; this
+    # flags a source that may not be working at all, which yield review can't
+    # see (both need archive rows to compute anything).
+    source_silent_days: int = 7
+
     @property
     def giscus_enabled(self) -> bool:
         """True when enough giscus config is present to mount the widget."""
@@ -407,6 +416,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         source_review_max_score_floor=float(
             os.getenv("SOURCE_REVIEW_MAX_SCORE_FLOOR", "0.2")
         ),
+        source_silent_days=int(os.getenv("SOURCE_SILENT_DAYS", "7")),
         candidate_retention_days=int(os.getenv("CANDIDATE_RETENTION_DAYS", "180")),
         discovery_enabled=os.getenv("DISCOVERY_ENABLED", "false").lower()
         in ("1", "true", "yes"),

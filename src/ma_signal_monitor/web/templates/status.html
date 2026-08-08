@@ -59,6 +59,30 @@
   </section>
 
   <section class="status-section">
+    <h2>Silent sources</h2>
+    {% if silent_sources %}
+      <p class="review-flag">⚠ {{ silent_sources|length }} enabled source{{ '' if silent_sources|length == 1 else 's' }}
+        with no archived item in >= {{ source_silent_days }}d. A source stays
+        listed here until it either archives something or is disabled in
+        <code>sources.yaml</code> — this can be a real bug (e.g. a 403) or an
+        external block outside this app's control; check "last status" below.</p>
+      <table class="status-table yield-table">
+        <tr><th>Source</th><th>Attempts</th><th>Last status</th><th>Last error</th></tr>
+        {% for s in silent_sources %}
+          <tr class="flagged">
+            <th>{{ s.source_name }}</th>
+            <td>{{ s.attempts }}</td>
+            <td>{{ s.last_status }}</td>
+            <td>{{ s.last_error or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="empty">No silent sources.</p>
+    {% endif %}
+  </section>
+
+  <section class="status-section">
     <h2>Stories by source</h2>
     <table class="status-table">
       {% for s in sources %}

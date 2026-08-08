@@ -131,6 +131,69 @@ and publish. The build step refused to publish. Investigate before re-running
 manually — this usually means the restored archive was already wrong, or
 something upstream (a bad `--rescore`, a bug in ingestion) deleted rows.
 
+## Silent Sources
+
+### A source has zero archive rows and no error in the logs
+
+Historically this was invisible: `main._fetch_one_source` isolates every
+per-source failure (by design — one bad feed shouldn't stop the run), which
+meant a source that raised on every request and a source that was simply
+quiet both looked identical from the `stories` table alone. 16 enabled
+sources went unnoticed this way for up to two months (see the iteration-11
+investigation).
+
+Check `/status` ("Silent sources") or `/sources` (each source's "silent"
+badge) — these read `source_fetch_log`, a per-run record of what actually
+happened on the fetch side, independent of whether anything reached the
+archive. Or run `ma-signal-source-health` for a plain-text report (exits 1 if
+anything is flagged). A source is flagged once `SOURCE_SILENT_DAYS` (default
+7) pass with no persisted item; the reported "last status"/"last error"
+tells you which of these it is:
+
+- **`error`** — the fetch itself failed (raised, or a non-2xx response).
+  Check `last_error` for the status code/message.
+- **`empty`** — fetched fine (2xx), but 0 usable items. Either the feed is
+  genuinely quiet right now, or its content isn't valid RSS/Atom (see
+  "Feed has parsing issues and no entries" above).
+- **`ok`** with a source that's still flagged — items are being fetched but
+  not making it into the archive. Check the logs for "Failed to persist
+  story" around that source's fetch.
+
+### What the iteration-11 investigation found for the 16 silent sources
+
+(13x SEC EDGAR feeds, Alliance of Community Health Plans, Congress.gov —
+Bills Presented to the President — see `docs/loop.md` for the full record.)
+
+- **The 13 SEC EDGAR feeds**: `error` — sec.gov rejects any User-Agent
+  without a real contact email (403), independent of how descriptive it
+  otherwise reads. Fixed by requiring `SEC_CONTACT_EMAIL` (see
+  [Operations → SEC EDGAR Sources Require a Contact
+  Email](operations.md#sec-edgar-sources-require-a-contact-email)).
+- **Alliance of Community Health Plans**: `error` — confirmed via a real
+  `scheduled-monitor.yml` run's logs: `403 Client Error: Forbidden for url:
+  https://achp.org/feed/`. The same URL returns `200` with 10 parseable
+  items from other networks (curl from a workstation, this repo's dev
+  sandbox), and the full pipeline (fetch → normalize → score → persist)
+  works end to end against those items when run locally — so this is not a
+  bug in this app. It's most likely a WAF (the feed is fronted by
+  Cloudflare) blocking or challenging GitHub Actions' runner IP ranges
+  specifically, which is outside this codebase's control. Left enabled and
+  now visible as silent, rather than fixed — there's nothing to fix here
+  short of contacting ACHP or routing requests through a different network.
+- **Congress.gov - Bills Presented to the President**: `empty` — the feed
+  itself currently has zero `<item>` entries (verified with a plain
+  `curl`). This is a legitimately bursty source (a bill only appears here
+  between passing both chambers and being signed), not a bug. Left as-is.
+
+### `ma-signal-source-health` is not wired into the deploy/scheduled workflows
+
+Deliberate: a source silenced by an external, unfixable-from-here condition
+(like ACHP above) would fail the shared deploy job on every single run
+forever, training everyone to ignore red CI. The `/status` and `/sources`
+pages are the primary surface — everyone already looks at those. Run
+`ma-signal-source-health` by hand, or wire it into your own monitoring if
+you're self-hosting and want a hard gate.
+
 ## Missing Config
 
 ### "Sources config not found: config/sources.yaml"

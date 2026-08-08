@@ -569,6 +569,47 @@ def test_status_flags_low_yield_source(sample_config, temp_db):
     assert ">review<" in resp.text
 
 
+def _log_silent_source(temp_db, source_name, days_ago):
+    run_id = temp_db.start_run()
+    conn = temp_db._get_conn()
+    old = (datetime.utcnow() - timedelta(days=days_ago)).isoformat()
+    conn.execute(
+        """INSERT INTO source_fetch_log
+               (run_id, source_name, fetched_at, status, n_items, n_persisted, error)
+           VALUES (?, ?, ?, 'error', 0, 0, '403 Forbidden')""",
+        (run_id, source_name, old),
+    )
+    conn.commit()
+
+
+def test_status_flags_silent_source(sample_config, temp_db):
+    _log_silent_source(temp_db, "Test Feed", days_ago=30)
+    app = create_app(sample_config, temp_db)
+    resp = TestClient(app).get("/status")
+    assert resp.status_code == 200
+    assert "Silent sources" in resp.text
+    assert "403 Forbidden" in resp.text
+
+
+def test_status_no_silent_sources_by_default(client):
+    resp = client.get("/status")
+    assert "No silent sources" in resp.text
+
+
+def test_sources_page_flags_silent_source(sample_config, temp_db):
+    _log_silent_source(temp_db, "Test Feed", days_ago=30)
+    app = create_app(sample_config, temp_db)
+    resp = TestClient(app).get("/sources")
+    assert resp.status_code == 200
+    assert "gone silent" in resp.text
+    assert ">silent<" in resp.text
+
+
+def test_sources_page_no_silent_badge_by_default(client):
+    resp = client.get("/sources")
+    assert ">silent<" not in resp.text
+
+
 def test_feed_cards_have_lightweight_rating(client):
     resp = client.get("/")
     assert resp.status_code == 200
