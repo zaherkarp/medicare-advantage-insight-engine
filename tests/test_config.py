@@ -19,6 +19,7 @@ _ENV_KEYS = [
     "ARCHIVE_MIN_SCORE",
     "REQUEST_TIMEOUT",
     "USER_AGENT",
+    "SEC_CONTACT_EMAIL",
 ]
 
 
@@ -107,6 +108,20 @@ class TestConfigLoading:
         app_yaml_path.write_text(yaml.dump({"timeline": {"threads": {"max_rows": 10}}}))
         config = load_config(project_root_with_config)
         assert config.thread_max_rows == 10
+
+    def test_sec_contact_email_defaults_empty(self, project_root_with_config):
+        """SEC_CONTACT_EMAIL defaults to '' when unset (fine — no SEC source
+        is enabled in the default fixture)."""
+        config = load_config(project_root_with_config)
+        assert config.sec_contact_email == ""
+
+    def test_sec_contact_email_env_override(self, project_root_with_config):
+        (project_root_with_config / ".env").write_text(
+            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\n"
+            "SEC_CONTACT_EMAIL=ops@example.com\n"
+        )
+        config = load_config(project_root_with_config)
+        assert config.sec_contact_email == "ops@example.com"
 
     def test_missing_sources_file_raises(self, tmp_path):
         """FileNotFoundError when sources.yaml is missing."""
@@ -207,6 +222,62 @@ class TestConfigValidation:
         app_yaml_path.write_text(yaml.dump({"timeline": {"threads": {"max_rows": 0}}}))
         with pytest.raises(ValueError, match="thread_max_rows"):
             load_config(project_root_with_config)
+
+    def _write_sec_source(self, project_root_with_config, enabled=True):
+        config_dir = project_root_with_config / "config"
+        sources = {
+            "sources": [
+                # Keep an always-enabled RSS source alongside it so a
+                # disabled SEC source doesn't trip the unrelated "no enabled
+                # sources" guard instead of (or before) the one under test.
+                {
+                    "name": "Test Feed",
+                    "type": "rss",
+                    "url": "https://example.com/feed",
+                    "priority": 4,
+                    "enabled": True,
+                },
+                {
+                    "name": "SEC EDGAR - Test Payer",
+                    "type": "sec",
+                    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany",
+                    "priority": 4,
+                    "enabled": enabled,
+                },
+            ]
+        }
+        with open(config_dir / "sources.yaml", "w") as f:
+            yaml.dump(sources, f)
+
+    def test_sec_source_enabled_without_contact_email_raises(
+        self, project_root_with_config
+    ):
+        """An enabled SEC source with no SEC_CONTACT_EMAIL must fail loudly at
+        load time — sec.gov 403s every such request, and that used to fail
+        silently per-fetch instead (see fetchers/sec.py)."""
+        self._write_sec_source(project_root_with_config)
+        os.environ.pop("SEC_CONTACT_EMAIL", None)
+        with pytest.raises(ValueError, match="SEC_CONTACT_EMAIL"):
+            load_config(project_root_with_config)
+
+    def test_sec_source_enabled_with_contact_email_ok(self, project_root_with_config):
+        self._write_sec_source(project_root_with_config)
+        (project_root_with_config / ".env").write_text(
+            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\n"
+            "SEC_CONTACT_EMAIL=ops@example.com\n"
+        )
+        config = load_config(project_root_with_config)
+        assert config.sec_contact_email == "ops@example.com"
+
+    def test_sec_source_disabled_without_contact_email_ok(
+        self, project_root_with_config
+    ):
+        """A disabled SEC source never fetches, so it shouldn't require a
+        contact email."""
+        self._write_sec_source(project_root_with_config, enabled=False)
+        os.environ.pop("SEC_CONTACT_EMAIL", None)
+        config = load_config(project_root_with_config)  # must not raise
+        assert config.sec_contact_email == ""
 
 
 def test_taxonomy_category_color_round_trips(tmp_path):

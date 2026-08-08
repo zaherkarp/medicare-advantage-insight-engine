@@ -106,6 +106,37 @@ sqlite3 data/state.db "DELETE FROM seen_items WHERE source_name = 'Some Feed'"
    ```
 3. Run once to verify: `python scripts/run_once.py`
 
+## SEC EDGAR Sources Require a Contact Email
+
+The 13 "SEC EDGAR - `<payer>`" sources in `config/sources.yaml` hit
+`sec.gov`, which **rejects any User-Agent that lacks a real contact email —
+403, every time**, regardless of how descriptive the UA otherwise reads (this
+is documented at
+[sec.gov/os/webmaster-faq#developers](https://www.sec.gov/os/webmaster-faq#developers)
+and was verified against the live endpoint: a UA like
+`"MA Signal Monitor Research Project"` 403s, `"MA Signal Monitor
+you@example.com"` gets a 200). The app fails config loading with a clear
+`ValueError` if any SEC source is enabled and `SEC_CONTACT_EMAIL` isn't set —
+better a loud startup failure than another silent, months-long 403.
+
+Set it via `SEC_CONTACT_EMAIL` (see `.env.example`). Because this repo is
+public, **do not commit a real address** — configure it as a **GitHub Actions
+secret** (not a Variable, so it's masked in logs if ever echoed):
+
+1. Repo → **Settings → Secrets and variables → Actions → Secrets → New
+   repository secret**
+2. Name: `SEC_CONTACT_EMAIL`, value: an email you control
+3. Both `deploy-pages.yml` and `scheduled-monitor.yml` already read
+   `secrets.SEC_CONTACT_EMAIL` into the environment for you
+
+Note: `*.github.com` noreply addresses (e.g.
+`123+you@users.noreply.github.com`) are themselves rejected by sec.gov — use
+a normal inbox.
+
+If you don't want to expose any contact address, disable the SEC sources
+instead (`enabled: false` in `sources.yaml`) rather than leaving
+`SEC_CONTACT_EMAIL` unset, since that now hard-fails the run.
+
 ## Removing/Disabling a Source
 
 Set `enabled: false` in `config/sources.yaml`. The source will be skipped on the next run. Previously seen items from that source remain in the database.

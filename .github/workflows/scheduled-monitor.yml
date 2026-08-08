@@ -26,6 +26,13 @@ env:
   WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
   MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
   LOG_LEVEL: ${{ inputs.log_level || 'INFO' }}
+  USER_AGENT: ${{ vars.USER_AGENT || 'MA-Signal-Monitor (research; contact via repo)' }}
+  # sec.gov 403s any User-Agent without a real contact email (see
+  # fetchers/sec.py) — set as a secret so it's masked in logs. Configure at
+  # Settings -> Secrets and variables -> Actions -> Secrets. See
+  # docs/operations.md. Previously unset here entirely, silently falling back
+  # to the config default, which sec.gov also rejects.
+  SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
 
 jobs:
   monitor:

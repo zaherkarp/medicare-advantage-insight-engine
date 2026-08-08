@@ -43,7 +43,12 @@ def _item(entry: dict) -> NormalizedItem:
     )
 
 
-def test_golden_set_precision_recall():
+def test_golden_set_precision_recall(monkeypatch):
+    # The real sources.yaml enables SEC EDGAR sources, which now require a
+    # contact email at load time (see config._validate_config) — irrelevant
+    # to the scoring regression this test guards, so satisfy it rather than
+    # weaken the check.
+    monkeypatch.setenv("SEC_CONTACT_EMAIL", "ops@example.com")
     config = load_config(_PROJECT_ROOT)
     data = yaml.safe_load(_FIXTURE.read_text())
     threshold = config.min_relevance_score
