@@ -62,13 +62,17 @@ def _fetch_one_source(
         return [], SourceFetchOutcome(
             source.name, "error", 0, f"Unknown source type '{source.type}'"
         )
+    kwargs = {
+        "timeout": config.request_timeout,
+        "user_agent": config.user_agent,
+        "max_items": config.max_items_per_source,
+    }
+    if source.type == "sec":
+        # SEC EDGAR needs an email-bearing UA distinct from the general
+        # user_agent used by every other source — see fetchers/sec.py.
+        kwargs["contact_email"] = config.sec_contact_email
     try:
-        items = fetcher(
-            source,
-            timeout=config.request_timeout,
-            user_agent=config.user_agent,
-            max_items=config.max_items_per_source,
-        )
+        items = fetcher(source, **kwargs)
     except Exception as e:
         logger.error("Error fetching '%s': %s", source.name, e)
         # Continue with other sources — one bad feed shouldn't stop the run

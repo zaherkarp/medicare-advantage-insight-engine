@@ -145,6 +145,12 @@ class AppConfig:
     # 1 = strictly sequential, the pre-parallel behavior.
     fetch_workers: int = 8
     user_agent: str = "MA-Signal-Monitor/1.0 (Educational/Research)"
+    # sec.gov rejects any User-Agent that lacks a real contact email (403),
+    # independent of how "descriptive" it otherwise is — see
+    # fetchers/sec.py:compose_sec_user_agent. Kept separate from user_agent so
+    # the general-purpose UA used by every other source is unaffected; a
+    # non-SEC deployment never needs to set this.
+    sec_contact_email: str = ""
 
     # From YAML configs
     sources: list[SourceConfig] = field(default_factory=list)
@@ -383,6 +389,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         user_agent=os.getenv(
             "USER_AGENT", "MA-Signal-Monitor/1.0 (Educational/Research)"
         ),
+        sec_contact_email=os.getenv("SEC_CONTACT_EMAIL", ""),
         ingest_interval_hours=int(os.getenv("INGEST_INTERVAL_HOURS", "6")),
         web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
         digest_enabled=os.getenv("DIGEST_ENABLED", "false").lower()
@@ -713,6 +720,22 @@ def _validate_config(config: AppConfig) -> None:
     enabled_sources = [s for s in config.sources if s.enabled]
     if not enabled_sources:
         raise ValueError("No enabled sources found in sources.yaml")
+
+    # sec.gov 403s any request whose User-Agent lacks a real contact email,
+    # so an SEC source with no SEC_CONTACT_EMAIL configured is guaranteed to
+    # fail on every run. Catch that at load time rather than let it fail
+    # silently per-fetch — a per-source 403 is logged and swallowed (so the
+    # pipeline keeps going for the other sources) and is easy to miss for
+    # months. See fetchers/sec.py:compose_sec_user_agent.
+    if any(s.type == "sec" for s in enabled_sources) and "@" not in (
+        config.sec_contact_email or ""
+    ):
+        raise ValueError(
+            "SEC EDGAR sources are enabled in sources.yaml but "
+            "SEC_CONTACT_EMAIL is not set to a valid email address. sec.gov "
+            "rejects any User-Agent without a real contact email (403) — set "
+            "SEC_CONTACT_EMAIL (see .env.example) or disable the SEC sources."
+        )
 
     if not config.categories:
         raise ValueError("No taxonomy categories found in taxonomy.yaml")

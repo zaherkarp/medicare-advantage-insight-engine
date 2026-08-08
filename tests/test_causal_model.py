@@ -102,8 +102,12 @@ def test_shipped_edges_are_sound():
         seen.add(pair)
 
 
-def test_load_config_enables_causal_model():
+def test_load_config_enables_causal_model(monkeypatch):
     """load_config on the real project root loads a valid, enabled 8-edge model."""
+    # The real sources.yaml enables SEC EDGAR sources, which now require a
+    # contact email at load time (see config._validate_config) — irrelevant
+    # to what this test checks, so satisfy it rather than weaken the check.
+    monkeypatch.setenv("SEC_CONTACT_EMAIL", "ops@example.com")
     config = load_config(_PROJECT_ROOT)
     assert config.causal_model_enabled is True
     assert len(config.causal_edges) == 8
