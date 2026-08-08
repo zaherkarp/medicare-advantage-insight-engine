@@ -233,6 +233,18 @@ Check delivery success rate:
 sqlite3 data/state.db "SELECT success, COUNT(*) FROM delivery_log GROUP BY success"
 ```
 
+Check for silently broken sources — an enabled source with no archived item
+in `SOURCE_SILENT_DAYS` (default 7):
+
+```bash
+ma-signal-source-health   # plain-text report; exits 1 if anything is flagged
+```
+
+Same data is on `/status` ("Silent sources") and `/sources` (each source's
+"silent" badge) — see [Troubleshooting → Silent
+Sources](troubleshooting.md#silent-sources) for what each status means and
+how to read the "last error".
+
 ## Storage Cleanup
 
 Automatic cleanup runs at the end of each pipeline execution. Retention periods are configured in `config/app.yaml`:

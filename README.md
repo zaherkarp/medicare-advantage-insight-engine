@@ -239,10 +239,10 @@ Jinja web app renders it as a browsable site. Pages:
 | `/briefing` and `/briefing/{date}` | Daily Briefing digest + archive |
 | `/angles` | Ways of looking at the week's signals — cards at the intersections of analytical lenses (payer × topic, topic × topic, topic × state, payer × payer) over the last 7/14/30 days, with momentum and fact-derived summaries, weighted by the declared causal model (`/post-ideas` 301-redirects here) |
 | `/search?q=` | Full-text search across the archive (SQLite FTS5) |
-| `/sources` | Public Sources directory with coverage + ingestion cadence |
+| `/sources` | Public Sources directory with coverage, ingestion cadence, and a "silent" badge on any enabled source with no archived item in a while |
 | `/states` and `/states/{code}` | State Intelligence — signals by U.S. state |
 | `/story/{id}` | Story detail with the draft insight angle |
-| `/status` | System status dashboard (last run, 12-week signal-volume trend, coverage by topic/source) |
+| `/status` | System status dashboard (last run, 12-week signal-volume trend, coverage by topic/source, low-yield and silent-source flags) |
 | `/health` | JSON health/counts (stories, sources, last run, categories) |
 
 #### Archive noise floor
@@ -419,6 +419,29 @@ proposes inclusion/exclusion keyword candidates from your verdicts, and
 `disagreements` lists stories the scorer over- or under-valued relative to your
 verdicts — all advisory, with you confirming changes to `sources.yaml` /
 `taxonomy.yaml`.
+
+A source that under-delivers is different from one that's silently broken —
+see the next section.
+
+### Silent-source detection
+
+A source that raises an error or 403s on every request and a source that's
+simply quiet both look identical from the archive alone (zero rows) — one bad
+feed is deliberately isolated so it can't stop the run, which also means a
+genuinely broken source produces no error anyone would notice without reading
+Actions logs. `/sources` (a "silent" badge) and `/status` ("Silent sources")
+flag any *enabled* source with no archived item in `SOURCE_SILENT_DAYS`
+(default 7 days), backed by a per-run fetch-outcome log
+(`source_fetch_log`/`get_source_fetch_health`) independent of whether
+anything ever reached the story archive.
+
+```bash
+ma-signal-source-health   # plain-text report; exits 1 if anything is flagged
+```
+
+Detection only — like source-yield review, nothing is auto-disabled. See
+[`docs/troubleshooting.md`](docs/troubleshooting.md#silent-sources) for how to
+read a flagged source's status.
 
 Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
 (weight < 1.0) and never auto-change scoring or sources on their own. See

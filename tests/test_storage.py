@@ -1,8 +1,13 @@
 """Tests for state storage and persistence."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from ma_signal_monitor.models import DeliveryResult, NormalizedItem, ScoredItem
+from ma_signal_monitor.models import (
+    DeliveryResult,
+    NormalizedItem,
+    ScoredItem,
+    SourceFetchOutcome,
+)
 
 
 def _make_scored(
@@ -705,3 +710,69 @@ class TestSourceYield:
         assert by_source["Junk Feed"]["max_score"] == 0.1
         # Worst yield sorts first.
         assert stats[0]["source"] == "Junk Feed"
+
+
+class TestSourceFetchLog:
+    """Per-run, per-source fetch outcome (see main._fetch_all_sources)."""
+
+    def test_log_source_fetches_noop_on_empty_outcomes(self, temp_db):
+        temp_db.log_source_fetches(run_id=1, outcomes=[], persisted_counts={})
+        assert temp_db.get_source_fetch_health() == {}
+
+    def test_get_source_fetch_health_tracks_status_and_persisted(self, temp_db):
+        run_id = temp_db.start_run()
+        temp_db.log_source_fetches(
+            run_id,
+            outcomes=[
+                SourceFetchOutcome("Good Feed", "ok", n_items=3),
+                SourceFetchOutcome("Broken Feed", "error", n_items=0, error="403"),
+                SourceFetchOutcome("Quiet Feed", "empty", n_items=0),
+            ],
+            persisted_counts={"Good Feed": 3},
+        )
+        health = temp_db.get_source_fetch_health()
+
+        assert health["Good Feed"]["last_status"] == "ok"
+        assert health["Good Feed"]["last_persisted_at"] is not None
+        assert health["Good Feed"]["attempts"] == 1
+
+        assert health["Broken Feed"]["last_status"] == "error"
+        assert health["Broken Feed"]["last_error"] == "403"
+        assert health["Broken Feed"]["last_persisted_at"] is None
+
+        assert health["Quiet Feed"]["last_status"] == "empty"
+        assert health["Quiet Feed"]["last_persisted_at"] is None
+
+    def test_get_source_fetch_health_keeps_last_persisted_across_runs(self, temp_db):
+        """A source that persisted once, then went silent, still shows that
+        earlier success — not just the latest (failing) attempt."""
+        run1 = temp_db.start_run()
+        temp_db.log_source_fetches(
+            run1,
+            outcomes=[SourceFetchOutcome("Flaky Feed", "ok", n_items=1)],
+            persisted_counts={"Flaky Feed": 1},
+        )
+        run2 = temp_db.start_run()
+        temp_db.log_source_fetches(
+            run2,
+            outcomes=[SourceFetchOutcome("Flaky Feed", "error", error="timeout")],
+            persisted_counts={},
+        )
+        health = temp_db.get_source_fetch_health()
+        entry = health["Flaky Feed"]
+        assert entry["attempts"] == 2
+        assert entry["last_status"] == "error"
+        assert entry["last_persisted_at"] is not None  # from run1, not lost
+
+    def test_get_source_fetch_health_respects_lookback_window(self, temp_db):
+        conn = temp_db._get_conn()
+        old = (datetime.utcnow() - timedelta(days=90)).isoformat()
+        conn.execute(
+            """INSERT INTO source_fetch_log
+                   (run_id, source_name, fetched_at, status, n_items, n_persisted, error)
+               VALUES (1, 'Ancient Feed', ?, 'ok', 1, 1, NULL)""",
+            (old,),
+        )
+        conn.commit()
+        assert "Ancient Feed" not in temp_db.get_source_fetch_health(lookback_days=60)
+        assert "Ancient Feed" in temp_db.get_source_fetch_health(lookback_days=120)

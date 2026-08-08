@@ -58,20 +58,26 @@ def fetch_feed(
 
     Returns:
         List of RawFeedItem objects.
+
+    Raises:
+        requests.RequestException: on a network error or non-2xx response.
+        Deliberately NOT swallowed here — the caller (main._fetch_one_source)
+        both isolates it (one bad source can't stop the run) and records it
+        as a distinct "error" outcome. Swallowing it into a bare empty return,
+        as this used to do, made a source that's actually broken (e.g. a 403
+        on every request) indistinguishable from one that's simply quiet —
+        which is how 16 sources went unnoticed for months. See
+        models.SourceFetchOutcome.
     """
     logger.info("Fetching feed: %s (%s)", source.name, source.url)
     items: list[RawFeedItem] = []
 
-    try:
-        response = requests.get(
-            source.url,
-            timeout=timeout,
-            headers={"User-Agent": user_agent},
-        )
-        response.raise_for_status()
-    except requests.RequestException as e:
-        logger.error("Failed to fetch %s: %s", source.name, e)
-        return items
+    response = requests.get(
+        source.url,
+        timeout=timeout,
+        headers={"User-Agent": user_agent},
+    )
+    response.raise_for_status()
 
     feed = feedparser.parse(response.content)
 

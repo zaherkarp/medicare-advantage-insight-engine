@@ -1,6 +1,7 @@
 """Tests for the SEC and CMS feed fetchers (delegating to the shared core)."""
 
 import pytest
+import requests
 import responses
 
 from ma_signal_monitor.config import SourceConfig
@@ -136,11 +137,16 @@ def test_fetch_cms_parses_feed():
 
 
 @responses.activate
-def test_fetcher_handles_http_error_gracefully():
+def test_fetcher_raises_on_http_error():
+    """fetch_feed no longer swallows HTTP errors into a bare []  — that made a
+    broken source indistinguishable from a quiet one. Isolating the failure
+    (one bad source can't stop the run) is now main._fetch_one_source's job,
+    not the fetcher's; see test_main_fetch.py."""
     url = "https://www.sec.gov/bad"
     responses.add(responses.GET, url, status=500)
     source = SourceConfig(name="SEC EDGAR - Bad", type="sec", url=url)
-    assert fetch_sec(source, contact_email="ops@example.com") == []  # error isolated
+    with pytest.raises(requests.RequestException):
+        fetch_sec(source, contact_email="ops@example.com")
 
 
 _LITIGATION_RSS = """<?xml version="1.0" encoding="UTF-8"?>

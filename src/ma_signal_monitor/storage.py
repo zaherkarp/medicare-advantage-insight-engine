@@ -8,7 +8,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ma_signal_monitor.models import DeliveryResult, ScoredItem
+from ma_signal_monitor.models import DeliveryResult, ScoredItem, SourceFetchOutcome
 
 logger = logging.getLogger("ma_signal_monitor.storage")
 
@@ -164,6 +164,27 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at TEXT NOT NULL
 );
 
+-- Per-run, per-source fetch outcome (see models.SourceFetchOutcome and
+-- main._fetch_all_sources). A source that raises/403s and a source that's
+-- simply quiet both collapse to zero rows in `stories`, which is exactly
+-- how 16 sources went unnoticed for months (13 SEC EDGAR feeds 403ing on
+-- every request, indistinguishable from a source with nothing new). This
+-- table is the record of what actually happened on the fetch side,
+-- independent of whether anything made it into the archive: `status` is
+-- 'ok' (>=1 item), 'empty' (fetched fine, 0 items), or 'error' (raised /
+-- non-200); `n_persisted` is filled in after persistence and would catch a
+-- source that fetches fine but never archives.
+CREATE TABLE IF NOT EXISTS source_fetch_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL,
+    source_name TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    n_items INTEGER NOT NULL DEFAULT 0,
+    n_persisted INTEGER NOT NULL DEFAULT 0,
+    error TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_candidate_domains_rank ON candidate_domains(status, relevance_score);
 CREATE INDEX IF NOT EXISTS idx_candidate_sources_rank ON candidate_sources(status, relevance_score);
 CREATE INDEX IF NOT EXISTS idx_feedback_item ON feedback(item_id);
@@ -177,6 +198,8 @@ CREATE INDEX IF NOT EXISTS idx_stories_published ON stories(published_date);
 CREATE INDEX IF NOT EXISTS idx_stories_category ON stories(primary_category);
 CREATE INDEX IF NOT EXISTS idx_stories_score ON stories(relevance_score);
 CREATE INDEX IF NOT EXISTS idx_stories_fetched ON stories(fetched_at);
+CREATE INDEX IF NOT EXISTS idx_source_fetch_log_source ON source_fetch_log(source_name, fetched_at);
+CREATE INDEX IF NOT EXISTS idx_source_fetch_log_run ON source_fetch_log(run_id);
 """
 
 
@@ -1374,6 +1397,80 @@ class StateStore:
             ),
         )
         conn.commit()
+
+    def log_source_fetches(
+        self,
+        run_id: int,
+        outcomes: list[SourceFetchOutcome],
+        persisted_counts: dict[str, int],
+    ) -> None:
+        """Record this run's per-source fetch outcome (see main._fetch_all_sources).
+
+        Called exactly once per run, from the same ``finally`` block as
+        ``end_run`` — including on early-return paths (nothing fetched, all
+        duplicates) — since a source attempted with zero items back IS the
+        signal for its 'empty'/'error' status; the whole point is that this
+        doesn't depend on anything reaching ``stories``.
+        """
+        if not outcomes:
+            return
+        conn = self._get_conn()
+        now = datetime.utcnow().isoformat()
+        conn.executemany(
+            """INSERT INTO source_fetch_log
+                   (run_id, source_name, fetched_at, status, n_items, n_persisted, error)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [
+                (
+                    run_id,
+                    o.source_name,
+                    now,
+                    o.status,
+                    o.n_items,
+                    persisted_counts.get(o.source_name, 0),
+                    o.error,
+                )
+                for o in outcomes
+            ],
+        )
+        conn.commit()
+
+    def get_source_fetch_health(self, lookback_days: int = 60) -> dict[str, dict]:
+        """Per-source fetch health over the lookback window, keyed by source_name.
+
+        For each source with at least one ``source_fetch_log`` row in the
+        window: first/last attempt time, last status/error, attempt count,
+        and the last time it persisted >= 1 item (None if never, within the
+        window). A source with no rows (never attempted — e.g. just enabled,
+        or its last attempt fell outside the window) is simply absent; that's
+        "no data yet," not "silent" — see source_health.flag_silent_sources.
+        """
+        conn = self._get_conn()
+        cutoff = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
+        rows = conn.execute(
+            """SELECT source_name, fetched_at, status, n_items, n_persisted, error
+               FROM source_fetch_log
+               WHERE fetched_at >= ?
+               ORDER BY source_name, fetched_at ASC""",
+            (cutoff,),
+        ).fetchall()
+        health: dict[str, dict] = {}
+        for r in rows:
+            entry = health.setdefault(
+                r["source_name"],
+                {
+                    "first_attempt_at": r["fetched_at"],
+                    "last_persisted_at": None,
+                    "attempts": 0,
+                },
+            )
+            entry["attempts"] += 1
+            entry["last_attempt_at"] = r["fetched_at"]
+            entry["last_status"] = r["status"]
+            entry["last_error"] = r["error"] or ""
+            if r["n_persisted"] > 0:
+                entry["last_persisted_at"] = r["fetched_at"]
+        return health
 
     def get_last_run(self) -> sqlite3.Row | None:
         """Return the most recent completed run's metadata, or None."""

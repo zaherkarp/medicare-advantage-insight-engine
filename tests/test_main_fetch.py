@@ -48,8 +48,10 @@ def test_fetch_collects_all_sources_in_config_order(monkeypatch, sample_config):
         return [_item(source.name, "t")]
 
     _patch_fetcher(monkeypatch, fake)
-    items = _fetch_all_sources(sample_config)
+    items, outcomes = _fetch_all_sources(sample_config)
     assert [i.source_name for i in items] == ["a", "b", "c"]
+    assert [o.source_name for o in outcomes] == ["a", "b", "c"]
+    assert all(o.status == "ok" and o.n_items == 1 for o in outcomes)
 
 
 def test_fetch_isolates_per_source_errors(monkeypatch, sample_config):
@@ -62,8 +64,30 @@ def test_fetch_isolates_per_source_errors(monkeypatch, sample_config):
         return [_item(source.name, "t")]
 
     _patch_fetcher(monkeypatch, fake)
-    items = _fetch_all_sources(sample_config)
+    items, outcomes = _fetch_all_sources(sample_config)
     assert [i.source_name for i in items] == ["good", "also-good"]
+    by_name = {o.source_name: o for o in outcomes}
+    assert by_name["good"].status == "ok"
+    assert by_name["bad"].status == "error"
+    assert by_name["bad"].error == "boom"
+    assert by_name["also-good"].status == "ok"
+
+
+def test_fetch_records_empty_status_for_zero_items(monkeypatch, sample_config):
+    """A source that fetches fine but returns nothing must be tagged 'empty',
+    distinct from 'error' — that distinction is the whole point (Congress.gov
+    vs. the SEC EDGAR 403s used to look identical: a bare [])."""
+    sample_config.sources = [_source("quiet")]
+    sample_config.fetch_workers = 1
+
+    def fake(source, **kwargs):
+        return []
+
+    _patch_fetcher(monkeypatch, fake)
+    items, outcomes = _fetch_all_sources(sample_config)
+    assert items == []
+    assert outcomes[0].status == "empty"
+    assert outcomes[0].n_items == 0
 
 
 def test_fetch_runs_concurrently(monkeypatch, sample_config):
@@ -96,8 +120,9 @@ def test_fetch_workers_one_is_sequential(monkeypatch, sample_config):
         return [_item(source.name, "t")]
 
     _patch_fetcher(monkeypatch, fake)
-    items = _fetch_all_sources(sample_config)
+    items, outcomes = _fetch_all_sources(sample_config)
     assert len(items) == 2
+    assert len(outcomes) == 2
     assert threads == {threading.main_thread().name}
 
 
@@ -137,5 +162,12 @@ def test_fetch_skips_disabled_and_unknown_types(monkeypatch, sample_config):
         return [_item(source.name, "t")]
 
     _patch_fetcher(monkeypatch, fake)
-    items = _fetch_all_sources(sample_config)
+    items, outcomes = _fetch_all_sources(sample_config)
     assert [i.source_name for i in items] == ["on"]
+    # The disabled source is skipped entirely (not even attempted); the
+    # unknown type is attempted and recorded as its own error, not silently
+    # dropped like it used to be.
+    assert [o.source_name for o in outcomes] == ["on", "weird"]
+    weird = next(o for o in outcomes if o.source_name == "weird")
+    assert weird.status == "error"
+    assert "carrier-pigeon" in weird.error

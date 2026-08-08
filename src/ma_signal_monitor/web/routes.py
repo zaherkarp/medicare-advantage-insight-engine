@@ -883,7 +883,16 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
     @app.get("/sources", response_class=HTMLResponse)
     def sources(request: Request) -> HTMLResponse:
         config = request.app.state.config
+        store = request.app.state.store
         default_cadence = f"every {config.ingest_interval_hours}h"
+
+        from ma_signal_monitor.source_health import flag_silent_sources
+
+        health = store.get_source_fetch_health(
+            lookback_days=max(60, config.source_silent_days * 2)
+        )
+        silent = {f["source_name"]: f for f in flag_silent_sources(health, config)}
+
         # Group by the first tag for a tidy directory layout.
         groups: dict[str, list] = {}
         for s in config.sources:
@@ -899,6 +908,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "cadence": s.cadence or default_cadence,
                 "description": s.description,
                 "homepage": s.homepage or s.url,
+                "silent_reason": silent.get(s.name, {}).get("reason"),
             }
             groups.setdefault(group, []).append(view)
         return templates.TemplateResponse(
@@ -909,6 +919,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "default_cadence": default_cadence,
                 "source_count": len(config.sources),
                 "enabled_count": sum(1 for s in config.sources if s.enabled),
+                "silent_count": len(silent),
             },
         )
 
@@ -1629,6 +1640,12 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         source_yield = store.get_source_yield(config.min_relevance_score)
         flagged = flag_low_yield_sources(source_yield, config)
         flagged_names = {f["source"] for f in flagged}
+        from ma_signal_monitor.source_health import flag_silent_sources
+
+        source_health = store.get_source_fetch_health(
+            lookback_days=max(60, config.source_silent_days * 2)
+        )
+        silent_sources = flag_silent_sources(source_health, config)
         from ma_signal_monitor.trends import sparkline
 
         trend = store.get_weekly_counts(weeks=12, min_score=config.archive_min_score)
@@ -1653,6 +1670,8 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "source_yield": source_yield,
                 "flagged_sources": flagged,
                 "flagged_names": flagged_names,
+                "silent_sources": silent_sources,
+                "source_silent_days": config.source_silent_days,
                 "min_relevance_score": config.min_relevance_score,
             },
         )

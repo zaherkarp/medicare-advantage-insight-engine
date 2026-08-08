@@ -117,3 +117,26 @@ class DeliveryResult:
     # Lets alert-outcome feedback confirm a story was actually delivered
     # before a human labels it correct/false_positive/missed.
     item_id: str | None = None
+
+
+@dataclass
+class SourceFetchOutcome:
+    """One source's fetch result for a single run (see main._fetch_one_source).
+
+    Exists because a source that raises/403s and a source that's simply quiet
+    both collapse to "returns no items" at the RawFeedItem level, and both
+    look identical to "zero archive rows" from the `stories` table alone —
+    which is exactly how 16 sources went unnoticed for months. ``status``
+    distinguishes them: "error" (the fetch itself failed — exception or
+    non-200), "empty" (fetched fine, 0 usable items), or "ok" (>= 1 item).
+    ``n_persisted`` is filled in after persistence, separately from fetch —
+    it's what would catch a source whose items fetch fine but never archive
+    (upstream persist failure); verified against the real production
+    archive that no currently-silent source is actually in that state today
+    — see docs/troubleshooting.md for what each of the 16 turned out to be.
+    """
+
+    source_name: str
+    status: str  # "ok" | "empty" | "error"
+    n_items: int = 0
+    error: str = ""
