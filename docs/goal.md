@@ -57,6 +57,19 @@ Binding on every iteration, no exceptions:
    `ALTER TABLE` migration pattern in `storage.py`.
 4. **No paid dependencies** (LLM APIs included) without an explicit owner
    decision — the app is deliberately free and local.
+   **Amended 2026-08-08 (owner decision): scoped exemption for research.** Paid
+   embedding/LLM APIs are permitted inside `src/ma_signal_monitor/research/` and
+   the `[research]` install extra, for the retrieval-research workstream
+   ([`docs/research/00-repository-assessment.md`](research/00-repository-assessment.md)).
+   The guardrail remains **fully binding on the application**: ingestion,
+   scoring, classification, drafting, delivery, the web app, and the deploy
+   pipeline stay free and local, and `pip install .` must never pull a paid
+   dependency. CI holds no API keys — every LLM-touching test is fixture-mocked
+   so `pytest` stays offline and deterministic.
 5. **Every change lands via PR with green CI**; one logical change per PR.
 6. **`ruff format`, `ruff check`, and the full `pytest` suite pass locally
    before every push.**
+7. **Research code never writes to `state.db`.** The retrieval-research
+   subsystem reads the archive through `StateStore(..., read_only=True)` and
+   keeps its own corpus in a separate database. Guardrail 3 makes any schema
+   change to `stories` a production risk; the research layer must not take one.
