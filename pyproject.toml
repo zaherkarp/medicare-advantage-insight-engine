@@ -50,7 +50,9 @@ ma_signal_monitor = ["web/templates/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+# "." puts the repo root on sys.path so the evals/ evaluation harness (a
+# research subsystem, not a shipped package) is importable from its tests.
+pythonpath = ["src", "."]
 addopts = "-v --tb=short"
 
 [tool.setuptools.packages.find]
