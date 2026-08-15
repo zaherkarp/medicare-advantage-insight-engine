@@ -117,6 +117,12 @@ on the owner-labeled holdout:
 - [x] Held-out set built (n=122: 58 alert-grade, 39 display-band, 25 sub-floor).
 - [x] Candidate gate + harness + regression tests committed; full suite green;
       production untouched.
-- [ ] **Owner labeling of `holdout_2026-08.yaml`** ← next.
-- [ ] Score the holdout once; report precision/recall/FP-types with examples.
-- [ ] If accepted: follow-up PR wires the gate behind a default-off flag.
+- [x] Owner labeling of `holdout_2026-08.yaml` (98 owner-reviewed, 24 my-fill).
+- [x] Scored once — see [`RESULTS_2026-08.md`](RESULTS_2026-08.md). Noise in the
+      surfaced stream 62% → ~22%; must-catch brief recall 75% → 100%. Clears the
+      precision-filter bar; does not replace editorial curation; text-only recall
+      blind spot on source-curated litigation surfaced.
+- [ ] **Follow-up PR: wire the gate behind a default-off flag** ← next, as an
+      eligibility/precision filter, with a source-tier rule for the FCA/MA feeds
+      and a borderline adjudicator for the brief-vs-display call as documented
+      next steps.

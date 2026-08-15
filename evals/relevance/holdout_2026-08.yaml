@@ -1,4 +1,4 @@
-# Held-out relevance evaluation set — proposed labels await owner confirmation.
+# Held-out relevance evaluation set — labels filled by owner review (label_source: owner) plus a small my-fill remainder (label_source: fill).
 # Regenerate: python -m evals.relevance.build_holdout --db <state.db> --out <this file>
 _meta:
   purpose: Held-out relevance evaluation set. proposed_label is a rubric heuristic, NOT ground truth;
@@ -28,8 +28,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 03f6a15b0c789682
   title: Alabamians to vote on four statewide constitutional amendments in November
   summary: The Alabama Fair Ballot Commission on Tuesday approved language to describe four statewide
@@ -42,8 +43,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0715fbdf4333ef25
   title: Privacy Act of 1974; Matching Program
   summary: In accordance with the Privacy Act of 1974, as amended, the Department of Health and Human
@@ -57,8 +59,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 07eb65d5df1b3f2f
   title: Regulatory Alignment for Predictable and Immediate Device Coverage Pathway (CMS-3487-NC) Procedural
     Notice Inviting Comment
@@ -70,8 +73,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 08ee6d646e8c1d2c
   title: Luigi Mangione pleads guilty to federal stalking charges in the killing of UnitedHealthcare CEO
   summary: In pleading guilty, Mangione admitted to following UnitedHealth executive Brian Thompson and
@@ -82,8 +86,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 09f7a9d67b60ef7d
   title: Republicans compete for Trump endorsement in Louisiana’s congressional elections
   summary: Republican candidates in Louisiana’s two competitive U.S. House elections are actively campaigning
@@ -94,8 +99,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0bd543434f43008d
   title: Investors renew fight against UnitedHealth, claiming $237M in insider stock sales
   summary: UnitedHealth Group shareholders are renewing pressure on the company in an amended complaint,
@@ -109,8 +115,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0f95abb2acfd4d87
   title: Dr. Oz urges senators to reject Budd hemp amendment
   summary: Dr. Mehmet Oz, the administrator of the Centers for Medicare and Medicaid Services (CMS), is
@@ -123,8 +130,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 148603f27e9ac2a9
   title: Epic releases Care Everywhere diagnostic image exchange to tackle healthcare's 'CD problem'
   summary: Epic released a new diagnostic image exchange solution that enables healthcare providers at
@@ -136,8 +144,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 16e4741957ea02d1
   title: St. Charles loses appeal on suit alleging meal-break violations
   summary: St. Charles loses appeal on suit alleging meal-break violations A St. Charles nurse is suing
@@ -152,8 +161,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 174b54cbfdb53c92
   title: Medicare Program; Regulatory Alignment for Predictable and Immediate Device (RAPID) Coverage
     Pathway
@@ -168,8 +178,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 1756c59ba6a5312d
   title: Sentara moves to end Anthem contracts in Virginia
   summary: Nearly 380,000 patients could go out of network with the health system if the commercial, Medicare
@@ -180,8 +191,9 @@ items:
   stratum: alert
   predicted_tier: alert
   proposed_label: relevant_context
-  label: null
+  label: relevant_context
   note: payer + Medicare context; defensible MA implication
+  label_source: fill
 - item_id: 17758c617822af1a
   title: CVS Caremark taps chief growth officer
   summary: CVS Health’s pharmacy benefit manager, CVS Caremark, is bringing on Keith Reynolds as chief
@@ -195,8 +207,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1b4951ce736ade7c
   title: 'Medicaid Managed Care: The Big Five in Q2 2026'
   summary: 'The “Big Five” have announced their results for the calendar quarter ending June 30. They
@@ -209,8 +222,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1d1bd83a9b9de408
   title: Humana taps ex-Johns Hopkins exec as Medicaid leader
   summary: James “J.P.” Holland is taking the reins of Humana’s Medicaid business, a key growth area for
@@ -222,8 +236,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1e36bf3c7c9315d0
   title: Oscar taps CVS exec as chief health officer
   summary: Lia Gass Rodriguez, MD, is joining Oscar Health as chief health officer. The company shared
@@ -237,8 +252,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 204877735fd17f93
   title: UnitedHealth paid $3B for benefits platform Alegeus
   summary: UnitedHealth Group paid $3 billion for benefits administration platform Alegeus, according
@@ -252,8 +268,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 212aa58185dd94fc
   title: Complete Health to pay $14M to settle Medicare Advantage fraud allegations
   summary: The value-based primary care provider submitted false diagnosis codes to the CMS for three
@@ -264,8 +281,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 21c5ce0a814855f4
   title: Transport company KLLM is accused of discrimination against women in truck driver training
   summary: KLLM Transport Services is pictured in Richland on Thursday, Aug. 6, 2026.
@@ -275,8 +293,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 233768ddb38a8e5e
   title: Elevance-backed physician group, Franciscan Alliance partner in value-based care push
   summary: Mishawaka, Ind.-based Franciscan Alliance has partnered with Millennium Physician Group to
@@ -291,8 +310,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 272308d0e92669bc
   title: Trump administration finalizes rule restricting trans healthcare for minors on Medicaid
   summary: The Trump administration on Tuesday released a final rule blocking the use of federal Medicaid
@@ -305,8 +325,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 283c2b08ef0c545a
   title: How will legal challenges fare against CMS rule on gender-affirming care?
   summary: A CMS rule finalized this week may prove more difficult to challenge than previous Trump administration
@@ -317,8 +338,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 2c0dc2389e44606c
   title: As we celebrate our 250th birthday, let’s protect our national wonders
   summary: 'In the Declaration of Independence, our country’s founders made “the pursuit of happiness”
@@ -331,8 +353,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 2de039c01668774c
   title: Why CMS’ Medicaid waiver pullback matters to providers
   summary: CMS risks raising costs for states, weakening provider finances and limiting Medicaid innovation
@@ -343,8 +366,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 35383d40de616a5c
   title: Almost All Custodial Parents, Caretaker Relatives Should Not be Impacted by Medicaid Work Reporting
     Requirements in 28 States
@@ -358,8 +382,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 35a69d13c9861b91
   title: On the heels of star rating win, Clover Health boosts outlook on strength of MA membership growth
     in Q2
@@ -371,8 +396,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 364bab29abbd0704
   title: CVS Health profit triples in Q2
   summary: CVS Health brought in nearly $3 billion in profit for the second quarter of 2026, up from $1
@@ -386,8 +412,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 36914c3f4dc6282c
   title: RFK Jr. announces decertification of KY organ donor group after numerous problems
   summary: U.S. Health and Human Services Secretary Robert F. Kennedy Jr. traveled to Lexington on Wednesday
@@ -400,8 +427,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 377f27afe7c1672b
   title: 'STAT+: Pharmalittle: We’re reading about Replimune’s melanoma drug, a Medicare policy change,
     and more'
@@ -413,8 +441,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 3b289f2f688b0b5d
   title: Blue Shield of California names health AI exec to board
   summary: Kedar Mate, MD, is joining Blue Shield of California’s board of directors, according to an
@@ -428,8 +457,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 40910f2687ad8df6
   title: Cityblock unveils partnership with Humana in North Carolina
   summary: Cityblock Health is expanding its footprint in North Carolina through a new partnership with
@@ -440,8 +470,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 417ad403b2111a15
   title: Nebraska’s July tax receipts come close to economic forecasts as impact of tax refunds wanes
   summary: LINCOLN — Nebraska’s tax receipts for July fell less than 1% below economic forecasts, according
@@ -454,8 +485,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 43b18070de9371cf
   title: ‘Private option’ Medicaid expansion under threat from CMS
   summary: Arkansas Medicaid coverage for hundreds of thousands is uncertain next year after the Trump
@@ -466,8 +498,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 4639ecf1d8db275d
   title: Industry Voices—AI should help cancer patients survive the healthcare system
   summary: Cancer care navigators are an invaluable resource, but there are nowhere near enough navigators
@@ -479,8 +512,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 4b5f6ecb7cb8490d
   title: '‘Our focus is on Hammond’: Bears keep stadium sights on Indiana'
   summary: The Chicago Bears are continuing to look at two Northwest Indiana sites as potential locations
@@ -493,8 +527,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 4bb775615eb75206
   title: CMS releases notice on pathway for expediting access to certain medical devices for Medicare
     beneficiaries
@@ -509,8 +544,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 4f144c90a0da64b4
   title: Prior authorization denials vary widely among insurers, first-of-its-kind data shows
   summary: Denials ranged from 2% to 25% among insurers last year, according to a KFF analysis of new
@@ -521,8 +557,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 525358a21b6c63b4
   title: Oscar Health hikes 2026 outlook after record profitability during first half of the year
   summary: CEO Mark Bertolini said during Thursday’s earnings call that the company brought in $1.1 billion
@@ -533,8 +570,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 53e8db82805f038f
   title: Prior Authorization Metrics Provide New Insights into Insurer Practices, but Gaps Remain
   summary: 'This analysis of available 2025 prior authorization data finds insurers denied at least 1
@@ -548,8 +586,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 55c94f2084550c24
   title: Study finds COVID-19 can reactivate dormant viruses
   summary: A study published Aug. 5 by Nature found that COVID-19 infection can reactivate dormant, chronic
@@ -563,8 +602,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 59caa033fdc32201
   title: UnitedHealthcare eyes more Medicare Advantage exits
   summary: Medicare Advantage carriers keep fleeing areas where they aren't meeting financial targets.
@@ -574,8 +614,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 5a4df1a7ee8c4a1e
   title: AHA urges CMS to prioritize hospitals, providers with Rural Health Transformation Program funding
   summary: The AHA Aug. 5 provided comments to the Centers for Medicare & Medicaid Services on the distribution
@@ -589,8 +630,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 5d6ff5706db535bc
   title: CMS finalizes ban on Medicaid, CHIP funding for gender-affirming care provided to children
   summary: The Centers for Medicare & Medicaid Services yesterday released a final rule that prohibits
@@ -604,8 +646,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 5ea901e39e4db554
   title: Wilderness in Idaho, the West is subject to review by Trump administration, Wilderness Society
     says
@@ -619,8 +662,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6690d500ee6b6102
   title: Mississippi opioid settlement grantees can seek monthly reimbursement
   summary: Members of the Mississippi Opioid Settlement Fund Advisory Council meet on August 13.
@@ -630,8 +674,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 687e303f98a49f83
   title: CMS to begin sharing GLP-1 Bridge utilization data with payers
   summary: This fall, CMS will start sharing monthly utilization reports with Part D plans on how their
@@ -645,8 +690,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 6a575e4062b08041
   title: 'STAT+: A RAPID proposal for breakthrough coverage, and nurses push back on AI'
   summary: 'In this edition of STAT Health Tech: Details from CMS and FDA on the RAPID pathway for breakthrough
@@ -657,8 +703,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 6ab1e4917f589c52
   title: Clover posts $28M Q2 profit, rebounds from earlier loss
   summary: Clover Health posted a $28 million profit for the second quarter of 2026, according to a recent
@@ -672,8 +719,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6fd3a0ff303b3080
   title: Warren presses RFK Jr. on Trump ties to lettuce distributor
   summary: Sen. Elizabeth Warren (D-Mass.) is pressing Health and Human Services (HHS) Secretary Robert
@@ -686,8 +734,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 718e17961c38429d
   title: BCBS Association fends off most claims in data-tracking suit
   summary: A federal judge dismissed most of a class-action lawsuit alleging the Blue Cross Blue Shield
@@ -701,8 +750,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 71fd539e2c8e47a1
   title: A look at where Aetna is seeing value-based care success in Medicare Advantage
   summary: Aetna is seeing its value-based care efforts pay off in both preventive care metrics and cost
@@ -713,8 +763,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 722410975489f1dd
   title: Missouri health system to stop offering ACA plans, partners with Oscar
   summary: Cox HealthPlans, the insurance arm of Springfield, Mo.-based CoxHealth, will stop selling ACA
@@ -729,8 +780,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 74dfea18093aa2d3
   title: CVS falls after preliminary 2027 guidance disappoints
   summary: The upbeat results signal that CVS Health is making progress on turning around its health insurance
@@ -741,8 +793,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 759fd6246de31d6c
   title: Oscar adds nearly 1 million members over past year
   summary: Oscar Health’s membership as of June 30 was 2,963,002, up from 2,027,148 at the same time in
@@ -756,8 +809,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 798af519ab3ba284
   title: Why a new federal definition of hemp has a Vermont industry holding its breath
   summary: '“The clock is running out,” said one CBD vendor. “It''s so hard to plan and make any kind
@@ -769,8 +823,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 7ba7b8a48c8eeb46
   title: 7 recent Medicare Advantage fraud settlements
   summary: Federal enforcement around Medicare Advantage risk adjustment and billing has ramped up over
@@ -785,8 +840,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 7e00804f6dea1fae
   title: Alignment secures $200M credit line as it eyes plan acquisitions
   summary: Medicare Advantage insurer Alignment Health is expecting to grow into new markets and carry
@@ -801,8 +857,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 8186df4da98dfbb9
   title: CMS Announces Resources, Flexibilities to Assist with Public Health Emergency in the State of
     Washington
@@ -818,8 +875,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 81fba6c2b9dc22e6
   title: MRI is standard for diagnosing prostate cancer in most western countries. But most U.S. men don’t
     get them
@@ -831,8 +889,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 82bd7bf6c4584e89
   title: BCBS Illinois exec to depart for kidney foundation’s CEO role
   summary: William Crowley, BSN, executive director of clinical operations for Health Care Service Corp.’s
@@ -846,8 +905,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 833da707afd2621c
   title: UnitedHealth sets quarterly dividend
   summary: UnitedHealth Group’s board of directors approved a per-share cash dividend of $2.32 to be paid
@@ -861,8 +921,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8477be05c10b16b2
   title: Blue Cross of Idaho awaits clarity as school benefit trust’s reserves run dry
   summary: Blue Cross of Idaho is caught in the middle as the trust responsible for covering schools’
@@ -877,8 +938,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 84a5d0040c947970
   title: Farm bill proposal fails in US Senate ag committee amid food assistance funding fight
   summary: Farm bill progress stalled Thursday as the U.S. Senate Agriculture Committee failed to move
@@ -891,8 +953,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8549473d793f2a49
   title: 'CMS'' mandatory VBC programs brought substantial administrative costs for hospitals: study'
   summary: Four mandatory value-based payment programs were associated with more than $3 billion in aggregated
@@ -904,8 +967,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 881e0d590f8a3d7d
   title: 'Insurers denied between 12% to 18% of prior authorization requests in 2025: KFF'
   summary: Researchers analyzed data from insurers in Medicare Advantage, Medicaid managed care and ACA
@@ -916,8 +980,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 8b595734be287972
   title: Texas’ ACA enrollment ‘boom’ didn’t happen after all
   summary: Not all CMS data is telling the same story when it comes to ACA enrollment in Texas. As of
@@ -931,8 +996,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 8c5394ba763af410
   title: Temporary Medicare program that lowered prescription drug premiums is ending early. Here’s what
     that means for seniors.
@@ -948,8 +1014,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 8f909b8545b5f9b7
   title: 'Opinion: The Lindsay Clancy case shows the limits of postpartum psychiatry'
   summary: “Our understanding and treatment of postpartum psychiatric illnesses remain profoundly inadequate,”
@@ -960,8 +1027,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8fad3d4674fc9f54
   title: District court rules AHA can file amicus brief in case challenging Aetna’s ‘level of severity’
     policy
@@ -976,8 +1044,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 911edf00a780651e
   title: Luigi Mangione pleads guilty in federal case over murder of UnitedHealthcare CEO Brian Thompson
   summary: The man accused of murdering UnitedHealthcare CEO Brian Thompson has pleaded guilty in the
@@ -988,8 +1057,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 940ef39e58b92132
   title: 'Agency Information Collection Activities: Proposed Collection; Comment Request'
   summary: The Centers for Medicare & Medicaid Services (CMS) is announcing an opportunity for the public
@@ -1004,8 +1074,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: 95e08942b02662f0
   title: Why Molina Healthcare keeps stumbling in the ACA exchanges
   summary: Molina Healthcare's second-quarter performance contrasted with rivals Elevance Health, Centene
@@ -1016,8 +1087,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 98fae1a658bf3aa7
   title: Senate confirms UnitedHealth leader as CDC director
   summary: Erica Schwartz, MD, was confirmed by the Senate as the next CDC director Aug. 5 in a 51-43
@@ -1031,8 +1103,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9a07523fe055bfcd
   title: Glenmark’s US subsidiary reaches $15.3M settlement with Humana
   summary: The U.S. subsidiary of Glenmark Pharmaceuticals will pay Humana nearly $15.3 million in the
@@ -1047,8 +1120,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9a7475e9129029b9
   title: The cost of child welfare services has jumped in Georgia. A new panel is about to dig into why.
   summary: Taking care of vulnerable children in Georgia has gotten a lot more expensive, and lawmakers
@@ -1061,8 +1135,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9e348419d10474a5
   title: Years After He Quit Smoking, a Lung Cancer Scan Saved His Life
   summary: Lung cancer remains the leading cause of cancer deaths in the United States, and older adults
@@ -1073,8 +1148,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9fdbd061dea6e2fd
   title: Hippocratic AI rolls out platform to coordinate teams of conversational voice AI agents
   summary: For health plans, the AI teams support functions such as member onboarding, chronic care management
@@ -1086,8 +1162,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: a32559ff50285ba5
   title: H.R. 6332, a bill to designate the facility of the United States Postal Service located at 10660
     Page Avenue in Fairfax, Virginia, as the "Congressman Gerald E. Connolly Post Office Building"
@@ -1099,8 +1176,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a702cf47b7ada0b2
   title: Luigi Mangione admits he shot UnitedHealthcare CEO
   summary: Luigi Mangione has pleaded guilty to federal stalking charges in connection with the December
@@ -1114,8 +1192,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a71cbf56ea18c2f7
   title: Providence to wind down health plan after Medicare deal fails
   summary: Providence's insurance division had looked to partner with a national carrier to continue its
@@ -1126,8 +1205,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: a73a63a0278c677c
   title: CVS raises guidance as it posts nearly $3B in profit, $106B in revenue for Q2
   summary: CVS Health is raising its guidance for the year as it blew past Wall Street analysts' expectations
@@ -1138,8 +1218,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a756a87b372278c7
   title: ELLSWORTH ASSOCIATES, LLP v. CVS HEALTH CORPORATION
   summary: 'Case 2:19-cv-02553-JMY Document 282 Filed 07/31/26 Page 1 of 39 IN THE UNITED STATES DISTRICT
@@ -1151,8 +1232,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a7b2f6a244b797b7
   title: Federal judge dismisses legal challenges to South Dakota drug discount law
   summary: A judge has ruled in favor of a South Dakota law that helps rural healthcare providers buy
@@ -1165,8 +1247,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: abc19e2e06119033
   title: United States v. Anthem, Inc.
   summary: Case 1:20-cv-02593-ALC-KHP Document 560 Filed 08/06/26 Page 1 of 29 UNITED STATES DISTRICT
@@ -1179,8 +1262,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ac09d3ec2c063c67
   title: Where prior authorization stands — and where data still falls short
   summary: Prior authorization data is now public — but it is not giving much to work with. CMS’ Interoperability
@@ -1194,8 +1278,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: ae708cc7dd179b81
   title: CMS requests updated billing information from qualifying alternative payment model participants
     to disburse payment
@@ -1210,8 +1295,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: aeebee4ef6300373
   title: Omada Health appoints Wei-Li Shao as new CEO as company ramps up GLP-1 strategy
   summary: Omada Health reported strong Q2 growth driven by demand for its integrated approach to managing
@@ -1222,8 +1308,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: af4bc1b59cf40bde
   title: Cigna, UnitedHealthcare pitch ‘level-funded’ plans to employers
   summary: '"Level-funded" plans allow employers to balance the upsides of self-insured and fully insured
@@ -1234,8 +1321,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b03bedb8ed3413d6
   title: CMS ends Medicaid, CHIP funding for gender-affirming care for minors
   summary: The Trump administration has finalized a rule that would pull funding for gender-affirming
@@ -1246,8 +1334,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b7c703222ad18b62
   title: DeepHealth gets FDA nod for AI tool that reads ultrasounds, creates reports
   summary: DeepHealth’s tool automates lesion detection, characterization and reporting from breast ultrasound
@@ -1258,8 +1347,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b8182c70782bad15
   title: CMS releases implementation timeline guidance for updates to No Surprises Act independent dispute
     resolution process
@@ -1274,8 +1364,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b83632a8e30cdbfe
   title: Nebraska, neighbors Iowa and Missouri join state list tied to cyclosporiasis outbreak
   summary: LINCOLN — Federal officials have added Nebraska to the growing list of states with residents
@@ -1288,8 +1379,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b9e251a20148f093
   title: Anthem BCBS Indiana’s ortho network is saving employers $15,000 per case
   summary: It has been about eight months since Anthem Blue Cross and Blue Shield in Indiana kicked off
@@ -1304,8 +1396,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: bd208f0ed957a2d4
   title: Medicare Advantage provider to pay $14.1M to settle false diagnosis code allegations
   summary: Jacksonville, Fla.-based management services organization Complete Health Partners Holdings
@@ -1319,8 +1412,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: c0e3394d71999c59
   title: Humana taps Johns Hopkins Health Plans CEO as Medicaid president
   summary: Humana has named James “J.P.” Holland as senior vice president and president of Medicaid, effective
@@ -1334,8 +1428,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c13ad9cb5e33ad92
   title: Farm Bills have been a farce for years. This one seems tragic
   summary: Lawmakers must stop pretending this Farm Bill works. As Charles Givens once said, “Doing more
@@ -1348,8 +1443,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c218cef5193ce497
   title: Investor lawsuit alleges UnitedHealth ignored Medicare, cyber risks
   summary: The complaint alleges that UnitedHealth shut down an internal audit program that showed problems
@@ -1360,8 +1456,9 @@ items:
   stratum: display
   predicted_tier: alert
   proposed_label: relevant_context
-  label: null
+  label: relevant_context
   note: payer + Medicare context; defensible MA implication
+  label_source: fill
 - item_id: c2c3d078ca22ee07
   title: Trump administration cuts Medicaid funding for youth gender-affirming care
   summary: CMS Administrator Dr. Mehmet Oz argues the rule will protect children from "irreversible harm."
@@ -1372,8 +1469,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c395c64d1d7cc95b
   title: Medicaid Program; Prohibition on Federal Medicaid and Children's Health Insurance Program Funding
     for Sex-Rejecting Procedures Furnished to Children
@@ -1389,8 +1487,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c3e0c17420656a0e
   title: Humana, Cityblock partnership reaches 20,000 Medicare Advantage members in North Carolina
   summary: Cityblock Health, a tech-driven provider group, has partnered with Humana to serve nearly 20,000
@@ -1404,8 +1503,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: c426ffb3be59faab
   title: Payers ranked by digital experience|2026
   summary: In 2026, Aetna offers the best digital experience among major insurers on both desktop and
@@ -1420,8 +1520,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c43176f59ce830e9
   title: Clover faces 4 lawsuits over data breach
   summary: Four possible class-action lawsuits have emerged in the wake of Clover Health’s data breach.
@@ -1435,8 +1536,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: c4befba9d17afb07
   title: Medicare Program; Alternative Payment Model (APM) Incentive Payment Advisory for Clinicians-Request
     for Current Billing Information for Qualifying APM Participants
@@ -1451,8 +1553,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: fill
 - item_id: c8a327dd79c6bbf2
   title: The thread running through payers’ and for-profit systems’ Q2 earnings
   summary: Payers and for-profit health systems alike are feeling the fallout from changes to the ACA
@@ -1466,8 +1569,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c952b4148a2d7c5a
   title: St. Luke’s, UnitedHealthcare automate 88% of claim statuses via Epic
   summary: Bethlehem, Pa.-based St. Luke’s University Health Network and UnitedHealthcare say they’ve
@@ -1482,8 +1586,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: caea5a6dd2502488
   title: 56% of employers using Big 3 PBMs consider switch
   summary: Fifty-six percent of employer clients of “Big Three” pharmacy benefit managers — CVS Caremark,
@@ -1497,8 +1602,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: cdbce592038659f7
   title: House Democrats want to win every Colorado congressional seat this year
   summary: The campaign arm for Democrats in the U.S. House of Representatives wants to flip all of Colorado’s
@@ -1511,8 +1617,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: cde619b684fbd17c
   title: CMS Ends Federal Medicaid and CHIP Funding for Sex-Rejecting Procedures for Children and Youth
   summary: CMS Ends Federal Medicaid and CHIP Funding for Sex-Rejecting Procedures for Children and Youth
@@ -1526,8 +1633,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: cea27c0b29c29efd
   title: CVS earnings boosted by Aetna as Caremark membership slips
   summary: Net income soared and revenues increased across all segments for CVS Health.
@@ -1537,8 +1645,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ceee06d68f7228a3
   title: Elevance names president for Georgia Medicaid subsidiary
   summary: Elevance Health’s Amerigroup Community Care of Georgia, a Medicaid organization, named Tich
@@ -1552,8 +1661,9 @@ items:
   stratum: display
   predicted_tier: alert
   proposed_label: relevant_context
-  label: null
+  label: relevant_context
   note: payer + Medicare context; defensible MA implication
+  label_source: fill
 - item_id: d3b5c86c20b84028
   title: Oscar flags up to 300K ACA disenrollments tied to CMS fraud crackdown
   summary: Oscar Health expects between 250,000 and 300,000 of its marketplace members to be retroactively
@@ -1567,8 +1677,9 @@ items:
   stratum: alert
   predicted_tier: alert
   proposed_label: relevant_context
-  label: null
+  label: relevant_context
   note: payer + Medicare context; defensible MA implication
+  label_source: fill
 - item_id: d8f5eade1f69b700
   title: Weiser Knoll Fire explodes on South Pass, quickly becoming Wyoming’s largest wildfire of 2026
   summary: The fast-moving blaze prompted evacuations and chewed through dozens of square miles of sagebrush-steppe
@@ -1580,8 +1691,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: dd252f5b6a8c92f1
   title: Payers ranked by prior authorization denial rates
   summary: Health insurers denied between 12% and 18% of standard prior authorization requests across
@@ -1595,8 +1707,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: dfa92c1710a6bed2
   title: Arkansas requests 2-year extension of Medicaid expansion waiver
   summary: Arkansas is seeking CMS’ approval of a two-year extension for the Section 1115 waiver enabling
@@ -1610,8 +1723,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e22c01a823e3cf1d
   title: Gov. Spanberger talks utility mega-merger on CNBC and more Virginia headlines
   summary: '• “Virginia Gov. Spanberger on intervening in NextEra-Dominion merger: The deal should benefit
@@ -1624,8 +1738,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e33d871e031c3c03
   title: Providence Health Plan to shut down after Medicare Advantage deal falls through
   summary: Providence Health Plan will completely shut down after it was unable to reach a deal with a
@@ -1639,8 +1754,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: e9242f165b3277cd
   title: Payers ranked by Q2 2026 profits
   summary: Health insurers released their second-quarter earnings from mid-July through early August,
@@ -1654,8 +1770,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ebd166ecb739205b
   title: Missouri women have fought for abortion rights for decades. They’re still fighting
   summary: “I was 25 when I started. I can’t believe I still have to fight for women’s reproductive rights
@@ -1668,8 +1785,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f1f10826ef8e0251
   title: '‘We aren’t just going to deploy AI to talk about AI’: Centene strikes a new tone amid insurers’
     automation push'
@@ -1685,8 +1803,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f604697bf4e0c007
   title: 'Honolulu Council Results: Ozawa And Gregory Head To General Election For Waikīkī Seat'
   summary: Tommy Waters was the second highest vote-getter but was deemed ineligible after ballots had
@@ -1697,8 +1816,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f6cb76a4cf181ce4
   title: Luigi Mangione expected to plead guilty in UnitedHealthcare CEO killing
   summary: The plea would come at a Friday hearing that U.S. District Judge Margaret Garnett set after
@@ -1709,8 +1829,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: fac37979561a0d2d
   title: CMS lifts enrollment suspension on Maryland Medicare Advantage plan
   summary: CMS has lifted the enrollment suspension it imposed on Provider Partners Health Plans’ Maryland
@@ -1725,5 +1846,6 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
