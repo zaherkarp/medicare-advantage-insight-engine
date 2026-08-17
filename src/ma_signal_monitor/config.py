@@ -165,11 +165,27 @@ class AppConfig:
     # Deliberately narrower than ma_context_terms: bare "Medicare" or "CMS"
     # establishes context but is not by itself evidence of an MA-market signal.
     ma_boost_terms: list[str] = field(default_factory=list)
+    # MA-eligibility gate vocabulary (taxonomy.yaml `eligibility:`), consulted by
+    # eligibility.classify_eligibility only when `ma_eligibility_gate` is on. All
+    # default empty so a config without the section (or with the flag off) leaves
+    # the gate inert. See src/ma_signal_monitor/eligibility.py.
+    eligibility_ma_specific: list[str] = field(default_factory=list)
+    eligibility_medicare_adjacent: list[str] = field(default_factory=list)
+    eligibility_negative_context: dict[str, list[str]] = field(default_factory=dict)
     scoring: ScoringConfig = field(default_factory=ScoringConfig)
     # Exclusion keywords (see scoring.py). Hard terms veto an item to score 0;
     # soft terms each subtract scoring.exclusion_penalty.
     exclusions_hard: list[str] = field(default_factory=list)
     exclusions_soft: list[str] = field(default_factory=list)
+
+    # MA-relevance eligibility gate (default OFF). When enabled, scoring computes
+    # a per-story eligibility tier (BRIEF > ALERT > DISPLAY > EXCLUDE, see
+    # eligibility.py) and applies the entity-group-dedup score correction; the
+    # briefing requires tier >= brief, the alert/webhook stream tier >= alert,
+    # and the public feed hides tier == exclude. Off => byte-identical to the
+    # pre-gate pipeline. Set MA_ELIGIBILITY_GATE=true or processing.ma_eligibility
+    # _gate: true to enable. Reversible: flip it back off or revert the PR.
+    ma_eligibility_gate: bool = False
 
     # Declared causal-layer model (config/causal_model.yaml). Both stay empty
     # unless that file is present; the Angles page reads them to rank lens
@@ -392,6 +408,8 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         sec_contact_email=os.getenv("SEC_CONTACT_EMAIL", ""),
         ingest_interval_hours=int(os.getenv("INGEST_INTERVAL_HOURS", "6")),
         web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
+        ma_eligibility_gate=os.getenv("MA_ELIGIBILITY_GATE", "false").lower()
+        in ("1", "true", "yes"),
         digest_enabled=os.getenv("DIGEST_ENABLED", "false").lower()
         in ("1", "true", "yes"),
         digest_hour=int(os.getenv("DIGEST_HOUR", "13")),
@@ -580,6 +598,16 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
     config.ma_context_terms = data.get("ma_context_terms", []) or []
     config.ma_boost_terms = data.get("ma_boost_terms", []) or []
 
+    eligibility = data.get("eligibility", {}) or {}
+    config.eligibility_ma_specific = eligibility.get("ma_specific", []) or []
+    config.eligibility_medicare_adjacent = (
+        eligibility.get("medicare_adjacent", []) or []
+    )
+    config.eligibility_negative_context = {
+        cls: list(terms or [])
+        for cls, terms in (eligibility.get("negative_context", {}) or {}).items()
+    }
+
     exclusions = data.get("exclusions", {}) or {}
     config.exclusions_hard = exclusions.get("hard", []) or []
     config.exclusions_soft = exclusions.get("soft", []) or []
@@ -625,6 +653,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     )
     config.archive_min_score = processing.get(
         "archive_min_score", config.archive_min_score
+    )
+    config.ma_eligibility_gate = processing.get(
+        "ma_eligibility_gate", config.ma_eligibility_gate
     )
     config.max_item_age_days = processing.get(
         "max_item_age_days", config.max_item_age_days

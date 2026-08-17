@@ -272,6 +272,98 @@ exclusions:
     - "abortion"
     - "mifepristone"
 
+# MA-eligibility gate vocabulary (src/ma_signal_monitor/eligibility.py).
+#
+# This is the tunable vocabulary for the two-tier eligibility gate
+# (BRIEF > ALERT > DISPLAY > EXCLUDE), evaluated *separately* from the additive
+# score so the owner's dispositions are expressed directly rather than by
+# nudging numbers. It is consulted only when the `ma_eligibility_gate` flag is
+# enabled (default off — see config/app.yaml and .env.example); with the flag
+# off nothing here is read and behaviour is unchanged. All three lists are
+# whole-token matched with the same matcher as `keywords` (so "MA" never
+# matches "Massachusetts" and "SNP" never matches "snippet").
+#
+# Design and held-out evidence live in evals/relevance/README.md and
+# evals/relevance/RESULTS_2026-08.md. The eval harness loads this same section,
+# so the shipped gate and the reproducible evaluation share one vocabulary.
+eligibility:
+  # Tier A/B — a genuine Medicare Advantage signal. Any one match => BRIEF-
+  # eligible and rescues the item from every negative class below.
+  ma_specific:
+    - "Medicare Advantage"
+    - "MA plan"
+    - "MA plans"
+    - "MA business"
+    - "MA member"
+    - "MA members"
+    - "MA bonus"
+    - "MA market"
+    - "Part C"
+    - "D-SNP"
+    - "DSNP"
+    - "C-SNP"
+    - "I-SNP"
+    - "special needs plan"
+    - "dual eligible"
+    - "dual-eligible"
+    - "Medigap"
+    - "star rating"
+    - "star ratings"
+    - "risk adjustment"
+    - "RADV"
+
+  # Broad Medicare context (NOT MA-specific). Establishes DISPLAY eligibility
+  # ("Medicare-adjacent, no MA line of business" — traditional Medicare, Part D).
+  medicare_adjacent:
+    - "Medicare"
+    - "CMS"
+    - "Centers for Medicare"
+    - "Part D"
+    - "Part B"
+    - "Medicare Part"
+
+  # Owner-designated noise classes (2026-08-15). A match EXCLUDES the item
+  # unless an MA-specific term (above) is also present — a real MA story that
+  # merely mentions Medicaid is not noise. Kept precise and multi-word to avoid
+  # over-exclusion. NB: AI-vendor "Stars" product claims are deliberately NOT a
+  # negative class — the owner chose not to exclude them (2026-08-15).
+  negative_context:
+    # Medicaid-only policy (owner: Medicaid-only is out).
+    medicaid:
+      - "Medicaid expansion"
+      - "Medicaid managed care"
+      - "Medicaid waiver"
+      - "1115 waiver"
+      - "CHIP funding"
+      - "work requirements"
+    # General CMS / non-MA rulemaking with no MA line (owner: exclude).
+    general_cms:
+      - "gender-affirming"
+      - "transgender"
+      - "No Surprises Act"
+    # Payer commercial / ACA lines (owner: exclude).
+    commercial_aca:
+      - "ACA exchange"
+      - "ACA exchanges"
+      - "Affordable Care Act"
+      - "insurance exchange"
+      - "insurance marketplace"
+      - "individual market"
+      - "level-funded"
+      - "employer plan"
+      - "commercial plan"
+      - "self-funded"
+    # Payer criminal / reputational (owner: exclude).
+    criminal:
+      - "pleads guilty"
+      - "pleaded guilty"
+      - "stalking"
+      - "indicted"
+      - "murder"
+      - "killing"
+      - "insider stock"
+      - "insider trading"
+
 # Scoring configuration
 scoring:
   keyword_match_base: 0.15
