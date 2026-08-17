@@ -63,6 +63,14 @@ class ScoredItem:
     reasons: list[ScoringReason] = field(default_factory=list)
     matched_categories: list[str] = field(default_factory=list)
     matched_entities: list[str] = field(default_factory=list)
+    # MA-eligibility gate result (populated by scoring only when the
+    # ma_eligibility_gate flag is on; None means the gate did not run, so every
+    # downstream gate treats the item as ungated). ``eligibility_tier`` is one of
+    # brief/alert/display/exclude; ``eligibility_reason`` is the one-line, human
+    # rationale persisted alongside the story for auditability. See
+    # ma_signal_monitor.eligibility.
+    eligibility_tier: str | None = None
+    eligibility_reason: str | None = None
 
 
 @dataclass

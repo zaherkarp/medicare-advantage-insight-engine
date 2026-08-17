@@ -160,6 +160,28 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
             if len(matched_entities) >= 2:
                 break
 
+    # 3a. Entity-group dedup (MA-eligibility gate only). One payer matched under
+    #     two aliases ("UnitedHealthcare" + "UnitedHealth") earns two entity
+    #     boosts (+0.40) for a single company; collapse the boost to distinct
+    #     payer groups so it counts once. A no-op (delta 0) for genuinely
+    #     distinct payers. Off by default -> scores unchanged.
+    if config.ma_eligibility_gate:
+        from ma_signal_monitor.eligibility import entity_group_delta
+        from ma_signal_monitor.payers import ALIAS_TO_GROUP
+
+        delta = entity_group_delta(
+            matched_entities, ALIAS_TO_GROUP, sc.entity_match_boost
+        )
+        if delta:
+            raw_score += delta
+            reasons.append(
+                ScoringReason(
+                    factor="entity_group_dedup",
+                    detail="collapsed payer aliases to distinct payer groups",
+                    contribution=delta,
+                )
+            )
+
     # 3b. Core MA vocabulary boost. Strong MA-plan terms ("Medicare Advantage",
     # "D-SNP", …) are direct relevance evidence independent of category
     # keywords — a story can be squarely about an MA plan without brushing any
@@ -222,12 +244,31 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
         # Clamp to [0.0, 1.0]
         final_score = min(1.0, max(0.0, raw_score))
 
+    # 6. MA-eligibility tier (gate only). Deterministic, separate from the
+    #    additive score above; persisted for audit and consulted by the
+    #    briefing/alert/display gates. Off by default -> tier stays None and no
+    #    gate acts on it. Lazy import keeps scoring <-> eligibility acyclic.
+    eligibility_tier = eligibility_reason = None
+    if config.ma_eligibility_gate:
+        from ma_signal_monitor.eligibility import (
+            classify_eligibility,
+            vocab_from_config,
+        )
+
+        elig = classify_eligibility(
+            item.title, item.summary, matched_entities, vocab_from_config(config)
+        )
+        eligibility_tier = elig.tier
+        eligibility_reason = elig.reasons[0] if elig.reasons else None
+
     return ScoredItem(
         item=item,
         relevance_score=round(final_score, 3),
         reasons=reasons,
         matched_categories=matched_categories,
         matched_entities=matched_entities,
+        eligibility_tier=eligibility_tier,
+        eligibility_reason=eligibility_reason,
     )
 
 

@@ -122,7 +122,15 @@ on the owner-labeled holdout:
       surfaced stream 62% → ~22%; must-catch brief recall 75% → 100%. Clears the
       precision-filter bar; does not replace editorial curation; text-only recall
       blind spot on source-curated litigation surfaced.
-- [ ] **Follow-up PR: wire the gate behind a default-off flag** ← next, as an
-      eligibility/precision filter, with a source-tier rule for the FCA/MA feeds
-      and a borderline adjudicator for the brief-vs-display call as documented
-      next steps.
+- [x] **Follow-up PR: wire the gate behind a default-off flag.** The gate is
+      promoted into the package (`src/ma_signal_monitor/eligibility.py`) with its
+      vocabulary in `config/taxonomy.yaml`; this module is now a thin shim over
+      it, so the evaluation stays reproducible against one source of truth. Wired
+      behind `ma_eligibility_gate` (default off): briefing requires tier=brief,
+      alerts tier>=alert, the public feed hides tier=exclude, and the payer-alias
+      score dedup is applied. Off => byte-identical.
+- [ ] **Next (separate PRs):** a source-tier trust rule for the curated FCA/MA
+      litigation feeds (the text-only recall blind spot — e.g. *US v. Anthem*
+      RADV scored 0.26 and was missed), and a borderline LLM/classifier
+      adjudicator for the "briefing-worthy vs merely MA-relevant" editorial call
+      the deterministic gate can't make (it briefs 16, the owner keeps 4).

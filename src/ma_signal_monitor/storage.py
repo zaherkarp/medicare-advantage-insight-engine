@@ -103,7 +103,14 @@ CREATE TABLE IF NOT EXISTS stories (
     -- threshold moves over time as taxonomy.yaml is tuned, so this snapshot
     -- is what makes a later "was this alert-worthy" judgment meaningful.
     -- Added by _ensure_column.
-    threshold_at_score REAL
+    threshold_at_score REAL,
+    -- MA-eligibility gate result at scoring time (NULL when the
+    -- ma_eligibility_gate flag was off, i.e. the gate did not run). tier is one
+    -- of brief/alert/display/exclude; reason is the one-line audit rationale.
+    -- The briefing requires tier=brief, the alert stream tier>=alert, and the
+    -- public display floor hides tier=exclude. Added by _ensure_column.
+    eligibility_tier TEXT,
+    eligibility_reason TEXT
 );
 
 -- Generated Daily Briefing digests, archived for the /briefing page and so
@@ -203,12 +210,37 @@ CREATE INDEX IF NOT EXISTS idx_source_fetch_log_run ON source_fetch_log(run_id);
 """
 
 
+# MA-eligibility gate SQL fragments (applied only when store.eligibility_gate is
+# on). The display floor hides owner-designated noise (tier 'exclude') from the
+# public surfaces but leaves NULL-tier rows — scored before the gate ran —
+# visible, so enabling the flag never retroactively hides the existing archive.
+# The brief floor is the stricter briefing bar (an affirmative brief tier; NULL
+# does not qualify).
+_DISPLAY_FLOOR_CLAUSE = "(eligibility_tier IS NULL OR eligibility_tier != 'exclude')"
+_BRIEF_FLOOR_CLAUSE = "eligibility_tier = 'brief'"
+
+
 class StateStore:
     """SQLite-backed state store for the application."""
 
-    def __init__(self, db_path: str | Path, read_only: bool = False):
+    def __init__(
+        self,
+        db_path: str | Path,
+        read_only: bool = False,
+        eligibility_gate: bool = False,
+    ):
         self.db_path = Path(db_path)
         self.read_only = read_only
+        # When True, the public-facing read methods hide stories the
+        # MA-eligibility gate marked ``eligibility_tier = 'exclude'`` (the
+        # display floor), and the digest fetch (get_recent_top_stories) requires
+        # ``eligibility_tier = 'brief'``. Rows scored before the gate ran carry a
+        # NULL tier and are never hidden, so flipping the flag on is
+        # non-destructive to the existing archive. Default False keeps every
+        # existing StateStore construction byte-identical. Set from
+        # config.ma_eligibility_gate at the product entry points (web app,
+        # static export, digest).
+        self.eligibility_gate = eligibility_gate
         self.fts_enabled = False
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
@@ -263,6 +295,12 @@ class StateStore:
         )
         self._ensure_column("stories", "scoring_breakdown", "TEXT")
         self._ensure_column("stories", "threshold_at_score", "REAL")
+        self._ensure_column("stories", "eligibility_tier", "TEXT")
+        self._ensure_column("stories", "eligibility_reason", "TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_stories_eligibility "
+            "ON stories(eligibility_tier)"
+        )
         self._ensure_column("delivery_log", "item_id", "TEXT")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_delivery_log_item_id "
@@ -422,8 +460,9 @@ class StateStore:
                (item_id, title, link, source_name, source_priority, summary,
                 published_date, fetched_at, relevance_score, primary_category,
                 categories, entities, states, public_draft, duplicate_of,
-                scoring_breakdown, threshold_at_score)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                scoring_breakdown, threshold_at_score,
+                eligibility_tier, eligibility_reason)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 item.item_id,
                 item.title,
@@ -442,6 +481,8 @@ class StateStore:
                 duplicate_of,
                 json.dumps([asdict(r) for r in scored.reasons]),
                 threshold_at_score,
+                scored.eligibility_tier,
+                scored.eligibility_reason,
             ),
         )
         if self.fts_enabled:
@@ -519,6 +560,7 @@ class StateStore:
             if not match:
                 return []
             score_clause = " AND COALESCE(s.relevance_score, 0) >= ?" if floored else ""
+            elig_clause = self._display_floor_sql("s.")
             params = (
                 (match, min_score, limit, offset)
                 if floored
@@ -531,12 +573,13 @@ class StateStore:
             return conn.execute(
                 f"""SELECT s.* FROM stories_fts f
                    JOIN stories s ON s.item_id = f.item_id
-                   WHERE stories_fts MATCH ?{score_clause}
+                   WHERE stories_fts MATCH ?{score_clause}{elig_clause}
                    ORDER BY rank LIMIT ? OFFSET ?""",
                 params,
             ).fetchall()
         like = f"%{query.strip()}%"
         score_clause = " AND COALESCE(relevance_score, 0) >= ?" if floored else ""
+        elig_clause = self._display_floor_sql()
         params = (
             (like, like, min_score, limit, offset)
             if floored
@@ -549,7 +592,7 @@ class StateStore:
         )
         return conn.execute(
             f"""SELECT * FROM stories
-               WHERE (title LIKE ? OR summary LIKE ?){score_clause}
+               WHERE (title LIKE ? OR summary LIKE ?){score_clause}{elig_clause}
                ORDER BY COALESCE(published_date, fetched_at) DESC
                LIMIT ? OFFSET ?""",
             params,
@@ -563,13 +606,17 @@ class StateStore:
             match = self._fts_query(query)
             if not match:
                 return 0
-            if floored:
+            elig_clause = self._display_floor_sql("s.")
+            if floored or elig_clause:
+                score_clause = (
+                    " AND COALESCE(s.relevance_score, 0) >= ?" if floored else ""
+                )
+                params = (match, min_score) if floored else (match,)
                 return conn.execute(
-                    """SELECT COUNT(*) FROM stories_fts f
+                    f"""SELECT COUNT(*) FROM stories_fts f
                        JOIN stories s ON s.item_id = f.item_id
-                       WHERE stories_fts MATCH ?
-                         AND COALESCE(s.relevance_score, 0) >= ?""",
-                    (match, min_score),
+                       WHERE stories_fts MATCH ?{score_clause}{elig_clause}""",
+                    params,
                 ).fetchone()[0]
             return conn.execute(
                 "SELECT COUNT(*) FROM stories_fts WHERE stories_fts MATCH ?",
@@ -577,10 +624,11 @@ class StateStore:
             ).fetchone()[0]
         like = f"%{query.strip()}%"
         score_clause = " AND COALESCE(relevance_score, 0) >= ?" if floored else ""
+        elig_clause = self._display_floor_sql()
         params = (like, like, min_score) if floored else (like, like)
         return conn.execute(
             f"SELECT COUNT(*) FROM stories WHERE (title LIKE ? OR summary LIKE ?)"
-            f"{score_clause}",
+            f"{score_clause}{elig_clause}",
             params,
         ).fetchone()[0]
 
@@ -608,7 +656,12 @@ class StateStore:
         """
         conn = self._get_conn()
         where, params = self._story_filters(
-            category, state, min_score, entity_aliases, since=since
+            category,
+            state,
+            min_score,
+            entity_aliases,
+            since=since,
+            exclude_ineligible=self.eligibility_gate,
         )
         if self.fts_enabled:
             match = self._fts_query(query)
@@ -650,7 +703,12 @@ class StateStore:
         """Count matches for :meth:`search_stories_filtered` (for pagination)."""
         conn = self._get_conn()
         where, params = self._story_filters(
-            category, state, min_score, entity_aliases, since=since
+            category,
+            state,
+            min_score,
+            entity_aliases,
+            since=since,
+            exclude_ineligible=self.eligibility_gate,
         )
         if self.fts_enabled:
             match = self._fts_query(query)
@@ -684,6 +742,7 @@ class StateStore:
         source_prefix: str | None = None,
         include_duplicates: bool = False,
         since: str | None = None,
+        exclude_ineligible: bool = False,
     ) -> tuple[str, list]:
         """Build a shared WHERE clause for story queries.
 
@@ -692,6 +751,11 @@ class StateStore:
         taxonomy keyword and no watched entity — stays out of the public views
         while remaining in the archive. A ``min_score`` of 0.0 (the default)
         adds no clause, so unfiltered callers behave exactly as before.
+
+        ``exclude_ineligible`` applies the MA-eligibility gate's public display
+        floor (see :data:`_DISPLAY_FLOOR_CLAUSE`): stories the gate marked
+        ``eligibility_tier = 'exclude'`` are hidden, while NULL-tier rows (scored
+        before the gate ran) stay visible. Default False adds no clause.
 
         ``entity_aliases`` matches stories mentioning ANY of the given watched
         entities (the payer pages pass a canonical group's aliases).
@@ -733,10 +797,27 @@ class StateStore:
             # NULL scores are treated as 0 so they never slip past the floor.
             clauses.append("COALESCE(relevance_score, 0) >= ?")
             params.append(min_score)
+        if exclude_ineligible:
+            clauses.append(_DISPLAY_FLOOR_CLAUSE)
         if not include_duplicates:
             clauses.append("duplicate_of IS NULL")
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         return where, params
+
+    def _display_floor_sql(self, prefix: str = "") -> str:
+        """`` AND <display floor>`` when the eligibility gate is on, else ``''``.
+
+        For the hand-rolled queries that don't go through :meth:`_story_filters`
+        (search, state/entity counts, facets). ``prefix`` is a table alias like
+        ``"s."`` for the FTS-join queries. Takes no bind parameter, so it can be
+        appended to a WHERE clause without disturbing the params tuple.
+        """
+        if not self.eligibility_gate:
+            return ""
+        return (
+            f" AND ({prefix}eligibility_tier IS NULL "
+            f"OR {prefix}eligibility_tier != 'exclude')"
+        )
 
     def get_stories(
         self,
@@ -766,6 +847,7 @@ class StateStore:
             source_prefix,
             include_duplicates,
             since,
+            exclude_ineligible=self.eligibility_gate and not include_duplicates,
         )
         rows = conn.execute(
             f"""SELECT * FROM stories{where}
@@ -795,6 +877,7 @@ class StateStore:
             source_prefix,
             include_duplicates,
             since,
+            exclude_ineligible=self.eligibility_gate and not include_duplicates,
         )
         row = conn.execute(f"SELECT COUNT(*) FROM stories{where}", params).fetchone()
         return row[0]
@@ -862,11 +945,15 @@ class StateStore:
         if until is not None:
             until_clause = " AND COALESCE(published_date, fetched_at) < ?"
             params.append(until.isoformat())
+        # Briefing bar (MA-eligibility gate only): require an affirmative brief
+        # tier on top of the score floor. Additive/strict — it only removes rows,
+        # so the digest can never surface something the score floor already hid.
+        brief_clause = f" AND {_BRIEF_FLOOR_CLAUSE}" if self.eligibility_gate else ""
         rows = conn.execute(
             f"""SELECT * FROM stories
                WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
                  AND relevance_score >= ?
-                 AND duplicate_of IS NULL
+                 AND duplicate_of IS NULL{brief_clause}
                ORDER BY relevance_score DESC,
                         COALESCE(published_date, fetched_at) DESC
                LIMIT ?""",
@@ -899,6 +986,7 @@ class StateStore:
         if until is not None:
             until_clause = " AND COALESCE(published_date, fetched_at) < ?"
             params.append(until.isoformat())
+        elig_clause = self._display_floor_sql()
         rows = conn.execute(
             f"""SELECT item_id, title, link, source_name, published_date,
                        fetched_at, relevance_score, primary_category,
@@ -906,7 +994,7 @@ class StateStore:
                   FROM stories
                  WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
                    AND relevance_score >= ?
-                   AND duplicate_of IS NULL
+                   AND duplicate_of IS NULL{elig_clause}
                  ORDER BY relevance_score DESC,
                           COALESCE(published_date, fetched_at) DESC""",
             (*params, min_score),
@@ -1114,6 +1202,7 @@ class StateStore:
         if min_score > 0.0:
             sql += " AND COALESCE(relevance_score, 0) >= ?"
             params = (min_score,)
+        sql += self._display_floor_sql()
         counts: dict[str, int] = {}
         for row in conn.execute(sql, params):
             for code in json.loads(row[0] or "[]"):
@@ -1134,6 +1223,7 @@ class StateStore:
         if min_score > 0.0:
             sql += " AND COALESCE(relevance_score, 0) >= ?"
             params = (min_score,)
+        sql += self._display_floor_sql()
         counts: dict[str, int] = {}
         for row in conn.execute(sql, params):
             for alias in json.loads(row[0] or "[]"):
@@ -1152,7 +1242,11 @@ class StateStore:
         """
         conn = self._get_conn()
         where, params = self._story_filters(
-            None, None, min_score, entity_aliases=entity_aliases
+            None,
+            None,
+            min_score,
+            entity_aliases=entity_aliases,
+            exclude_ineligible=self.eligibility_gate,
         )
         categories: dict[str, int] = {}
         states: dict[str, int] = {}
@@ -1187,7 +1281,11 @@ class StateStore:
         now = now or datetime.utcnow()
         conn = self._get_conn()
         where, params = self._story_filters(
-            None, None, min_score, entity_aliases=entity_aliases
+            None,
+            None,
+            min_score,
+            entity_aliases=entity_aliases,
+            exclude_ineligible=self.eligibility_gate,
         )
         cutoff = (week_start(now) - timedelta(weeks=weeks - 1)).isoformat()
         clause = " AND " if where else " WHERE "
@@ -1230,7 +1328,11 @@ class StateStore:
         now = now or datetime.utcnow()
         conn = self._get_conn()
         where, params = self._story_filters(
-            category, None, min_score, entity_aliases=entity_aliases
+            category,
+            None,
+            min_score,
+            entity_aliases=entity_aliases,
+            exclude_ineligible=self.eligibility_gate,
         )
         cutoff = (now.date() - timedelta(days=days - 1)).isoformat()
         clause = " AND " if where else " WHERE "
@@ -1266,7 +1368,13 @@ class StateStore:
         erroring.
         """
         conn = self._get_conn()
-        where, params = self._story_filters(category, state, min_score, entity_aliases)
+        where, params = self._story_filters(
+            category,
+            state,
+            min_score,
+            entity_aliases,
+            exclude_ineligible=self.eligibility_gate,
+        )
         row = conn.execute(
             f"SELECT MIN(COALESCE(published_date, fetched_at)) AS oldest "
             f"FROM stories{where}",
