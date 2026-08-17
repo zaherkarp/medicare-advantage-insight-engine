@@ -103,6 +103,13 @@ main { padding: 28px 20px 60px; min-height: 60vh; }
 .badge-tag { background: #eef1f5; color: #51607a; }
 .badge-on { background: #e6f6ee; color: #1b8a52; }
 .badge-off { background: #fbeaea; color: #b23b3b; }
+/* MA-eligibility tier (shown on the story page when the gate is on). */
+.badge-eligibility { background: #eef1f5; color: #51607a; text-transform: uppercase; letter-spacing: .03em; }
+.badge-eligibility-brief { background: #e6f6ee; color: #1b8a52; }
+.badge-eligibility-alert { background: #fff4e0; color: #a8630a; }
+.badge-eligibility-display { background: #eef1f5; color: #51607a; }
+.badge-eligibility-exclude { background: #fbeaea; color: #b23b3b; }
+.eligibility-reason { margin: 6px 0 0; }
 a.badge:hover { text-decoration: none; opacity: 0.85; }
 
 /* Feed filter bar — topics/states/payers as navigable tags */

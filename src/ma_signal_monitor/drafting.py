@@ -8,6 +8,7 @@ import logging
 
 from ma_signal_monitor.classify import classify_item, get_category_label
 from ma_signal_monitor.config import AppConfig
+from ma_signal_monitor.eligibility import eligible_for
 from ma_signal_monitor.models import (
     Alert,
     InternalAlert,
@@ -240,15 +241,24 @@ def draft_alerts(scored_items: list[ScoredItem], config: AppConfig) -> list[Aler
     """
     alerts = []
     for scored in scored_items:
-        if scored.relevance_score >= config.min_relevance_score:
-            try:
-                alerts.append(draft_alert(scored, config))
-            except Exception as e:
-                logger.warning(
-                    "Failed to draft alert for '%s': %s",
-                    scored.item.title[:50],
-                    e,
-                )
+        if scored.relevance_score < config.min_relevance_score:
+            continue
+        # MA-eligibility gate (default off): the push/webhook alert stream
+        # additionally requires tier >= alert, so owner-designated noise
+        # (tier 'exclude') and display-only items never fire an alert. Additive
+        # to the score threshold — off => byte-identical.
+        if config.ma_eligibility_gate and not eligible_for(
+            scored.eligibility_tier or "", "alert"
+        ):
+            continue
+        try:
+            alerts.append(draft_alert(scored, config))
+        except Exception as e:
+            logger.warning(
+                "Failed to draft alert for '%s': %s",
+                scored.item.title[:50],
+                e,
+            )
 
     logger.info(
         "Drafted %d alerts from %d scored items", len(alerts), len(scored_items)

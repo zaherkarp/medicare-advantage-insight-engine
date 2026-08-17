@@ -7,7 +7,12 @@
       <span class="source">{{ story.source_name }}</span>
       {% if story.display_date %}<span class="date">{{ story.display_date }}</span>{% endif %}
       <span class="score">relevance {{ '%.2f'|format(story.relevance_score) }}</span>
+      {% if story.eligibility_tier %}<span class="badge badge-eligibility badge-eligibility-{{ story.eligibility_tier }}">MA {{ story.eligibility_tier }}</span>{% endif %}
     </div>
+
+    {% if story.eligibility_reason %}
+      <p class="eligibility-reason muted">MA-eligibility: {{ story.eligibility_reason }}</p>
+    {% endif %}
 
     <h1>{{ story.title }}</h1>
 

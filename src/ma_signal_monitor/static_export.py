@@ -264,6 +264,12 @@ def build_site(
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
+    # Apply the MA-eligibility display floor to the export's own store reads
+    # (counts, story-page and search-index crawls) when the flag is on, so the
+    # published site mirrors the live feed. create_app sets the same flag for
+    # the rendered routes. Default-off => byte-identical export.
+    store.eligibility_gate = config.ma_eligibility_gate
+
     page_size = max(1, config.web_page_size)
     # Public archive floor: sub-floor stories (pure source-priority noise) are
     # kept in the DB but never rendered as pages, linked, counted, or indexed

@@ -112,6 +112,10 @@ def _story_view(row: sqlite3.Row) -> dict:
         "public_draft": json.loads(row["public_draft"])
         if row["public_draft"]
         else None,
+        # MA-eligibility gate audit (NULL when the gate didn't run). Surfaced on
+        # the story page so every kept/dropped decision is defensible.
+        "eligibility_tier": row["eligibility_tier"],
+        "eligibility_reason": row["eligibility_reason"],
     }
 
 

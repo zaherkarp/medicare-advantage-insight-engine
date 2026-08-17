@@ -342,7 +342,12 @@ def main() -> None:
     if len(sys.argv) > 1:
         root = Path(sys.argv[1])
     config = load_config(root)
-    store = StateStore(root / config.db_path)
+    # The briefing bar (tier=brief) is applied by get_recent_top_stories when
+    # the store carries the eligibility gate; mirror the flag here so the CLI
+    # digest matches the web-scheduler digest (which uses the gated app store).
+    store = StateStore(
+        root / config.db_path, eligibility_gate=config.ma_eligibility_gate
+    )
     try:
         digest = generate_digest(config, store, send=True)
         print(

@@ -46,6 +46,10 @@ def create_app(
     """
     app = FastAPI(title="MA Signal Monitor", docs_url=None, redoc_url=None)
     app.state.config = config
+    # Apply the MA-eligibility display floor (hide tier 'exclude') to every
+    # public read this store serves, when the flag is on. Default-off leaves the
+    # store byte-identical. See StateStore.eligibility_gate.
+    store.eligibility_gate = config.ma_eligibility_gate
     app.state.store = store
 
     templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
