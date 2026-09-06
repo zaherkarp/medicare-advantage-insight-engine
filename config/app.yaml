@@ -101,9 +101,19 @@ timeline:
     # ungrouped climbs steeply for little purity gain. Largest-thread share
     # never binds on real data (2.1% at 0.13 -- no chaining).
     #
-    # To re-run after the archive grows, fetch it the same way deploy-pages.yml
-    # does and point the script at it:
-    #   curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db -o /tmp/prod.db
+    # To re-run after the archive grows, get a copy of the production DB and
+    # point the script at it. The archive is no longer publicly downloadable
+    # (it used to round-trip through the published Pages site, which also
+    # meant anyone could fetch it -- see the "Restore archive DB from cache"
+    # step in deploy-pages.yml); it now lives only in that workflow's
+    # actions/cache entries, which are private to this repo. Options:
+    #   - Add a temporary debug step to a deploy-pages.yml run that uploads
+    #     data/state.db via actions/upload-artifact, download it from that
+    #     run, then remove the step.
+    #   - `gh cache list` (needs the `gh` CLI's actions-cache extension, or
+    #     the REST API) can locate the current state-db-* cache entry, though
+    #     the API's supported way to fetch cache *contents* directly is more
+    #     limited than a plain download.
     #   python scripts/calibrate_threads.py --db /tmp/prod.db --days 30
     similarity_threshold: 0.13
     # A cluster needs at least this many stories to show as its own thread row;

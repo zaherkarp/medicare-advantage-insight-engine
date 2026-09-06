@@ -5,8 +5,11 @@ Usage:
     python scripts/scorecard.py            # test-suite metrics only (S1, S2, S3, Q1)
     python scripts/scorecard.py --db PATH  # also archive metrics (C2, F1, F3, N1)
 
-The archive DB for --db is typically a fresh download of the published site's
+The archive DB for --db is typically a fresh copy of production's
 data/state.db, so the numbers reflect production, not a local dev database.
+As of the actions/cache persistence change in deploy-pages.yml, that DB is no
+longer publicly downloadable; see the note in scripts/calibrate_threads.py's
+docstring for how to pull a copy via a temporary workflow artifact upload.
 Feature metrics (C1, C3, Q2, U1) are assessed manually — see docs/goal.md.
 
 N1 (display-floor composition) is not yet a docs/goal.md row — it was added to

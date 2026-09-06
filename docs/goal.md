@@ -52,9 +52,11 @@ Binding on every iteration, no exceptions:
    hand-reviewed mined keywords may drive config changes, and always via a
    reviewable PR diff.
 3. **Schema changes must migrate the existing `state.db` in place.** The
-   published Pages DB is carried forward by `deploy-pages.yml`; a breaking
-   schema change silently destroys the production archive. Follow the guarded
-   `ALTER TABLE` migration pattern in `storage.py`.
+   production DB is carried forward by `deploy-pages.yml` (via an
+   `actions/cache` entry, not by publishing it — see
+   [operations.md](operations.md#archive-restore-safety-deploy-pagesyml));
+   a breaking schema change silently destroys the production archive. Follow
+   the guarded `ALTER TABLE` migration pattern in `storage.py`.
 4. **No paid dependencies** (LLM APIs included) without an explicit owner
    decision — the app is deliberately free and local.
    **Amended 2026-08-08 (owner decision): scoped exemption for research.** Paid

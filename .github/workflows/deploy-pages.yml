@@ -31,8 +31,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     env:
-      # Project Pages live under /<repo>; the archive DB is restored from the
-      # previously published site so it accumulates across runs.
+      # Project Pages live under /<repo>. PAGES_URL feeds PUBLIC_BASE_URL for
+      # the Daily Briefing digest's absolute links below; it is NOT how the
+      # archive DB is restored or persisted (see "Restore archive DB from
+      # cache" / "Save archive DB to cache" below). The DB used to round-trip
+      # through this URL, but it is no longer published at all, so that path
+      # stopped existing rather than merely moving.
       STATIC_BASE_PATH: /${{ github.event.repository.name }}
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
       WEBHOOK_MODE: test
@@ -55,76 +59,63 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[web]"
 
-      - name: Restore archive DB from the published site
+      - name: Restore archive DB from cache
+        id: restore-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: data/state.db
+          # Every run's primary key embeds this run's own id (run_attempt
+          # disambiguates a manual re-run of the same run_id), so it can
+          # never already exist when this step executes — which means the
+          # later save step is never a same-key no-op (see that step for why
+          # that matters). restore-keys is what does the actual restoring:
+          # since the primary key can never hit, restore always falls
+          # through to the prefix match, which the cache backend resolves to
+          # the MOST RECENTLY CREATED entry under that prefix, i.e. whatever
+          # this workflow saved last run. That pairing (a save key that can
+          # never collide, a restore that always finds the newest) is the
+          # standard "rolling cache" idiom for state that should accumulate
+          # across every run.
+          key: state-db-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            state-db-
+
+      - name: Validate restored archive (or confirm a genuine cold start)
+        env:
+          MATCHED_KEY: ${{ steps.restore-cache.outputs.cache-matched-key }}
         run: |
-          mkdir -p data
-
-          # Probe first so a genuine "nothing published yet" (404) can be told
-          # apart from "the archive exists but I failed to fetch it" — a plain
-          # curl failure used to collapse both into "start fresh", which meant
-          # a transient Pages/CDN error would silently proceed with an empty
-          # DB and later overwrite the real production archive. No -f here:
-          # we want the actual status code, not curl failing on a 4xx/5xx.
-          #
-          # A 404 is the one status that lets the run proceed without a DB, so
-          # it's the one a false positive would be fatal on: `compare` can't
-          # catch it either, since a cold start has no prior row count to
-          # compare against. Pages serves this file from a CDN and swaps the
-          # whole site on each deploy, so a probe landing mid-swap can 404 for
-          # an archive that really exists. Require the 404 to be stable across
-          # spaced attempts before believing it; a genuine cold start stays
-          # 404 on every attempt, while a swap-window blip resolves.
-          # curl already prints 000 via -w on a connection-level failure, so
-          # assign-then-default rather than `|| echo` (which would concatenate
-          # a second 000 onto curl's own).
-          #
-          # -L is required, not optional. PAGES_URL is built from
-          # <owner>.github.io/<repo>, but a repo with a custom domain configured
-          # answers that host with a 301 to the custom domain — so without -L
-          # the probe reports 301, the "unexpected status" branch fires, and the
-          # deploy aborts on every run even though the archive is fine. The
-          # download below already uses -L; the probe has to agree with it or it
-          # is answering a different question than the one that matters.
-          # %{http_code} reports the status after redirects are followed.
-          probe() {
-            local code
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -I -L \
-              "$PAGES_URL/data/state.db" 2>/dev/null) || code="000"
-            printf '%s' "${code:-000}"
-          }
-
-          status="$(probe)"
-          if [ "$status" = "404" ]; then
-            for attempt in 1 2 3; do
-              sleep 10
-              status="$(probe)"
-              echo "Re-probe $attempt/3 after initial 404: HTTP $status"
-              [ "$status" = "404" ] || break
-            done
-          fi
-
-          if [ "$status" = "404" ]; then
-            echo "No prior archive published (404 on 4 spaced probes) — legitimate cold start. Starting fresh."
+          # `cache-hit` (exact match) is meaningless here by construction:
+          # the primary key above always embeds this run's own id, so it can
+          # never already exist. `cache-matched-key` is the real signal —
+          # set when actions/cache/restore fell through to restore-keys and
+          # found *some* prior entry, empty when it found nothing at all.
+          if [ -z "$MATCHED_KEY" ]; then
+            # A cache miss here means either this is genuinely the first run
+            # ever, or every prior state-db-* entry has aged out (GitHub
+            # evicts a cache entry 7 days after it was last restored FROM;
+            # this rolling scheme only ever restores from the single newest
+            # entry, so every older one stops being touched the moment a
+            # newer save lands and ages out on its own clock — see the save
+            # step). Either way, this is the one case where a miss is
+            # allowed to be silent: there is no prior archive to have lost.
+            echo "No cached archive found (cache-matched-key empty) -- legitimate cold start. Starting fresh."
             echo "ARCHIVE_ROWS_BEFORE=0" >> "$GITHUB_ENV"
-          elif [ "$status" != "200" ]; then
-            echo "::error::Archive probe for $PAGES_URL/data/state.db returned HTTP $status (expected 200 or 404)."
-            echo "Aborting deliberately: proceeding would risk ingesting into an empty/partial DB and then overwriting the real published archive at publish time."
-            exit 1
           else
-            tmp_db="$(mktemp)"
-            if ! curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --max-time 180 \
-                 "$PAGES_URL/data/state.db" -o "$tmp_db"; then
-              echo "::error::Failed to download the published archive after retries, even though it exists (HTTP 200 on probe)."
-              echo "Aborting deliberately: proceeding with no/partial archive would overwrite the real production archive at publish time."
+            # A match was found and actions/cache/restore has already
+            # downloaded it to data/state.db; a transport-level failure at
+            # this point (corrupt download, truncated segment) fails this
+            # step outright rather than silently reporting a miss, so
+            # reaching this branch means the bytes on disk are genuinely
+            # what the cache held. Still run the same on-disk integrity
+            # check the old HTTP-restore path used, since that check exists
+            # to catch a bad SAVE (a corrupt DB written by a prior run), not
+            # just a bad transfer.
+            if ! rows=$(python scripts/archive_guard.py validate data/state.db); then
+              echo "::error::Cached archive (key: $MATCHED_KEY) failed validation (corrupt, truncated, or missing the core table)."
+              echo "Aborting deliberately: proceeding with a broken archive would overwrite the real production archive at save time."
               exit 1
             fi
-            if ! rows=$(python scripts/archive_guard.py validate "$tmp_db"); then
-              echo "::error::Downloaded archive failed validation (corrupt, truncated, or missing the core table)."
-              echo "Aborting deliberately: proceeding with a broken archive would overwrite the real production archive at publish time."
-              exit 1
-            fi
-            mv "$tmp_db" data/state.db
-            echo "Restored prior archive ($rows rows, $(stat -c%s data/state.db) bytes)."
+            echo "Restored prior archive from cache (key: $MATCHED_KEY, $rows rows, $(stat -c%s data/state.db) bytes)."
             echo "ARCHIVE_ROWS_BEFORE=$rows" >> "$GITHUB_ENV"
           fi
 
@@ -161,11 +152,25 @@ jobs:
           python scripts/build_static.py --base-path "$STATIC_BASE_PATH" --out site
           # Last line of defense: refuse to publish if the archive shrank
           # catastrophically since the restore step (see archive_guard.py for
-          # the tolerance and the retention-pruning evidence behind it).
+          # the tolerance and the retention-pruning evidence behind it). This
+          # exits nonzero on catastrophic shrink, which fails this step and,
+          # by design, skips the save step below — a shrunk archive must
+          # never become the next run's restore point.
           python scripts/archive_guard.py compare --before "$ARCHIVE_ROWS_BEFORE" --after data/state.db
-          # Persist the DB inside the published site so the next run restores it.
-          mkdir -p site/data
-          cp data/state.db site/data/state.db
+
+      - name: Save archive DB to cache
+        # Deliberately no `if:` override here (default is `if: success()`),
+        # so a failure anywhere above — ingest, backfill, digest, build, or
+        # the archive_guard.py compare shrink-guard — skips this step
+        # exactly like it always skipped the old `cp` into site/. Saving
+        # unconditionally (`if: always()`) would persist a catastrophically
+        # shrunk or corrupt archive forward into the next run's restore
+        # point, which is the one thing archive_guard.py compare exists to
+        # prevent.
+        uses: actions/cache/save@v5
+        with:
+          path: data/state.db
+          key: state-db-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
