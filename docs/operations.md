@@ -257,19 +257,48 @@ storage:
 
 ## Archive-Restore Safety (`deploy-pages.yml`)
 
-The production `stories` archive lives only inside the published GitHub Pages
-site — each `deploy-pages.yml` run downloads it, ingests into it, and
-republishes it. A failed or partial download used to be indistinguishable
-from "no archive has ever been published," so a transient Pages/CDN error
-could silently proceed with an empty DB and overwrite the real archive.
+The production `stories` archive lives only inside a GitHub Actions cache
+entry — each `deploy-pages.yml` run restores it, ingests into it, and saves
+it back under a fresh cache key. **It is not published inside the site.**
+That was tried first (`cp data/state.db site/data/state.db`, so the next
+run's restore was a plain unauthenticated `curl` against the published URL)
+and dropped as a security fix: it made the whole archive — including
+`source_fetch_log` and `delivery_log`, an unreviewed operational dump, not
+just the story content already shown on the site — a public download,
+republished every two hours to anyone who found the URL, with no review step
+in between. `actions/cache` gives the same across-run persistence, private to
+this repo, with no publish step to accidentally widen later.
 
-The restore step now tells those cases apart deliberately:
+The restore step tells a genuine cold start apart from a failed restore
+deliberately, the same distinction the old HTTP probe-then-download dance
+existed to make, now for a different transport:
 
-- **Genuine cold start** (HTTP 404 on four spaced HEAD probes): proceeds with no DB, as before. The 404 must be *stable* — it is the only status that lets the run continue without an archive, and `compare` cannot catch a false positive here (a cold start has no prior row count to compare against). Pages swaps the whole site on each deploy, so a single probe landing mid-swap can 404 for an archive that really exists; a real cold start stays 404 on every attempt.
-- **Archive exists but can't be fetched or fails validation** (`scripts/archive_guard.py validate` — integrity check + core-table check): the job **fails on purpose** rather than continue. Proceeding is exactly what destroys the archive.
-- As a second checkpoint, the "Build static site" step runs `archive_guard.py compare` before overwriting the published DB, and fails the job instead of publishing if the row count dropped catastrophically.
+- **Genuine cold start** (`actions/cache/restore`'s `cache-matched-key`
+  output comes back empty — no `state-db-*` entry exists at all, whether
+  because this is the first run ever or every prior entry aged out): proceeds
+  with no DB, as before. This is the only case that's allowed to be silent,
+  since `compare` can't catch a false positive either way — a cold start has
+  no prior row count to compare against.
+- **A matched cache entry fails validation** (`scripts/archive_guard.py
+  validate` — integrity check + core-table check): the job **fails on
+  purpose** rather than continue. A transport-level failure (corrupt or
+  truncated download) already fails the restore step itself before this
+  check ever runs; this check is the second layer, catching a bad *save*
+  from a prior run rather than a bad transfer. Proceeding either way is
+  exactly what destroys the archive.
+- As a second checkpoint, the "Build static site" step still runs
+  `archive_guard.py compare` before the save step persists the DB forward,
+  and fails the job — which also skips the save step — instead of persisting
+  if the row count dropped catastrophically.
 
-If a run fails at either checkpoint, no data was lost — the previously
-published archive is untouched. Just re-run the workflow (`workflow_dispatch`
-or wait for the next schedule) once GitHub Pages/Actions is healthy again;
-the next successful restore picks up right where the archive left off.
+If a run fails at either checkpoint, no data was lost — the cache entry from
+the last successful run is untouched (a failed run never reaches its own save
+step). Just re-run the workflow (`workflow_dispatch` or wait for the next
+schedule); the next successful restore picks up right where the archive left
+off.
+
+Need a copy of the production DB for local analysis (calibration, evals —
+see `scripts/calibrate_threads.py` and `evals/relevance/README.md`)? It's no
+longer a plain `curl`. Add a temporary `actions/upload-artifact` step to a
+`deploy-pages.yml` run that uploads `data/state.db`, download the resulting
+run artifact, then remove the step.

@@ -63,7 +63,7 @@ distinct groups so `UnitedHealthcare`+`UnitedHealth` is +0.20, not +0.40.
 | File | What it is |
 |---|---|
 | `eligibility.py` | The candidate two-tier gate + entity-group dedup. Pure, tested, unwired. |
-| `build_holdout.py` | Deterministic builder of the held-out set from a published `state.db`. |
+| `build_holdout.py` | Deterministic builder of the held-out set from a copy of the production `state.db`. |
 | `holdout_2026-08.yaml` | The held-out set (n=122). **`proposed_label` is a heuristic; `label` is empty pending owner review.** |
 | `scorecard.py` | Labels-vs-archive precision/recall + FP-type breakdown, current vs candidate. |
 | `../../tests/test_relevance_eligibility.py` | Regression tests pinning the tier decisions on the Aug-14 cases. |
@@ -71,8 +71,12 @@ distinct groups so `UnitedHealthcare`+`UnitedHealth` is +0.20, not +0.40.
 ## Run it
 
 ```bash
-# 1. get the same archive deploy-pages.yml publishes
-curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db -o /tmp/state.db
+# 1. get a copy of the archive deploy-pages.yml maintains. It is no longer
+#    published to the site (deploy-pages.yml persists it via actions/cache
+#    now, to stop republishing an unauthenticated operational dump) -- add a
+#    temporary actions/upload-artifact step to a deploy-pages.yml run, pull
+#    the run artifact down (gh run download), then drop the step. Save it as
+#    /tmp/state.db.
 
 # 2. (re)build the held-out set — deterministic, no RNG
 python -m evals.relevance.build_holdout --db /tmp/state.db --out evals/relevance/holdout_2026-08.yaml
