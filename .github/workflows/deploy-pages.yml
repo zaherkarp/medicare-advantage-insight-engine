@@ -101,6 +101,7 @@ jobs:
       - name: Validate restored archive (or confirm a genuine cold start)
         env:
           MATCHED_KEY: ${{ steps.restore-cache.outputs.cache-matched-key }}
+          ALLOW_COLD_START: ${{ vars.ALLOW_ARCHIVE_COLD_START }}
         run: |
           # `cache-hit` (exact match) is meaningless here by construction:
           # the primary key above always embeds this run's own id, so it can
@@ -108,15 +109,33 @@ jobs:
           # set when actions/cache/restore fell through to restore-keys and
           # found *some* prior entry, empty when it found nothing at all.
           if [ -z "$MATCHED_KEY" ]; then
-            # A cache miss here means either this is genuinely the first run
-            # ever, or every prior state-db-* entry has aged out (GitHub
-            # evicts a cache entry 7 days after it was last restored FROM;
-            # this rolling scheme only ever restores from the single newest
-            # entry, so every older one stops being touched the moment a
-            # newer save lands and ages out on its own clock — see the save
-            # step). Either way, this is the one case where a miss is
-            # allowed to be silent: there is no prior archive to have lost.
-            echo "No cached archive found (cache-matched-key empty) -- legitimate cold start. Starting fresh."
+            # A cache miss means either this is genuinely the first run ever,
+            # or an existing archive has become unreachable: every prior
+            # state-db-* entry aged out (GitHub evicts an entry 7 days after
+            # it was last restored FROM, and this rolling scheme only ever
+            # restores the newest, so older ones age out on their own clock),
+            # or a migration landed without carrying the archive across.
+            #
+            # THOSE TWO CASES LOOK IDENTICAL HERE AND ARE NOT REMOTELY THE
+            # SAME. This branch used to cold-start silently, which is what
+            # destroyed the archive on 2026-09-07: the actions/cache cutover
+            # shipped with no migration, this branch reported a "legitimate
+            # cold start", the run ingested into an empty DB, and the deploy
+            # republished a site without the old one -- 14,799 stories to 96,
+            # unrecoverable from the feeds because they are windowed. So a
+            # miss now FAILS by default. Losing two hours of ingest to a red
+            # run is cheap; losing the archive is not.
+            if [ "${ALLOW_COLD_START}" != "true" ]; then
+              echo "::error::No cached archive found (cache-matched-key empty), and cold start is not enabled."
+              echo "::error::If an archive existed, cold-starting would overwrite it with this run's fresh ingest alone."
+              echo "::error::  To RECOVER a lost archive: dispatch 'Seed archive cache' with the run id of a"
+              echo "::error::  deploy whose github-pages artifact still contains data/state.db (the large ~12MB"
+              echo "::error::  ones), then re-run this workflow."
+              echo "::error::  If this really is a first run with nothing to lose: set repository variable"
+              echo "::error::  ALLOW_ARCHIVE_COLD_START=true, let one run complete, then remove it again."
+              exit 1
+            fi
+            echo "No cached archive found, and ALLOW_ARCHIVE_COLD_START is set. Starting fresh."
             echo "ARCHIVE_ROWS_BEFORE=0" >> "$GITHUB_ENV"
           else
             # A match was found and actions/cache/restore has already
