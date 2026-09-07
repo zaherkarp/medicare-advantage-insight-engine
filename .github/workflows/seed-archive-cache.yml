@@ -1,0 +1,131 @@
+name: Seed archive cache
+
+# Disaster recovery for the story archive.
+#
+# The archive lives in the Actions cache under the `state-db-` prefix, written
+# by deploy-pages.yml at the end of every run and restored at the start of the
+# next one. If that chain is ever broken -- the cache ages out during a long
+# quiet spell, an entry is evicted, or a migration lands without carrying the
+# archive across -- the next deploy cold-starts from an EMPTY database and
+# republishes a site with only that run's fresh ingest. Feeds are windowed, so
+# the accumulated history cannot be re-fetched; it has to be restored.
+#
+# WHY THIS EXISTS: exactly that happened on 2026-09-07. The cutover from
+# "publish the DB and re-download it next run" to actions/cache shipped with no
+# migration step, so the first run under the new scheme found an empty cache,
+# cold-started at 0 rows, and published a site without the DB -- destroying the
+# only copy in the same run. 14,799 stories went to 96. Recovery came from a
+# prior deploy's `github-pages` artifact, which still contained data/state.db.
+# This workflow is that recovery, made repeatable.
+#
+# HOW TO USE IT:
+#   1. Find a run whose published site still had the archive. Its
+#      `github-pages` artifact is large (~12MB) vs. a post-cutover one (~250KB),
+#      because the big ones still contain data/state.db:
+#        gh api repos/<owner>/<repo>/actions/artifacts \
+#          --jq '.artifacts[] | select(.name=="github-pages" and .expired==false)
+#                | "\(.workflow_run.id) \(.size_in_bytes) \(.created_at)"'
+#   2. Dispatch this workflow with that run id.
+#   3. Confirm the new `state-db-seed-*` entry is the NEWEST under the prefix:
+#        gh api repos/<owner>/<repo>/actions/caches --jq '.actions_caches[].key'
+#   4. Dispatch Deploy Static Site. Its restore-keys prefix match resolves to
+#      the most recently created entry, so it picks up this seed, ingests into
+#      the full archive, and saves a normal `state-db-<run>` entry. Self-healing
+#      from there; nothing else to clean up.
+#
+# Artifact retention bounds this: once every pre-incident `github-pages`
+# artifact has expired (90 days by default), there is nothing left to seed FROM.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Run ID whose github-pages artifact contains data/state.db"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read   # to list and download another run's artifacts
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Extract data/state.db from the source run's site artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+
+          artifact_id="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts" \
+            --jq '.artifacts[] | select(.name=="github-pages" and .expired==false) | .id' \
+            | head -1)"
+
+          if [ -z "$artifact_id" ]; then
+            echo "::error::No unexpired 'github-pages' artifact on run ${SOURCE_RUN_ID}."
+            exit 1
+          fi
+          echo "Using artifact ${artifact_id} from run ${SOURCE_RUN_ID}."
+
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+            > pages.zip
+
+          # A Pages artifact is a zip wrapping a single artifact.tar, which
+          # holds the published site tree.
+          mkdir -p unpacked
+          unzip -q pages.zip -d unpacked
+          tar -xf unpacked/artifact.tar -C unpacked
+
+          if [ ! -f unpacked/data/state.db ]; then
+            echo "::error::That artifact has no data/state.db. It is almost"
+            echo "::error::certainly from AFTER the DB stopped being published"
+            echo "::error::(those are ~250KB). Pick an older, larger run."
+            exit 1
+          fi
+
+          mkdir -p data
+          cp unpacked/data/state.db data/state.db
+          ls -l data/state.db
+
+      - name: Validate the recovered archive before caching it
+        run: |
+          set -euo pipefail
+          # Same gate the deploy applies to a restored archive: exists,
+          # non-empty, passes integrity_check, has the core table. Seeding a
+          # corrupt DB would be worse than seeding nothing, since the next
+          # deploy would trust it and then publish from it.
+          rows="$(python scripts/archive_guard.py validate data/state.db)"
+          echo "Recovered archive validates: ${rows} rows in the core table."
+          echo "SEEDED_ROWS=${rows}" >> "$GITHUB_ENV"
+
+      - name: Save to the archive cache
+        uses: actions/cache/save@v5
+        with:
+          path: data/state.db
+          # Must share deploy-pages.yml's `state-db-` restore-keys prefix, and
+          # be newly created so the prefix match resolves to THIS entry (the
+          # backend returns the most recently created match).
+          key: state-db-seed-${{ github.run_id }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Archive cache seeded"
+            echo ""
+            echo "- Source run: \`${{ inputs.source_run_id }}\`"
+            echo "- Rows restored: **${SEEDED_ROWS}**"
+            echo "- Cache key: \`state-db-seed-${{ github.run_id }}\`"
+            echo ""
+            echo "Next: dispatch **Deploy Static Site**. It will restore this"
+            echo "entry, ingest into it, and republish the full archive."
+          } >> "$GITHUB_STEP_SUMMARY"
