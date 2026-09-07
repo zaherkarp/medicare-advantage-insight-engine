@@ -309,11 +309,19 @@ ma-signal-build --base-path /<your-repo>   # build into ./site
 # (or scripts/build_static.py --base-path /<your-repo> --out site)
 ```
 
-The archive DB is persisted inside the published site (`/<repo>/data/state.db`)
-and restored on the next run, so it accumulates over time. Full-text search runs
-**client-side** on Pages via a generated `search-index.json`. To enable: in the
-repo's **Settings → Pages**, set the source to **GitHub Actions**. Email digests
-still send from the workflow if you add the `SMTP_*` / `DIGEST_*` secrets.
+The archive DB persists between runs via a GitHub Actions cache entry (see
+`.github/workflows/deploy-pages.yml`'s "Restore archive DB from cache" /
+"Save archive DB to cache" steps), so it accumulates over time without ever
+being published in the site itself — it used to be copied into
+`/<repo>/data/state.db` and served publicly alongside the site, which also
+made an unauthenticated, unreviewed operational dump (fetch logs, delivery
+logs, and every ingested item) downloadable by anyone; the cache keeps the
+same across-run persistence private to the repo instead. Full-text search
+runs **client-side** on Pages via a generated `search-index.json` (that file
+*is* meant to be public — it only contains what's already rendered on the
+site). To enable: in the repo's **Settings → Pages**, set the source to
+**GitHub Actions**. Email digests still send from the workflow if you add the
+`SMTP_*` / `DIGEST_*` secrets.
 
 ### Daily Briefing
 

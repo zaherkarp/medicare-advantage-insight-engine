@@ -114,14 +114,15 @@ much a source contributes vs. how much reaches readers.
 
 ### "Aborting deliberately" / the restore step fails
 
-This is intentional, not a bug. The published archive DB could not be
-downloaded or failed validation (`scripts/archive_guard.py validate`), so the
-job stopped instead of silently ingesting into an empty DB and overwriting
-the real production archive on publish. See [Operations →
+This is intentional, not a bug. The cached archive DB could not be restored
+(a transport-level failure fails the restore step itself) or failed
+validation (`scripts/archive_guard.py validate`), so the job stopped instead
+of silently ingesting into an empty DB and overwriting the real production
+archive on save. See [Operations →
 Archive-Restore Safety](operations.md#archive-restore-safety-deploy-pagesyml)
-for the full behavior. Re-run the workflow once GitHub Pages/Actions is
-healthy again — nothing was lost, since the failure happens before the
-publish step ever runs.
+for the full behavior. Re-run the workflow once GitHub Actions is healthy
+again — nothing was lost, since the failure happens before the save step
+ever runs.
 
 ### "CATASTROPHIC SHRINK" from `archive_guard.py compare`
 

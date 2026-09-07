@@ -137,7 +137,7 @@ SQLite (`storage.py`) provides eight tables plus a full-text index:
 
 **Why SQLite**: Durable, zero-config, single-file, works on all platforms. No server needed. Retention-based cleanup prevents unbounded growth.
 
-**Schema evolution**: new tables are `CREATE TABLE IF NOT EXISTS` in `SCHEMA_SQL`. Adding a *column* to an existing table (the published Pages DB is carried forward) needs a guarded, idempotent `ALTER TABLE` — `_ensure_column` checks `PRAGMA table_info` before adding, run from `_migrate` in the store constructor. `duplicate_of` was the first such migration.
+**Schema evolution**: new tables are `CREATE TABLE IF NOT EXISTS` in `SCHEMA_SQL`. Adding a *column* to an existing table (the production DB is carried forward across CI runs — see [operations.md](operations.md#archive-restore-safety-deploy-pagesyml)) needs a guarded, idempotent `ALTER TABLE` — `_ensure_column` checks `PRAGMA table_info` before adding, run from `_migrate` in the store constructor. `duplicate_of` was the first such migration.
 
 ## Key Design Choices
 

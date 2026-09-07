@@ -46,13 +46,18 @@ The shipped threshold has been validated this way against the real archive
 (6,701 stories, 382 in the default 30-day window) -- see the sweep table in
 the ``config/app.yaml`` comment next to ``similarity_threshold``.
 
-Getting a real archive to sweep is a one-liner, because the production DB
-round-trips through the published Pages site: ``deploy-pages.yml`` restores it
-with a plain unauthenticated GET at the start of every run, so the same URL
-serves the current archive to anyone::
+Getting a real archive to sweep used to be a one-liner, because the
+production DB round-tripped through the published Pages site with a plain
+unauthenticated GET. It no longer does: ``deploy-pages.yml`` now persists
+``data/state.db`` between runs via ``actions/cache`` instead of publishing it
+inside ``site/``, specifically so it stops being a public, unauthenticated
+download (an unreviewed operational dump -- delivery logs, fetch errors --
+was being republished to anyone every two hours). A cache entry isn't fetched
+with a plain GET, so getting a copy now takes one extra step: add a temporary
+``actions/upload-artifact`` step to a ``deploy-pages.yml`` run that uploads
+``data/state.db``, download the resulting run artifact (``gh run download``
+or the Actions UI), then remove the step::
 
-    curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db \\
-        -o /tmp/prod.db
     python scripts/calibrate_threads.py --db /tmp/prod.db --days 30
 
 Write it somewhere outside the repo: ``.gitignore`` covers ``data/`` and

@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Guard the published archive DB against silent data loss in CI.
+"""Guard the production archive DB against silent data loss in CI.
 
-``deploy-pages.yml`` restores the production ``stories`` archive from the
-published GitHub Pages site, ingests into it, and republishes it every run.
-That restore has no integrity check: a transient Pages/CDN failure would
-previously make the job silently continue with an empty database and then
-overwrite the entire accumulated archive with a near-empty one. This script
-gives the workflow two checkpoints against that:
+``deploy-pages.yml`` restores the production ``stories`` archive from a
+GitHub Actions cache entry, ingests into it, and saves it back under a fresh
+key every run (previously it round-tripped through the published GitHub
+Pages site instead — see docs/operations.md's Archive-Restore Safety section
+for why that changed). That restore has no integrity check of its own: a
+transient failure would previously make the job silently continue with an
+empty database and then overwrite the entire accumulated archive with a
+near-empty one. This script gives the workflow two checkpoints against that:
 
     archive_guard.py validate <db_path>
         Exit 0 and print the row count if `db_path` is a usable archive
         (exists, non-empty, passes `PRAGMA integrity_check`, has the core
         table). Exit 1 with a reason on stderr otherwise. Used right after
-        the restore download, before the job trusts the file.
+        the restore, before the job trusts the file.
 
     archive_guard.py rowcount <db_path>
         Print the core table's row count, or 0 if the file/table is absent.
@@ -22,9 +24,9 @@ gives the workflow two checkpoints against that:
     archive_guard.py compare --before N --after <db_path>
         Exit 1 if the archive shrank catastrophically between `before` (a
         row count captured earlier in the run) and the current count in
-        `after`. Used right before the build step overwrites the published
-        DB, as the last line of defense against publishing a truncated
-        archive.
+        `after`. Used right before the workflow saves the DB back to the
+        cache, as the last line of defense against persisting a truncated
+        archive forward.
 
 Deliberately dependency-free (stdlib only) so it needs nothing beyond the
 Python already on the runner.

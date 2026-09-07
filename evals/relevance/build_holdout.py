@@ -1,4 +1,4 @@
-"""Build the held-out relevance evaluation set from a published archive.
+"""Build the held-out relevance evaluation set from the production archive.
 
 Reproducible and deterministic: no RNG. Stories are ordered by ``item_id`` and
 sampled by a fixed stride, so the same ``state.db`` always yields the same set.
@@ -9,8 +9,12 @@ Why this window is a valid holdout: the taxonomy/gate was last changed on
 development set; this is the holdout that gets scored once.
 
 Usage:
-    # fetch the same archive deploy-pages.yml publishes
-    curl -fsSL https://zaherkarp.github.io/medicare-advantage-insight-engine/data/state.db -o /tmp/state.db
+    # Get a copy of the archive deploy-pages.yml maintains. It's no longer a
+    # plain curl (deploy-pages.yml persists it via actions/cache now, not by
+    # publishing it -- see docs/operations.md's Archive-Restore Safety
+    # section): add a temporary actions/upload-artifact step to a
+    # deploy-pages.yml run, download the run artifact, save it as
+    # /tmp/state.db, then remove the step.
     python -m evals.relevance.build_holdout --db /tmp/state.db --out evals/relevance/holdout_2026-08.yaml
 
 The emitted file carries a ``proposed_label`` per row (a rubric heuristic) that
