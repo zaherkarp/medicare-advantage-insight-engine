@@ -31,13 +31,31 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     env:
-      # Project Pages live under /<repo>. PAGES_URL feeds PUBLIC_BASE_URL for
-      # the Daily Briefing digest's absolute links below; it is NOT how the
-      # archive DB is restored or persisted (see "Restore archive DB from
-      # cache" / "Save archive DB to cache" below). The DB used to round-trip
-      # through this URL, but it is no longer published at all, so that path
-      # stopped existing rather than merely moving.
-      STATIC_BASE_PATH: /${{ github.event.repository.name }}
+      # This site serves at its OWN domain (signal.zaherkarp.com) as of
+      # 2026-09-06, not under /<repo>, so the base path is root. It used to
+      # be a project Pages site mounted at zaherkarp.com/<repo>/, which is
+      # same-origin with the owner's personal site; the subdomain exists to
+      # end that origin sharing. If STATIC_BASE_PATH ever goes back to
+      # /<repo> while the custom domain is set, every internal link on the
+      # site 404s -- that is exactly what this line fixed.
+      #
+      # Empty string is the builder's documented root value ("'' for
+      # root/custom domain", build_static.py --base-path help). "/" would
+      # also work, since build_site() does base_path.rstrip("/"), but the
+      # empty form is the one the code is designed around and survives that
+      # normalization being refactored away.
+      #
+      # PAGES_URL feeds PUBLIC_BASE_URL for the Daily Briefing digest's
+      # absolute links below; it is NOT how the archive DB is restored or
+      # persisted (see "Restore archive DB from cache" / "Save archive DB to
+      # cache" below). The DB used to round-trip through this URL, but it is
+      # no longer published at all, so that path stopped existing rather than
+      # merely moving. PAGES_URL still names the OLD github.io/<repo> URL and
+      # still works, because GitHub 301s it to the custom domain; it is the
+      # last thing here encoding where the site is published, and it can be
+      # deleted outright once the digest emailer goes (its only remaining
+      # consumer). See this repo's PR #70 discussion.
+      STATIC_BASE_PATH: ""
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
       WEBHOOK_MODE: test
       MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
