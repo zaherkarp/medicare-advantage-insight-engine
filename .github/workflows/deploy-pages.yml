@@ -216,10 +216,19 @@ jobs:
           # self-bootstrapping — no manual Settings → Pages toggle needed.
           enablement: true
 
+      # The artifact name carries the run attempt. A re-run keeps the earlier
+      # attempt's artifacts attached to the same run, so with the default name
+      # "github-pages" every re-run failed in deploy-pages with "Multiple
+      # artifacts named github-pages". Seen 2026-10-03: attempt 1 died on a
+      # Pages API 503, and the re-run that should have recovered it could not.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+          name: github-pages-${{ github.run_attempt }}
 
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          # Must match the upload step's name above.
+          artifact_name: github-pages-${{ github.run_attempt }}
