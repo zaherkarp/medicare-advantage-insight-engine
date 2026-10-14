@@ -108,7 +108,7 @@ sqlite3 data/state.db "DELETE FROM seen_items WHERE source_name = 'Some Feed'"
 
 ## SEC EDGAR Sources Require a Contact Email
 
-The 13 "SEC EDGAR - `<payer>`" sources in `config/sources.yaml` hit
+The 14 "SEC EDGAR - `<payer>`" sources in `config/sources.yaml` hit
 `sec.gov`, which **rejects any User-Agent that lacks a real contact email —
 403, every time**, regardless of how descriptive the UA otherwise reads (this
 is documented at
