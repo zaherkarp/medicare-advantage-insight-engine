@@ -14,8 +14,7 @@ enrollment). Nothing is in flight — `main` is clean, no open loop PR.
 **To resume:** re-enter the protocol at step (a) and pick the top **Backlog**
 item — currently *Advisory→config automation* (a small internal item that needs
 no owner input). To unblock the higher-value work, an owner decision is needed:
-a SEC contact email (lights up SEC filings), a CMS download feasibility spike,
-or a yes/no on LLM scoring / a Slack webhook.
+a CMS download feasibility spike, or a yes/no on LLM scoring / a Slack webhook.
 
 Scorecard highlights vs. the Iteration-0 baseline: golden-set P/R 1.00/1.00 over
 88 cases (floors 0.95); payer pages 0→31; run time ~105s→~20s; cadence 4h/6h→
@@ -81,14 +80,16 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
 
 *(none yet)*
 
+## Resolved decision points
+
+- **SEC EDGAR contact — resolved 2026-10-13.** The owner supplied
+  `SEC_CONTACT_EMAIL`; both workflows pass the masked secret, config fails
+  loudly when it is absent, and the scheduled monitor now fetches SEC filings.
+  Operational setup and recovery steps live in
+  [`docs/operations.md`](operations.md#sec-edgar-sources-require-a-contact-email).
+
 ## Decision points awaiting owner
 
-- **SEC feeds return 403** (confirmed by live fetch, iteration 4): SEC EDGAR
-  requires a User-Agent with contact information, and the default UA has none —
-  this is why the production archive has zero SEC stories. Fix = set
-  `USER_AGENT` (e.g. `MA-Signal-Monitor/1.0 (contact: you@example.com)`) as a
-  repo secret/Variable used by both workflows. Needs an owner-chosen email
-  that's acceptable to send to SEC with every request.
 - **Semantic/LLM scoring** — would add a paid dependency to a deliberately
   free/local app (Guardrail 4). If approved: LLM as advisory re-ranker first,
   gated by the golden set.
