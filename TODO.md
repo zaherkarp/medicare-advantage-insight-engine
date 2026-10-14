@@ -29,13 +29,16 @@ up.
   `ma_context_terms`, add the payer to `watched_entities`, or lower
   `scoring.ma_context_min_priority`.
 
-## Needs an owner decision (blocked)
+## Recently resolved
 
 - [x] **SEC EDGAR contact configured.** Resolved 2026-10-13: both workflows
   pass the masked `SEC_CONTACT_EMAIL` secret, config fails loudly if it is
   missing, and the scheduled monitor fetched SEC filings successfully. See
   [`docs/operations.md`](docs/operations.md#sec-edgar-sources-require-a-contact-email)
   for the current setup and recovery steps.
+
+## Needs an owner decision (blocked)
+
 - [ ] **CMS MA enrollment data.** Parent-org membership/market-share on payer
   pages (goal.md C3, would take U1 to 4/4). Blocked on a download feasibility
   spike — the monthly files are ZIP-in-CSV and the documented URLs 404. Confirm a

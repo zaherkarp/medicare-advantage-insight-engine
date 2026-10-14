@@ -162,10 +162,10 @@ tells you which of these it is:
 
 ### What the iteration-11 investigation found for the 16 silent sources
 
-(13x SEC EDGAR feeds, Alliance of Community Health Plans, Congress.gov —
+(14x SEC EDGAR feeds, Alliance of Community Health Plans, Congress.gov —
 Bills Presented to the President — see `docs/loop.md` for the full record.)
 
-- **The 13 SEC EDGAR feeds**: `error` — sec.gov rejects any User-Agent
+- **The 14 SEC EDGAR feeds**: `error` — sec.gov rejects any User-Agent
   without a real contact email (403), independent of how descriptive it
   otherwise reads. Fixed by requiring `SEC_CONTACT_EMAIL` (see
   [Operations → SEC EDGAR Sources Require a Contact
