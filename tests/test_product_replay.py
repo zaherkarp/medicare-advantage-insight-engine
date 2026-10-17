@@ -32,9 +32,7 @@ def test_replay_exercises_production_paths_and_dates():
 
 def test_replay_labels_usefulness_separately_from_public_availability():
     report = run_replay()
-    assert {
-        row["id"]: row["operational_usefulness"] for row in report["results"]
-    } == {
+    assert {row["id"]: row["operational_usefulness"] for row in report["results"]} == {
         "pp2-must-catch": "must_catch",
         "pp2-unchanged-repeat": "noise",
         "pp2-material-update": "material_update",
@@ -52,4 +50,3 @@ def test_missing_claim_support_guard_is_reported_as_product_gap():
     conflict = next(r for r in report["results"] if r["id"] == "conflicting-figures")
     assert conflict["observed"]["alert"] is True
     assert "draft_candidate" not in conflict["observed"]
-
