@@ -17,6 +17,15 @@ Usage:
     # /tmp/state.db, then remove the step.
     python -m evals.relevance.build_holdout --db /tmp/state.db --out evals/relevance/holdout_2026-08.yaml
 
+    # A LATER window, kept disjoint from every earlier holdout:
+    python -m evals.relevance.build_holdout --db /tmp/state.db \
+        --since 2026-08-15 --until 2026-10-15 \
+        --exclude evals/relevance/holdout_2026-08.yaml \
+        --out evals/relevance/holdout_2026-10.yaml
+
+The defaults reproduce the August set exactly (``--since 2026-08-05``, no upper
+bound, nothing excluded), so its ``content_sha256`` is unchanged.
+
 The emitted file carries a ``proposed_label`` per row (a rubric heuristic) that
 the OWNER must confirm or correct before any precision number is reported. The
 proposed labels are NOT ground truth; they exist only to make labeling a
@@ -84,18 +93,47 @@ def _stride(rows: list, cap: int) -> list:
     return [rows[int(i * step)] for i in range(cap)]
 
 
-def build(db_path: str) -> dict:
+def load_excluded_ids(paths: list[str]) -> set[str]:
+    """item_ids already used by earlier holdouts, so a new one stays disjoint.
+
+    A story that was labeled once must never be scored again as "held out":
+    the owner has seen it, and the gate may since have been adjusted with it in
+    mind. Excluding by id is exact; titles repeat across sources, ids do not.
+    """
+    import yaml
+
+    out: set[str] = set()
+    for path in paths:
+        with open(path) as f:
+            data = yaml.safe_load(f) or {}
+        out.update(it["item_id"] for it in data.get("items", []))
+    return out
+
+
+def build(
+    db_path: str,
+    since: str = HELDOUT_SINCE,
+    until: str | None = None,
+    exclude_ids: set[str] | None = None,
+) -> dict:
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     q = (
         "SELECT item_id, title, summary, source_name, source_priority, "
         "relevance_score, primary_category, entities, states "
-        "FROM stories WHERE duplicate_of IS NULL AND fetched_at >= ? "
-        "ORDER BY item_id"
+        "FROM stories WHERE duplicate_of IS NULL AND fetched_at >= ?"
     )
-    rows = cur.execute(q, (HELDOUT_SINCE,)).fetchall()
+    params: list = [since]
+    if until is not None:
+        q += " AND fetched_at < ?"
+        params.append(until)
+    q += " ORDER BY item_id"
+    rows = cur.execute(q, params).fetchall()
     con.close()
+    excluded = exclude_ids or set()
+    n_excluded = sum(1 for r in rows if r["item_id"] in excluded)
+    rows = [r for r in rows if r["item_id"] not in excluded]
 
     alert, display, subfloor = [], [], []
     for r in rows:
@@ -140,7 +178,9 @@ def build(db_path: str) -> dict:
             "purpose": "Held-out relevance evaluation set. proposed_label is a "
             "rubric heuristic, NOT ground truth; fill `label` by owner review "
             "before reporting any precision/recall.",
-            "heldout_since": HELDOUT_SINCE,
+            "heldout_since": since,
+            **({"heldout_until": until} if until is not None else {}),
+            **({"excluded_prior_items": n_excluded} if excluded else {}),
             "strata": {
                 "alert": len(alert),
                 "display_sampled": len(_stride(display, DISPLAY_CAP)),
@@ -165,11 +205,31 @@ def main() -> None:
         "--db", required=True, help="path to a published state.db (read-only)"
     )
     ap.add_argument("--out", required=True, help="output YAML path")
+    ap.add_argument(
+        "--since",
+        default=HELDOUT_SINCE,
+        help="inclusive fetched_at lower bound (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--until", default=None, help="exclusive fetched_at upper bound (optional)"
+    )
+    ap.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="HOLDOUT_YAML",
+        help="an earlier holdout whose items must not reappear (repeatable)",
+    )
     args = ap.parse_args()
 
     import yaml
 
-    data = build(args.db)
+    data = build(
+        args.db,
+        since=args.since,
+        until=args.until,
+        exclude_ids=load_excluded_ids(args.exclude),
+    )
     with open(args.out, "w") as f:
         f.write(
             "# Held-out relevance evaluation set — proposed labels await owner "
