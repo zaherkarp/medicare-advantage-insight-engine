@@ -1,0 +1,2890 @@
+# Held-out relevance evaluation set — proposed labels await owner confirmation.
+# Regenerate: python -m evals.relevance.build_holdout --db <state.db> --out <this file>
+_meta:
+  purpose: Held-out relevance evaluation set. proposed_label is a rubric heuristic, NOT ground truth;
+    fill `label` by owner review before reporting any precision/recall.
+  heldout_since: '2026-10-01'
+  heldout_until: '2026-10-15'
+  excluded_prior_items: 0
+  strata:
+    alert: 119
+    display_sampled: 60
+    subfloor_sampled: 25
+  n: 204
+  content_sha256: bc4ef70d95edb5544ddcf0018b0eb9464f1a8587aebfc0a886456f3104674d6b
+  label_values:
+  - relevant_brief
+  - relevant_context
+  - borderline_display
+  - irrelevant
+items:
+- item_id: 000d8dbdbe460041
+  title: 'Agency Information Collection Activities: Proposed Collection; Comment Request'
+  summary: The Centers for Medicare & Medicaid Services (CMS) is announcing an opportunity for the public
+    to comment on CMS' intention to collect information from the public. Under the Paperwork Reduction
+    Act of 1995 (PRA), federal agencies are required to publish notice in the Federal Register concerning
+    each proposed collection of information (including each proposed extension or reinstatement of an
+    existing collection of information) and to allow 60 days for public comment on the proposed action.
+    Int...
+  source_name: Federal Register - CMS Notices
+  source_priority: 4
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 00528ded45f34128
+  title: BCBS Association reabsorbs data analytics business
+  summary: The Blue Cross Blue Shield Association is bringing its data and analytics work “under one internal
+    umbrella,” the organization confirmed to Becker’s Oct. 9. The former CEO of Blue Health Intelligence,
+    an analytics company that has been a BCBSA licensee, said he wrapped up his work with the association
+    in September after “supporting the integration […] The post BCBS Association reabsorbs data analytics
+    business appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 0090a9a3683d9a63
+  title: State senator accuses Lincoln of improperly taxing non-city residents, demands refunds
+  summary: LINCOLN — A Lincoln state senator accused city officials Wednesday of improperly taxing residents
+    outside city limits and pledged to seek legislation to force refunds to taxpayers. State Sen. Beau
+    Ballard, one of 10 state senators whose districts include part of Lincoln, announced his office had
+    received evidence from constituents that the City of Lincoln […]
+  source_name: Nebraska Examiner
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 02857061e1db85eb
+  title: Trump Administration Delivers Second Year of Savings by Stopping Taxpayer Payments for Duplicate
+    and Deceased Enrollees in Obamacare
+  summary: Trump Administration Delivers Second Year of Savings by Stopping Taxpayer Payments for Duplicate
+    and Deceased Enrollees in Obamacare After Years of Biden-era Inaction, CMS Reviews Projected to Save
+    Taxpayers $1.5 Billion Over the Next Year The Centers for Medicare & Medicaid Services (CMS) continue
+    to crush fraud, waste, and abuse in America’s healthcare programs by stopping duplicative enrollment
+    in government health programs, with the potential to save taxpayers approximately $1.5 billion o...
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.53
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 0715b0cc8c476df7
+  title: Independence Blue Cross launches $0-premium Medicare Advantage HMO
+  summary: Philadelphia-based Independence Blue Cross is adding Keystone 65 Assured HMO, a Medicare Advantage
+    plan with a $0 monthly premium, to its 2027 lineup ahead of the annual enrollment period, according
+    to an Oct. 7 news release shared with Becker’s. For 2027, members can choose from Keystone 65 HMO
+    and HMO-POS options and Personal Choice 65SM […] The post Independence Blue Cross launches $0-premium
+    Medicare Advantage HMO appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 1.0
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 0907fe1462ea371a
+  title: Federal judge blocks Trump administration from moving Forest Service headquarters to Utah
+  summary: A federal judge has issued a preliminary ruling blocking the Trump administration from moving
+    the U.S. Forest Service’s headquarters from Washington, D.C., to Salt Lake City while the rest of
+    the lawsuit over the relocation plays out in court. In the order signed Tuesday, U.S. District Judge
+    Vince Chhabria, in California’s northern district, granted a […]
+  source_name: Arkansas Advocate
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 0be1982a8bc58cb8
+  title: Trump Administration Announces More Than $17 Million for New Mental Health Clinics, Mobile Crisis
+    Teams, and Expanded Addiction Treatment in North Carolina
+  summary: Trump Administration Announces More Than $17 Million for New Mental Health Clinics, Mobile
+    Crisis Teams, and Expanded Addiction Treatment in North Carolina This federal investment will bring
+    crisis support directly to children and families and improve access to addiction and maternal mental
+    health care across rural North Carolina
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 0d471ef4591a958e
+  title: 'Better Information, Better Care: How Coding Supports Today’s Complex Patients'
+  summary: Correctly assessing the clinical status of a patient is imperative to delivering high-quality
+    care. Patients today are older and more clinically complex, and new artificial intelligence tools
+    are helping providers appropriately capture their patients’ conditions to aid in care planning.A report
+    recently released by the Blue Cross Blue Shield Association suggests that hospitals’ use of AI-enabled
+    documentation tools is driving higher healthcare costs through increased coding intensity. Its ana...
+  source_name: AHA News
+  source_priority: 2
+  score_at_capture: 0.44
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 10c56817cd0cd929
+  title: Aetna, Horizon BCBS join New Jersey working group to tackle state health benefits affordability
+  summary: New Jersey Democratic Gov. Mikie Sherrill launched the State Health Benefits Program Reform
+    Working Group on Oct. 1 to review and advise on health coverage for public employees. Ms. Sherrill
+    announced the working group following a Sept. 2 agreement with 17 state employee unions. Along with
+    unions, participants include public employer organizations, legislative offices and […] The post Aetna,
+    Horizon BCBS join New Jersey working group to tackle state health benefits affordability appeared
+    firs...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 136657d0860ab2b1
+  title: Idaho US Attorney Bart Davis announces retirement from Justice Department
+  summary: Idaho’s top-ranking federal law enforcement official, U.S. Attorney Bart Davis, announced his
+    retirement Wednesday following a long, influential legal and political career in Idaho. Davis, who
+    is 71 and in his second term as U.S. attorney for the District of Idaho, will retire Oct. 17, the
+    U.S. Attorney’s Office for the District of Idaho said. […]
+  source_name: Idaho Capital Sun
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 14389a62cf870714
+  title: UnitedHealthcare sued over copay accumulator policy
+  summary: UnitedHealthcare is facing a class-action lawsuit, which alleges the insurer inappropriately
+    stopped crediting payments funded by drug manufacturer assistance toward a member’s deductible and
+    out-of-pocket limit, according to a Sept. 30 complaint in a Connecticut federal court. The complaint,
+    from a UnitedHealthcare member, said his plan has a $7,550 deductible and annual out-of-pocket limit
+    before […] The post UnitedHealthcare sued over copay accumulator policy appeared first on Becker's
+    Pay...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 14c62f8f2d2107e3
+  title: Cigna unveils $3B productivity initiative, including use of AI
+  summary: The company will focus on automating and modernizing processes, better managing suppliers,
+    partners and vendors and making employees more efficient, executives said during a Wednesday investor
+    day.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 1623cae8b581b612
+  title: SCAN, Sutter Health expand service area for co-branded Medicare Advantage plans
+  summary: SCAN Health Plan and Sacramento, Calif.-based Sutter Health are bringing their co-branded Medicare
+    Advantage plans to four more Northern California counties in 2027, up from six in 2026. SCAN and Sutter
+    first announced their collaboration in 2025, with Sutter hinting at possible future expansion beyond
+    the region. According to a SCAN news release from Oct. […] The post SCAN, Sutter Health expand service
+    area for co-branded Medicare Advantage plans appeared first on Becker's Payer Issues | Pay...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.635
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 19b6a0b2816e84e1
+  title: 'Fierce Healthcare Regulatory Recap: CMS releases 2027 MA star ratings; HHS awards $28M for falls
+    prevention'
+  summary: The latest news from CMS, HHS and more across Washington, D.C.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 1a7badfa7011e4aa
+  title: Trump to send $90 payments to 20 million Medicare enrollees
+  summary: The White House said the federal government will send more than 20 million Medicare enrollees
+    one-time $90 payments to help with Part B premiums in early October. An Oct. 2 White House fact sheet
+    said the payments would come from the Medicare Improvement Fund, which was established in 2008 to
+    strengthen fee-for-service Medicare Parts A […] The post Trump to send $90 payments to 20 million
+    Medicare enrollees appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 1a9cdfe70a64c9bb
+  title: ACHP Statement on Introduction of the MA STARS Act
+  summary: ACHP applauds Rep. Mike Kelly's MA STARS Act, which centers Medicare Advantage Star Ratings
+    on clinical quality, patient outcomes and patient experience. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.37
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 1bb25b5ffd3f45c3
+  title: Sens. King, Curtis Named ACHP’s 2026 Legislative Champions
+  summary: Sens. Angus King and John Curtis named ACHP's 2026 Legislative Champions for protecting Medicare
+    Advantage Star Ratings quality incentives. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.37
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 1bfca62281a799e2
+  title: Texas AG Ken Paxton launches investigations into UnitedHealth Group, BCBSTX
+  summary: Texas Attorney General Ken Paxton announced on Monday that he would launch an investigation
+    into industry giant UnitedHealth Group for "engaging in deceptive and unlawful practices" that may
+    have denied care to Texans.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 1d4af234f14dfb0e
+  title: Devoted Health closes $1.2B financing deal amid expansion push
+  summary: Medicare Advantage insurer Devoted Health has closed a $555 million Series G round as part
+    of a $1.18 billion financing deal. The remainder is a $622 million commitment from the same investors
+    to buy shares from existing Devoted shareholders through a tender offer, which is expected to close
+    later in the fourth quarter, according to […] The post Devoted Health closes $1.2B financing deal
+    amid expansion push appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 1d9aacce7a78d2ff
+  title: Vermont Digital Services Secretary Denise Reilly-Hughes to leave role for private sector
+  summary: 'Scott’s office praised the outgoing secretary’s work improving the state’s cybersecurity systems
+    and exploring AI possibilities. Read the story on VTDigger here: Vermont Digital Services Secretary
+    Denise Reilly-Hughes to leave role for private sector .'
+  source_name: VTDigger
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 1e94c9e86e314b6f
+  title: Alignment Healthcare sues CMS over its 2027 Medicare Advantage star ratings
+  summary: Alignment Healthcare sued federal regulators, alleging that its 2027 Medicare Advantage star
+    ratings were determined "in flagrant violation" of statute.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.68
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 1ea3d2bb4f9d6db7
+  title: Trump Administration Announces $209 Million to Expand Advanced Medical Care, Maternal Telehealth,
+    and Cancer Prevention Across Rural Iowa
+  summary: Trump Administration Announces $209 Million to Expand Advanced Medical Care, Maternal Telehealth,
+    and Cancer Prevention Across Rural Iowa This federal investment will bring advanced surgical capabilities
+    to rural hospitals, connect patients with maternal specialists through telehealth, and modernize health
+    information sharing across Iowa
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.302
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 208a6e7579702b99
+  title: '‘Somebody cares about this enough’: What the ICHRA-to-CHOICE rebrand means'
+  summary: 'In September, CMS rebranded individual coverage health reimbursement arrangements as CHOICE
+    arrangements, short for Custom Health Option and Individual Care Expense. The ICHRA benefits model
+    first launched in 2020. Through the model, employers give workers fixed, tax-free contributions to
+    buy individual health insurance. The CHOICE rebrand has been a long time coming. The CHOICE name […]
+    The post ‘Somebody cares about this enough’: What the ICHRA-to-CHOICE rebrand means appeared first
+    on Beck...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 23107ff4be9e8cbf
+  title: UnitedHealthcare mistakenly tells members that 8 clinicians died
+  summary: UnitedHealthcare recently sent letters to members across the country mistakenly informing them
+    that eight physicians had died, as first reported by The Minnesota Star Tribune on Oct. 7. According
+    to the report, letters claiming the deaths of two Minnesota physicians were dated Sept. 11. Two weeks
+    later, members received letters addressing the mistake and confirming […] The post UnitedHealthcare
+    mistakenly tells members that 8 clinicians died appeared first on Becker's Payer Issues | Payer News
+    .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 249b0f022d6bf7db
+  title: Cigna unveils new customer experience platform, Health Sense
+  summary: Cigna is rolling out a new patient experience platform that aims to harness the power of data
+    to drive greater personalization.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.463
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 276bd42f71e8fa89
+  title: CMS finalizes updates to price transparency regulations that aim to improve usability
+  summary: The Trump administration on Monday finalized a rule that aims to make the data files mandated
+    under price transparency regulations more usable.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 28a72252883eec54
+  title: Douglas County Board responds to state auditor criticism, sheriff says criminal probe still on
+  summary: OMAHA — The Douglas County Board on Thursday announced that it sees no allegations of criminal
+    wrongdoing in a state auditor’s probe of a county program that serves the poor, despite the sheriff’s
+    call for a law enforcement investigation. Sheriff Aaron Hanson said in response that his investigation
+    will go on. He said he didn’t […]
+  source_name: Nebraska Examiner
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 2bf19e14a47a014d
+  title: Trump Administration Announces More Than $177 Million to Recruit Rural Healthcare Workers, Expand
+    Mobile Care, and Modernize Services Across Nebraska
+  summary: Trump Administration Announces More Than $177 Million to Recruit Rural Healthcare Workers,
+    Expand Mobile Care, and Modernize Services Across Nebraska This federal investment will bring new
+    providers to rural communities, deploy remote-monitoring technology at dozens of healthcare facilities,
+    and create hundreds of community health positions across Nebraska
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 2d1a752dbc47056f
+  title: Lawmakers press CMS to roll back proposed restrictions on remote patient monitoring
+  summary: A bipartisan group of 32 House lawmakers is pressing CMS Administrator Mehmet Oz to reconsider
+    proposed Medicare payment rule changes that would restrict how remote patient monitoring services
+    are staffed and delivered.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 303c5f7dcddc6ce9
+  title: Former CEO for UnitedHealth’s Optum Serve steps back into role
+  summary: Retired Lt. Gen. Patricia Horoho, MSN, is stepping back into her previous role as CEO of Optum
+    Serve, UnitedHealth Group’s federal government health services business. An Optum announcement shared
+    with Becker’s said Ms. Horoho was Optum Serve’s founding CEO. She brought together legacy businesses
+    and supported military service members, veterans and their families. Ms. Horoho […] The post Former
+    CEO for UnitedHealth’s Optum Serve steps back into role appeared first on Becker's Payer Issues |
+    P...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 30ad79d92199e95d
+  title: 'CMS: About 71% of MAPD plan enrollees in coverage with four or more stars for 2027'
+  summary: The Trump administration has released the 2027 Medicare Advantage star ratings, with many enrollees
+    in plans that earned at least four stars.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.48
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 3284756779ddb2d0
+  title: UnitedHealth eyes Medicare Advantage opportunities, bolstered by Q3 profit growth
+  summary: UnitedHealth raised its 2026 earnings guidance and outperformed analyst expectations for the
+    third time this year, suggesting its financial turnaround is sustainable.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.56
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 33a77d465421e0fd
+  title: For Vermont cell users, breaking up is easy to do
+  summary: 'It’s a familiar reality for many people in Lamoille County: The phone call dropped. The texts
+    won’t send. Read the story on VTDigger here: For Vermont cell users, breaking up is easy to do .'
+  source_name: VTDigger
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 33abb7550aa916e8
+  title: Can I be charged a higher premium for a Medigap policy if I have a pre-existing condition or
+    if I smoke?
+  summary: It depends. If you are applying for a Medigap policy during your initial Medicare enrollment
+    period, then regardless of your past or current health problems, you are guaranteed the right to purchase
+    any Medigap policy at the same premium the offering company charges other people your age.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.685
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 3456df0b4334c13f
+  title: I am covered by Medicare and my only income is $12,000 from Social Security. I have $1,000 in
+    a savings account. Do I qualify for any financial assistance with my Medicare coverage?
+  summary: Based on your current income and asset amounts, you may qualify for Medicaid. Under the current
+    rules, Medicaid helps many low-income people on Medicare with their Medicare premiums and cost-sharing
+    requirements and may also cover some benefits that are not covered by Medicare, such as dental services
+    and long-term services and supports.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 3803c60ac1e57d14
+  title: I am age 60 and have been receiving Social Security disability insurance (SSDI) payments for
+    two years. My Medicare coverage just started and I would like to get a Medicare supplement insurance
+    policy. What are my options?
+  summary: It depends on the state where you live. Some states require insurance companies to sell Medigap
+    supplement policies to people under age 65, but not all states do.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.345
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 393a0fadce988061
+  title: 'Humana rebounds, Aetna slips: Winners and losers in the 2027 MA star ratings'
+  summary: Federal regulators released the hotly anticipated star ratings for the 2027 Medicare Advantage
+    plan year, and winners and losers emerged in the data.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.88
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 3a03f7a23eb3cbc5
+  title: Before Saying Yes to the Medical Test, Know the Risks and Benefits
+  summary: Tests like full-body scans marketed directly to consumers are pitched as a way to detect diseases
+    early and establish a baseline of health markers. But there are financial, physical, and psychological
+    risks to all medical tests — and in some cases, not getting a test could be better for your health.
+  source_name: KFF Health News
+  source_priority: 4
+  score_at_capture: 0.28
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 3a1364a3e9391d2e
+  title: AHA pushes back on Blue Cross report tying AI to $942M in coding costs
+  summary: The American Hospital Association is challenging a Blue Cross Blue Shield Association analysis
+    that estimated rising hospital coding intensity added $942 million in costs and linked the trend to
+    AI-enabled billing tools. The AHA argued in an Oct. 5 blog post that rising coding intensity reflects
+    older, more complex patients, not improper billing. The organization […] The post AHA pushes back
+    on Blue Cross report tying AI to $942M in coding costs appeared first on Becker's Payer Issues | Payer...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 3d91c9ae0b2bba26
+  title: 'Quotable: Gandhi'
+  summary: Guess the quote.
+  source_name: Honolulu Civil Beat
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 3dfd409627b1d431
+  title: New Regulations Make It Easier to Find, Compare, and Report Healthcare Pricing and Coverage Information
+  summary: New Regulations Make It Easier to Find, Compare, and Report Healthcare Pricing and Coverage
+    Information
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 3fe20837891c6b55
+  title: SCAN, Walmart are teaming up for co-branded MA plans. Here's why
+  summary: Last month, SCAN Health Plan revealed that it would team up with Walmart to launch co-branded
+    Medicare Advantage plans in two states. Now, the partners are offering a deeper look at how those
+    benefits have taken shape, and why they saw potential in coming together.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 41948d08b9eab79d
+  title: Centene joins insurers waiving prior authorizations for top providers
+  summary: Centene is the latest insurer to adopt a gold card program as states and the Trump administration
+    push for prior authorization reform.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 437c1b8ab8a3cb3b
+  title: Cigna rolls out modernization effort, expects $3B in savings
+  summary: Cigna is launching a modernization and productivity initiative, expected to bring in $3 billion
+    in savings by 2030. During the company’s Sept. 30 investor day call, CFO Ann Dennison said the multiyear
+    program focuses on automating workflows, ensuring a future-ready workforce and optimizing supplier
+    and vendor management. According to a news release from the same […] The post Cigna rolls out modernization
+    effort, expects $3B in savings appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 43dd1c0f73aeac4f
+  title: Health plan enrollment drops 2.8% as individual market, Medicaid shrink
+  summary: Health insurers’ membership declined 2.8% year-over-year to about 312.5 million people in the
+    first half of 2026, as losses in the individual market and Medicaid outpaced gains in Medicare Advantage
+    and employer-based plans. The figures come from a Sept. 29 analysis by Mark Farrah Associates, which
+    draws on statutory financial filings with the National Association […] The post Health plan enrollment
+    drops 2.8% as individual market, Medicaid shrink appeared first on Becker's Payer Issues | Pay...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.435
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 44d0e0876936d316
+  title: Molina assumes $6B Florida Medicaid, CHIP special contract
+  summary: Molina Healthcare took over the contract for a specialized Florida Medicaid and CHIP plan,
+    previously managed by Centene’s Sunshine Health, on Oct. 1. Molina first announced it had secured
+    the contract in November 2025, but the start date had not been confirmed. At the time, Molina expected
+    to serve roughly 120,000 enrollees of the Title […] The post Molina assumes $6B Florida Medicaid,
+    CHIP special contract appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 4588539c85a0855e
+  title: CMS finalizes model that aims to bring most-favored nation pricing to Part B
+  summary: The Trump administration has finalized a new model that aims to bring its most-favored nation
+    pricing approach to Medicare Part B.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 459fa38ed733822b
+  title: CMS flags payment delays, rising costs in No Surprises Act arbitration
+  summary: CMS is raising concerns about growing costs and payment problems in the federal independent
+    dispute resolution process created by the No Surprises Act and met with every certified independent
+    dispute resolution entity Oct. 1 to talk about possible changes. CMS Administrator Mehmet Oz, MD,
+    Department of Labor Assistant Secretary Daniel Aronowitz, and officials from HHS, […] The post CMS
+    flags payment delays, rising costs in No Surprises Act arbitration appeared first on Becker's Payer
+    Issues |...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 45d0000ab6f973ad
+  title: I have Medigap and I’m finding it difficult to afford. What are my other options for supplemental
+    coverage?
+  summary: You may want to find out if you qualify for Medicaid, if your income and assets are low enough.
+    Medicaid helps many low-income people on Medicare with their Medicare premiums and cost-sharing requirements,
+    and may also cover some benefits that are not covered by Medicare, such as dental services and long-term
+    services and supports.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.36
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 4656eb5756f220cf
+  title: Trump Administration Announces New Funding to Support Rural Healthcare Workers and Expand Maternal
+    Care Across Missouri
+  summary: Trump Administration Announces New Funding to Support Rural Healthcare Workers and Expand Maternal
+    Care Across Missouri Federal investment will expand childcare support for rural healthcare workers
+    and launch nurse midwife training to help address maternal care gaps across Missouri
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 46d21eb75f876c1b
+  title: 'STAT+: UnitedHealth investor lawsuit moves forward on allegations it ‘manufactured earnings’
+    to hide declining profits'
+  summary: An investor lawsuit against UnitedHealth Group will move forward after a federal judge declined
+    the company’s motion to dismiss allegations.
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.485
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 46f1aee51f918cfe
+  title: Medicare 101
+  summary: This Health Policy 101 chapter explores Medicare, a federal health insurance program covering
+    more than 68 million people, established in 1965 for people age 65 or older and later expanded to
+    cover people under age 65 with long-term disabilities. In addition to detailing Medicare eligibility,
+    coverage, and spending, the chapter examines the increased role of private plans in providing benefits
+    and the financing challenges posed by increasing health care costs and an aging population.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.18
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 4707395b58ea2e72
+  title: CareSource names CFO
+  summary: CareSource has named Stephanie Williams as its new chief financial officer. She succeeds Larry
+    Smart, who will be retiring after serving as the insurer’s CFO for 6 years, according to an Oct. 1
+    news release. Ms. Williams first joined CareSource in 2021 as senior vice president and chief actuary
+    – Rylan Austin will succeed her […] The post CareSource names CFO appeared first on Becker's Payer
+    Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 477400542d43509c
+  title: Centene unveils national provider gold card program
+  summary: Centene is aiming to simplify the prior authorization process with the launch of a new nationwide
+    gold card program.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 47a456c098e711b1
+  title: New Mexico GOP gubernatorial nominee Hull takes debate stage solo as Haaland opts to see farmers
+  summary: Gregg Hull, the Republican nominee running to be New Mexico’s next governor, appeared alone
+    at the only gubernatorial debate scheduled before the Nov. 3 election. The broadcast Thursday night
+    had many of the trappings of a traditional debate — two podiums, a background projecting an American
+    flag blowing in the wind and opening and closing remarks. But Democratic nominee Deb Haaland opted
+    out, and without a second candidate on-stage offering rebuttals, it often played out more like a one-on-o...
+  source_name: Source New Mexico
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 489e39555c8ef780
+  title: A health insurance agency’s journey from pilot to full-time voice AI agent
+  summary: After struggling with high call volume — especially during Medicare open enrollment — eHealth
+    turned to voice AI agents for help.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: alert
+  proposed_label: relevant_context
+  label: null
+  note: payer + Medicare context; defensible MA implication
+- item_id: 4a71ee6205d11c41
+  title: 2027 Medicare Advantage and Part D Star Ratings
+  summary: '2027 Medicare Advantage and Part D Star Ratings Note: The information included in this Fact
+    Sheet is based on the 2027 Medicare Advantage (MA) and Part D Star Ratings published on the Medicare
+    Plan Finder on Oct. 8, 2026. For details on the methodology of the MA and Part D Star Ratings, please
+    refer to the 2027 Part C & D Star Ratings Technical Notes available at http://go.cms.gov/partcanddstarratings
+    .'
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.43
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 4c30af5615899fcf
+  title: Some mental health providers hoping to serve Lane County's Oregon Health Plan members say they’re
+    facing barriers
+  summary: Some mental health providers hoping to serve Lane County's Oregon Health Plan members say they’re
+    facing barriers Several providers said they faced contract issues with Trillium, a subsidiary of the
+    Centene Corporation that administers the state's Medicaid program in Lane County Joanne Zuhl Tue,
+    10/06/2026 - 10:15 At Aspire Wellness, a new outpatient behavioral health clinic in Springfield, there
+    are sensory rooms, classrooms for group therapy and ample space for walk-ins. Aspire will serve a...
+  source_name: The Lund Report
+  source_priority: 2
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 4cac2e7f2bb53515
+  title: CMS Convenes Certified Independent Dispute Resolution Entity Leaders to Discuss Ways to Improve
+    the Federal Program
+  summary: CMS Convenes Certified Independent Dispute Resolution Entity Leaders to Discuss Ways to Improve
+    the Federal Program
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.37
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 4d20a8269535548d
+  title: Sentara wraps Anthem negotiations for MA, Medicaid, ACA plans without deal
+  summary: Norfolk, Va.-based Sentara Health ended negotiations with Anthem Blue Cross and Blue Shield
+    of Virginia on 2027 contract extensions for Medicare Advantage, Medicaid and ACA exchange plans. An
+    Oct. 5 update on Sentara’s website said the health system set an Oct. 1 deadline for Anthem to agree
+    on proposals, but the parties were unable to […] The post Sentara wraps Anthem negotiations for MA,
+    Medicaid, ACA plans without deal appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.61
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 5013f550e6c3b1c6
+  title: Top House Democrat unveils surprise medical billing overhaul
+  summary: New legislation from Rep. Frank Pallone Jr. (N.J.), the top Democrat on the powerful House
+    Energy and Commerce Committee, aims to overhaul a key part of a law that protects patients from surprise
+    medical bills. The new bill aims to fix what Pallone and critics say is the flawed dispute resolution
+    system between insurers and providers....
+  source_name: The Hill - Health Care
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 50b8fbf0cb32b859
+  title: I’m having a hard time affording my Medicare Part D drug coverage. Are there any options for
+    me?
+  summary: You may want to find out if you qualify for extra assistance with your Part D plan premiums
+    and cost sharing, if your income and assets are low enough.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.58
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 51f81f02f48e4990
+  title: Insurers say their 2027 Medicare Advantage offerings preserve benefits. The data tells a different
+    story
+  summary: A Leerink Partners analysis of Medicare Plan Finder shows how the largest MA carriers are cutting
+    dental allowances and premium givebacks next year as they continue to prioritize margin recovery.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.36
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 529844ee711fb0e3
+  title: Florida court orders expungement of grand jury report on $10M Centene donation
+  summary: A Florida appellate court ruled Oct. 7 to expunge a grand jury report regarding a $10 million
+    Centene donation to the Hope Florida Foundation, tied to Florida’s first lady, Casey DeSantis. Florida
+    prosecutors launched a criminal investigation into the donation, which was part of a broader $67 million
+    settlement in 2024 to resolve allegations of […] The post Florida court orders expungement of grand
+    jury report on $10M Centene donation appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.44
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 54fc3e9d81d516a7
+  title: 'STAT+: Judges skewer HHS arguments in hearing over Medicare Advantage audits lawsuit'
+  summary: Federal judges pushed back against the government's arguments in a Medicare Advantage case.
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 5575d74c8a8a7cf2
+  title: Global Benchmark for Efficient Drug Pricing (GLOBE) Model
+  summary: This final rule implements the Global Benchmark for Efficient Drug Pricing Model (GLOBE Model),
+    a new mandatory Medicare payment model under section 1115A of the Social Security Act. The GLOBE Model
+    will test whether a payment model that uses an alternative method for calculating Medicare Part B
+    drug inflation rebate amounts for certain separately payable Medicare Part B drugs and biological
+    products reduces costs for Original Medicare (OM) beneficiaries and the Medicare program while preserv...
+  source_name: Federal Register - CMS Rules
+  source_priority: 5
+  score_at_capture: 0.28
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 55b129c9dfc5d18c
+  title: Cigna accused of underpaying ground ambulances to boost its own fees
+  summary: Cigna is facing a lawsuit claiming it made a profit by underpaying out-of-network ground ambulances,
+    according to a class-action complaint filed Oct. 12 in a California federal court. The lawsuit centers
+    on self-funded employer health plans that Cigna administers under administrative services only agreements.
+    The plaintiff, who was covered by one of these plans, alleged […] The post Cigna accused of underpaying
+    ground ambulances to boost its own fees appeared first on Becker's Payer Issues |...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.645
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 577e5f589f97fa3a
+  title: UnitedHealth reports $4.1B in profit, launches AI recommendations for Medicare Advantage plans
+  summary: UnitedHealth Group reported $4.1 billion in profit for the third quarter of 2026, up 75% year
+    over year, according to an Oct. 13 release. UnitedHealth raised its full-year outlook to at least
+    $19.50 per share, with adjusted earnings of at least $20.50 per share. The company is also rolling
+    out AI-powered plan recommendations for the […] The post UnitedHealth reports $4.1B in profit, launches
+    AI recommendations for Medicare Advantage plans appeared first on Becker's Payer Issues | Payer News
+    .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.56
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 5a29ec6515102c1a
+  title: '“I’m an MA Voter”: Seniors Make Medicare Advantage a Midterm Issue'
+  summary: 'Six-figure ad campaign launches days before open enrollment, with millions of beneficiaries
+    set to lose their plans next year WASHINGTON — Better Medicare Alliance today launched “I’m an MA
+    Voter,” … Continue reading "“I’m an MA Voter”: Seniors Make Medicare Advantage a Midterm Issue" The
+    post “I’m an MA Voter”: Seniors Make Medicare Advantage a Midterm Issue appeared first on Better Medicare
+    Alliance .'
+  source_name: Better Medicare Alliance
+  source_priority: 2
+  score_at_capture: 0.34
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 5a4cafdf45b4f070
+  title: DeGette talks legacy as her party shifts left
+  summary: DeGette and her dog Fiona sit for an interview in her office in the Rayburn House Office Building.
+  source_name: Roll Call - Medicare
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 5d997e7a1ac9ec59
+  title: The Trump Administration’s $90 Payment to Medicare Beneficiaries, Reminiscent of a Similar Proposal
+    Six Years Ago, May Not Offset Rising Costs
+  summary: Medicare’s standard Part B premium is $2,435 this year and is projected to increase by $79
+    annually for 2027 – meaning this increase alone would consume most of the $90 payment, which less
+    than half of all beneficiaries will receive.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 60353750de6e7f57
+  title: 'Humana’s star ratings turnaround: 5 notes'
+  summary: 'Humana has pulled off a Medicare Advantage star ratings turnaround, with 95% of the insurer’s
+    members in plans rated four stars or higher for 2027, compared to 20% a year ago. “I’m grateful for
+    what our team accomplished this year, and we’re already looking at what’s next and pushing ourselves
+    to do even more for […] The post Humana’s star ratings turnaround: 5 notes appeared first on Becker''s
+    Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.68
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 60491237289d1c0b
+  title: 1.1 million Medicare beneficiaries signed up for GLP-1 Bridge model
+  summary: Roughly 1.1 million Medicare beneficiaries have signed up to access discounted GLP-1s through
+    CMS’ Bridge model, HHS Chief Counselor Chris Klomp said during an Oct. 7 Wall Street Journal event.
+    The pilot launched July 1, rolling out to Medicare Part D beneficiaries who meet specific clinical
+    criteria. The pilot intends to reach beneficiaries needing anti-obesity […] The post 1.1 million Medicare
+    beneficiaries signed up for GLP-1 Bridge model appeared first on Becker's Payer Issues | Payer News
+    .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 60597e1c0fac2a53
+  title: Trump Administration Announces $7.2 Million to Expand Ambulance-Based Telemedicine and Upgrade
+    Emergency Communications Across South Dakota
+  summary: Trump Administration Announces $7.2 Million to Expand Ambulance-Based Telemedicine and Upgrade
+    Emergency Communications Across South Dakota This federal investment will help South Dakota's rural
+    ambulance crews reach patients faster, share critical health data with hospitals, and respond to emergencies
+    with modern technology
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 645aaad37b25d71d
+  title: If my employer offers retiree health benefits, do I need to sign up for Medicare when I turn
+    65?
+  summary: For most people with retiree health benefits, it makes sense to sign up for Medicare when you
+    are first eligible to do so. Retiree health plans are typically designed to supplement Medicare and
+    might not pay your medical costs during any period that you were eligible for Medicare but not signed
+    up for it.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 64a1687480879f44
+  title: Independence Blue Cross to pay $22.5M in Medicare Advantage inaccurate diagnoses allegations
+    settlement
+  summary: The settlement resolves allegations from 2017 to 2021 that the company submitted “inaccurate
+    and untruthful” diagnoses data to CMS.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.59
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 64e8df3e1a041cdb
+  title: Texas attorney general investigates UnitedHealth over care denials
+  summary: Ken Paxton is on the hunt for evidence that UnitedHealth is breaking the Deceptive Trade Practices
+    Act and other Texas laws, citing “alarming reports” of denied care.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 650d382ffa09bc65
+  title: Rubio calls on Russia to provide more information about plague lab death
+  summary: Secretary of State Marco Rubio on Tuesday called on Russia to provide more information surrounding
+    a suspected pneumonic plague outbreak in the country after a woman working at a laboratory handling
+    the deadly pathogens died. While the World Health Organization said Tuesday the risk of spread in
+    Russia and to Europe is generally low, it...
+  source_name: The Hill - Health Care
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 65c9d00703db09c9
+  title: I’m receiving extra help with my Part D plan premium and cost sharing through the Low-income
+    Subsidy Program. I received a notice that my current plan will no longer be offered next year. Now
+    what do I do?
+  summary: If you qualify for extra help with your Medicare prescription drug costs, are enrolled in traditional
+    Medicare, and your current prescription drug plan will not be offered next year, you will be automatically
+    reassigned by Medicare to a new prescription drug plan for coverage in the next year.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.655
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 668a47a5cd6fb656
+  title: 'CMS can now exclude providers from Medicare, Medicaid: 7 things to know'
+  summary: 'CMS can now exclude individual providers and entities from participating in federal healthcare
+    programs, including Medicare and Medicaid. HHS Secretary Robert F. Kennedy Jr. delegated the authority
+    to the CMS administrator in a notice that took effect immediately. Here are seven things to know:
+    1. The notice was published in the Federal Register on Oct. […] The post CMS can now exclude providers
+    from Medicare, Medicaid: 7 things to know appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 66c398cc68dd8666
+  title: 'UnitedHealth Group in the headlines: 12 updates'
+  summary: 'From a Texas attorney general investigation to a leadership shakeup that includes a new UnitedHealthcare
+    president, here are 12 updates on UnitedHealth Group and its subsidiaries that Becker’s has reported
+    since Sept. 14: 1. Texas Attorney General and U.S. Senate candidate Ken Paxton launched an investigation
+    into UnitedHealth Group, stemming from allegations of “deceptive and […] The post UnitedHealth Group
+    in the headlines: 12 updates appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 6842c3c2087bd700
+  title: ACHP’s ‘MA for Tomorrow’ Receives 2026 ASAE Power of Associations Silver Award
+  summary: ACHP's MA for Tomorrow initiative earned a 2026 ASAE Power of Associations Silver Award for
+    advancing Medicare Advantage reforms on quality and competition. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.19
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 69ea513923f5a81a
+  title: Medicare Advantage plans with 5 stars in 2027
+  summary: Fifteen Medicare Advantage plans earned five-star ratings for 2027, down from 22 last year.
+    CMS released the ratings Oct. 8. Of the 508 contracts that were rated, 188 (37%) earned four stars
+    or higher, compared with about 44% in 2026. The enrollment-weighted average MA star rating was 3.99
+    this year, compared with 4.01 in 2026, […] The post Medicare Advantage plans with 5 stars in 2027
+    appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.64
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 6abc9529ed4b56bc
+  title: '‘We’re really trying to build something new’: Inside the Walmart-SCAN co-branded Medicare Advantage
+    plans'
+  summary: 'SCAN Health Plan has been expanding its co-branded Medicare Advantage plans for 2027, including
+    through a partnership with Walmart. Walmart and SCAN are launching the SCAN Walmart Health Advantage
+    HMO and SCAN Walmart Medicare Complete Chronic Special Needs Plan, also known as a C-SNP, according
+    to an Oct. 7 news release. The plans will be […] The post ‘We’re really trying to build something
+    new’: Inside the Walmart-SCAN co-branded Medicare Advantage plans appeared first on Becker''s Payer
+    Iss...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.765
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 6ba55694229cee09
+  title: I am 66 years old, work for a large employer, and have health insurance coverage through my job.
+    I am planning to keep working for a few more years and keep the coverage that my employer offers.
+    What are my coverage options when I stop working?
+  summary: When you stop working and/or your group health insurance coverage ends, you should enroll in
+    Medicare Part A and Part B. If you’re eligible for premium-free Part A, you can sign up any time after
+    you’re first eligible for Medicare.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 6cffb1e8ee60dd32
+  title: 'From policy to practice: How health plans can operationalize CMS payment integrity changes'
+  summary: 'CMS is reshaping how health plans approach payment integrity. Faster regulatory cycles along
+    with heightened scrutiny of improper payments have resulted in expanded audits for providers and payers.
+    This represents a greater emphasis on prevention and real-time intervention as increasing pressure
+    on payers to ensure medical claims are reimbursed accurately. Today’s challenge goes far beyond […]
+    The post From policy to practice: How health plans can operationalize CMS payment integrity changes...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 6e27b12b5860d248
+  title: Claims against Aetna dismissed in Zelis antitrust repricing case
+  summary: A Massachusetts federal judge dismissed claims against Aetna on Sept. 30 in antitrust litigation
+    over the use of Zelis’ repricing tools. The judge determined the providers’ latest complaint did not
+    plausibly allege Aetna used the tools. The plaintiffs filed a second amended complaint in August,
+    following a first amended complaint in June 2025. The first […] The post Claims against Aetna dismissed
+    in Zelis antitrust repricing case appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 6e4d851f2298bdd0
+  title: Humana reports nearly $20B economic impact in home state of Kentucky
+  summary: Humana and the University of Louisville reported Oct. 6 that the company contributed nearly
+    $20 billion to the state’s revenues and output in 2025. This includes estimates of roughly $6.4 billion
+    in direct impact, $9 billion in indirect impact and $4.5 billion in induced impact, according to the
+    university’s report. Here are four other things […] The post Humana reports nearly $20B economic impact
+    in home state of Kentucky appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 6eb43e001785ec2e
+  title: SCAN unveils 2027 MA slate, including launch of co-branded Costco plans
+  summary: SCAN Health Plan has unveiled its product offerings for the 2027 plan year, and the slate includes
+    the first launch in its partnership with Costco.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 6ec8fbee56d927a5
+  title: Democrats target Macomb County with a first-ever joint town hall featuring El-Sayed, Slotkin
+  summary: The importance of Macomb County to Michigan Democrats’ 2026 playbook was on full display Saturday
+    as U.S. Sen. Elissa Slotkin joined U.S. Senate nominee Abdul El-Sayed for a joint town hall event
+    that focused on unity, bridging the divide between moderates and progressives, and the outsized impact
+    county residents could have on the election. As […]
+  source_name: Michigan Advance
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 74823607fb2f1fa0
+  title: CMS finalizes price transparency overhaul for payers
+  summary: The Trump administration is overhauling federal price transparency rules for payers and self-insured
+    employers, including cutting so-called “ghost rates,” expanding out-of-network price disclosures and
+    requiring executives to vouch for the accuracy of the data. The final rule, released Oct. 5 by CMS
+    and the Labor and Treasury departments, revises the price transparency regulations first finalized
+    […] The post CMS finalizes price transparency overhaul for payers appeared first on Becker's Paye...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.565
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 75e8e10d3469065d
+  title: 'GLP-1 spending rose 84% in 1 year at BCBS Massachusetts: Study'
+  summary: 'Higher use of medical services and prescription drugs, rather than rising inflation-adjusted
+    prices, drove a recent uptick in commercial spending at Blue Cross Blue Shield of Massachusetts, according
+    to a study published Oct. 5 in Health Affairs. The analysis was conducted by researchers from Harvard
+    University, along with senior leadership from BCBSMA, including its chief […] The post GLP-1 spending
+    rose 84% in 1 year at BCBS Massachusetts: Study appeared first on Becker''s Payer Issues | Pay...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 75ea12f5e71121bd
+  title: '77% of Medicaid improper payments tied to paperwork, not fraud: Report'
+  summary: 'CMS estimates that 77% of fiscal year 2025 Medicaid improper payments resulted from insufficient
+    documentation rather than fraud or abuse, according to an Oct. 7 report from the Congressional Research
+    Service. The report outlines how federal and state agencies oversee Medicaid program integrity. CRS
+    is a nonpartisan agency within the Library of Congress that prepares […] The post 77% of Medicaid
+    improper payments tied to paperwork, not fraud: Report appeared first on Becker''s Payer Issues |
+    P...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 7661b82645790ae4
+  title: UnitedHealthcare to exit Georgia’s ACA marketplace in 2027
+  summary: UnitedHealthcare is exiting Georgia’s ACA marketplace Jan. 1, 2027, the insurer and Georgia’s
+    Office of the Commissioner of Insurance and Safety Fire confirmed to Becker’s Oct. 6. “We remain committed
+    to serving members throughout the transition and will continue providing health coverage to Georgians
+    through our off-exchange individual and family plans, as well as our […] The post UnitedHealthcare
+    to exit Georgia’s ACA marketplace in 2027 appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 770857257069d03e
+  title: Fairview sues UnitedHealthcare over alleged Medicare Advantage false advertising
+  summary: Minneapolis-based Fairview Health Services filed a lawsuit Oct. 1 against UnitedHealthcare,
+    alleging false advertising with the insurer’s 2027 Medicare Advantage plans. The complaint, filed
+    in Minnesota federal court, said Fairview decided in June to not renew its contract with UnitedHealthcare’s
+    MA plans for 2027. However, the lawsuit said UnitedHealthcare has falsely presented that Fairview
+    would […] The post Fairview sues UnitedHealthcare over alleged Medicare Advantage false advertising
+    a...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 78f76c10047d1d19
+  title: H.R. 9613, Nuclear Advisory Committee Reform Act
+  summary: As ordered reported by the House Committee on Energy and Commerce on September 2, 2026
+  source_name: Congressional Budget Office (CBO)
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 7b068358ef756143
+  title: How can I compare my Medicare coverage options?
+  summary: You can compare your Medicare coverage options using an online searchable tool on the Medicare.gov
+    website that allows users to compare Medicare coverage options, including Medicare Advantage plans,
+    Medicare Part D plans, and Medigap supplemental policies.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.39
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 7b7270c3bf2a7b9c
+  title: Alabama voters to consider Pledge of Allegiance, National Anthem, school prayer
+  summary: Alabama voters will decide in November whether to amend the state constitution to require school
+    boards to adopt policies the daily recital of the Pledge of Allegiance in schools and student-led
+    prayer, as well as the broadcast of the Star-Spangled Banner every week. Amendment 3, sponsored by
+    Rep. Reed Ingram, R-Pike Road, requires K-12 public […]
+  source_name: Alabama Reflector
+  source_priority: 2
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 7c6fd55d0fb2f1eb
+  title: 'Medicare Part D: Payments and Contracts Between Pharmacies and Plan Sponsors That Are Vertically
+    Integrated'
+  summary: What GAO Found The insurance plan sponsors that provide Medicare Part D drug coverage have
+    increasingly become vertically integrated—that is, under common ownership—with pharmacy benefit managers
+    and pharmacies. GAO found that, for four large Part D plan sponsors, the pharmacies they owned accounted
+    for about 24 percent of the Part D drugs they provided to their enrollees (drug utilization) and about
+    28 percent of the total payments to pharmacies in 2023 (see figure). Payments included both r...
+  source_name: U.S. Government Accountability Office (GAO)
+  source_priority: 3
+  score_at_capture: 0.815
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 7d8e07a440d4f9d5
+  title: 'Medigap Guaranteed Issue Requirements: An Overview of Federal and State Rules'
+  summary: This issue brief analyzes federal and state rules related to guaranteed issue requirements
+    for Medigap policies and how they impact beneficiaries’ access to Medigap, including the implications
+    for Medicare beneficiaries with pre-existing medical conditions and those under age 65 with long-term
+    disabilities.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 805be6e4399e7d8e
+  title: UnitedHealthcare’s AI assistant expands to 21 million members
+  summary: UnitedHealthcare’s AI assistant Avery is now available to 21 million commercial, Medicare and
+    Medicaid members, according to an Oct. 8 news release shared with Becker’s. Avery first launched in
+    March to about 6.5 million members with employer-sponsored plans and 160,000 Medicare Advantage members.
+    Members can use the virtual assistant in the UHC app to ask […] The post UnitedHealthcare’s AI assistant
+    expands to 21 million members appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.61
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 818e2da32206cd2d
+  title: BCBS Minnesota cuts most Medicare Advantage plans following $500M loss
+  summary: Blue Cross and Blue Shield of Minnesota is discontinuing most of its Medicare Advantage plans
+    at the end of 2026, citing more than $500 million in Medicare losses over the past three years amid
+    rising medical and pharmacy costs. “While I am reassured that our financial foundation remains strong,
+    that does not mean we can […] The post BCBS Minnesota cuts most Medicare Advantage plans following
+    $500M loss appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.745
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 82a95197e6c4bd1e
+  title: Judge rejects Alignment’s bid to toss former exec’s whistleblower lawsuit
+  summary: A federal judge has largely rejected Alignment Healthcare’s bid to throw out a former senior
+    executive’s whistleblower lawsuit that accuses the Medicare Advantage insurer of financial mismanagement.
+    Alignment’s former chief technology officer, Hakan Kardes, PhD, alleged in July that he was pushed
+    out of the company after reporting that it had misclassified $8 million to […] The post Judge rejects
+    Alignment’s bid to toss former exec’s whistleblower lawsuit appeared first on Becker's Payer Issu...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 83a72c828dde3404
+  title: 8 things to know about 2027 Medicare Advantage star ratings
+  summary: CMS released 2027 Medicare Advantage star ratings on Oct. 8, giving more insight into the MA
+    landscape beyond health plans’ marketing materials. Contracts receive a rating each year, ranging
+    from one to five stars. The ratings help beneficiaries compare plans, but they also shape quality
+    bonus payments to boost benefits. Four stars is the main […] The post 8 things to know about 2027
+    Medicare Advantage star ratings appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.39
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 83c10ae64652a9ce
+  title: Trans detainees allege abuse, medical neglect at Jena immigration detention center
+  summary: Three transgender women who have been detained for months at a male-only central Louisiana
+    immigration detention center allege that they have faced abuse and transphobia at the hands of staff
+    and other detainees. In interviews with Verite News, they allege that they have been assaulted by
+    officers, forcibly detransitioned, verbally harassed and kept in solitary […]
+  source_name: Louisiana Illuminator
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 84d691270b485e0a
+  title: 'Focus on HMOs, C-SNPs: A look at the Medicare Advantage landscape for 2027'
+  summary: With Medicare's annual enrollment period on the horizon, major insurers are offering a look
+    at their plans for the coming year and new federal data offers a broader look at the current landscape.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.875
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 85c484cccc0e58d8
+  title: Humana enters $2.8B primary care joint venture with BlackRock
+  summary: Investment firm BlackRock will acquire a majority stake in nearly 150 senior primary care clinics
+    owned by Humana’s senior healthcare division, CenterWell, the insurer announced Tuesday.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.463
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 860f5f91a87cc79e
+  title: '‘This is an agent doing this’: Health insurers deploy AI to make your next medical appointment'
+  summary: 'Booking an appointment with a provider often means confirming they’re in network, working
+    through an automated phone menu and trading available times with a receptionist. But for some UnitedHealthcare
+    and Aetna members, an AI agent is now handling that work. Senior executives at both insurers have
+    described their scheduling tools publicly in recent months as […] The post ‘This is an agent doing
+    this’: Health insurers deploy AI to make your next medical appointment appeared first on Becker''s
+    P...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.595
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 862f8805d7721773
+  title: 'STAT+: Trump’s watered-down Medicare drug pricing rule saves 96% less than initial proposal'
+  summary: WASHINGTON — The Trump administration published a final rule aimed at lowering Medicare prices
+    for drugs administered in doctor offices. It applies to only four companies. The Global Benchmark
+    for…
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 86fe45ef857045ba
+  title: Indiana death row inmate seeks execution delay for brain scans ahead of clemency hearings
+  summary: Indiana death row inmate Jeffrey Weisheit is asking the state’s highest court to move his execution
+    from Nov. 5 to Nov. 19 so experts can analyze brain scans his attorneys say would give Gov. Mike Braun
+    a fuller account of his impairments before deciding clemency. A federal judge approved funding for
+    the testing but ruled […]
+  source_name: Indiana Capital Chronicle
+  source_priority: 2
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 883422e8fa6b6848
+  title: Many Medicare Part D Stand-Alone Drug Plan Enrollees Will See Modest Premium Increases for 2027,
+    But Others Could Pay Much More If They Don’t Switch Plans
+  summary: This brief analyzes the Medicare Part D stand-alone prescription drug plan (PDP) market for
+    2027. The analysis shows that there will be a modest reduction in the number of PDPs for 2027, along
+    with modest premium increases less than $10 per month for many enrollees, but much larger monthly
+    premium increases of $50 or more for others if they don’t change plans.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.655
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 8a17263c1d9dcb1d
+  title: Texas investigates UnitedHealth over care denial concerns
+  summary: Texas Attorney General and U.S. Senate candidate Ken Paxton has launched an investigation into
+    UnitedHealth Group. An Oct. 5 news release said the investigation resulted from allegations of “deceptive
+    and unlawful practices” that could have denied Texans medically necessary care. Mr. Paxton’s office
+    said there had been reports alleging the company “bribed nursing homes to […] The post Texas investigates
+    UnitedHealth over care denial concerns appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 8a6559deb9d484fd
+  title: Centene to roll out gold card program to more than 160,000 providers
+  summary: Centene will launch its National Performance-Based Gold Card Program in November. Gold carding
+    aims to streamline prior authorization, reducing requirements for trusted providers. The program will
+    first be available to more than 160,000 qualifying providers across the country for some outpatient
+    services. Eligibility is determined by approval history, documentation quality, medical policy compliance
+    and adherence […] The post Centene to roll out gold card program to more than 160,000 provider...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 8b3e3523bbaa07ca
+  title: 'CVS to pay $315M over opioid prescriptions billed to Medicare, federal programs: Justice Department'
+  summary: 'CVS Pharmacy has agreed to pay $315 million to resolve Justice Department allegations that
+    it illegally filled opioid and other controlled substance prescriptions, according to an Oct. 13 news
+    release. Here are five things to know: The post CVS to pay $315M over opioid prescriptions billed
+    to Medicare, federal programs: Justice Department appeared first on Becker''s Payer Issues | Payer
+    News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.195
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 8bd65f9899a16c8d
+  title: 'The healthiest states for women, children in 2026: UnitedHealth'
+  summary: 'Massachusetts is the healthiest state in the nation for women and children for the second
+    consecutive year, while Louisiana again ranks last, according to the United Health Foundation’s “2026
+    America’s Health Rankings Health of Women and Children Report” published Oct. 6. The 10th anniversary
+    edition of the report evaluates all 50 states across 83 measures […] The post The healthiest states
+    for women, children in 2026: UnitedHealth appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 8d11fb0f6f8e63bc
+  title: My husband and I are retired. He just turned 65 and is now covered by Medicare, but I am 62 and
+    I don’t have health insurance. As the spouse of a Medicare beneficiary, can I enroll in Medicare during
+    the Medicare Open Enrollment period?
+  summary: No. Although your husband now qualifies for Medicare, you will not qualify for Medicare until
+    you turn age 65. If you do not have health insurance now, you can consider signing up for health insurance
+    coverage through a Marketplace plan.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.285
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 8dc87ad68d73f96b
+  title: Milwaukee County covers Flock cameras, moves away from controversial tech
+  summary: Milwaukee County is a step closer to getting rid of Flock automatic license plate reader cameras.
+    On Monday, joined by county board members, Milwaukee County Executive David Crowley signed a resolution
+    directing the removal of Flock cameras from county parks. “Today is about our commitment to protecting
+    the rights and privacy of our residents,” said […]
+  source_name: Wisconsin Examiner
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 8ddbf057e32bf8cb
+  title: ACHP Urges CMS to Protect Medicaid Provider Tax Flexibility
+  summary: ACHP asks CMS to implement OBBBA without added limits on provider taxes — preserving prospective
+    compliance, the 75/75 test and state Medicaid financing. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.31
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 8f416e2c407dd95a
+  title: Optum awarded $30B VA dental contract
+  summary: The Department of Veterans Affairs has awarded Optum Serve a 10-year contract worth up to $30
+    billion to build and administer its national dental network. The network is set to be fully in place
+    within a year of the award and will cover general and specialty dental care, preventive services and
+    pharmacy support, according to […] The post Optum awarded $30B VA dental contract appeared first on
+    Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 8fbeed63a17b03ab
+  title: Humana taps CEO for Kentucky Medicaid
+  summary: Mitchell Evans will serve as Humana’s next Kentucky Medicaid CEO, according to an Oct. 6 LinkedIn
+    post. According to Mr. Evans’ LinkedIn profile, he has spent more than 15 years with Humana, most
+    recently as a national vice president for Medicaid growth and strategy. Mr. Evans has also served
+    on the Medicaid Health Plans of […] The post Humana taps CEO for Kentucky Medicaid appeared first
+    on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 90ff90403265a020
+  title: The Average Medicare Beneficiary has 28 Medicare Advantage Prescription Drug Plan Options for
+    2027
+  summary: The average Medicare beneficiary will have 28 Medicare Advantage prescription drug (MA_PD)
+    plans available for general enrollment in 2027. The number of plans varies widely across states.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.36
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 91cd25238817f1af
+  title: I have a Medigap policy now, but I want to buy a different one. Can I switch Medigap policies
+    during the Medicare Open Enrollment period?
+  summary: The annual Medicare Open Enrollment period is designed for enrolling in or switching Medicare
+    Advantage and Part D prescription drug plans, not Medigap policies.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.715
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 92c961f17d9bb5b7
+  title: 7 HCA-affiliated hospitals sue Anthem BCBS over reimbursement
+  summary: Seven hospitals affiliated with Nashville, Tenn.-based HCA Healthcare filed a lawsuit Oct.
+    5 against Anthem Blue Cross and Blue Shield in Georgia, part of Elevance Health, alleging denied or
+    underpaid claims, according to court records reviewed by Becker’s. Corpus Christi Medical Center,
+    HCA Houston Healthcare North Cypress, Lone Peak Hospital, TriStar Skyline Medical Center, Belton […]
+    The post 7 HCA-affiliated hospitals sue Anthem BCBS over reimbursement appeared first on Becker's
+    Payer Iss...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 9323b5407fc5cf45
+  title: 'House Committee Report on Fraud Against Medicare and Medicaid: Oversight Done Wrong'
+  summary: On September 29, exactly five weeks before the mid-term elections, Republicans on the House
+    Energy & Commerce Committee released a Majority Staff Report on fraud against Medicare and Medicaid.
+    The same day the Committee’s Chairman announced a package of 14 bills, 13 of which would amend the
+    Medicaid statute to address fraud against the program. At […]
+  source_name: Georgetown CCF
+  source_priority: 4
+  score_at_capture: 0.35
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 94a708988d75ecbb
+  title: CVS to pay $315M settlement over allegations of illegally filling opioid prescriptions
+  summary: The Justice Department (DOJ) announced Tuesday that CVS Health has agreed to pay $315 million
+    to settle lawsuits alleging the company illegally filled prescriptions for opioids and other controlled
+    substances. The settlement resolves a lawsuit first filed in 2019 by former CVS employee Hillary Estright
+    in 2019 under the whistleblower provision of the False Claims...
+  source_name: The Hill - Health Care
+  source_priority: 3
+  score_at_capture: 0.53
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 958d29a491327f0c
+  title: Independence Blue Cross to pay $22.5M to resolve MA fraud allegations
+  summary: Independence Blue Cross will pay to settle allegations it defrauded Medicare by inflating diagnosis
+    codes for MA beneficiaries. The payer cited “industry-wide challenges” in applying MA risk adjustment
+    standards.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.44
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 95a48ad4d5da56af
+  title: Trump Administration Announces Nearly $55 Million to Expand Rural Maternal and Emergency Care,
+    Cancer Screening, and Alabama’s Rural Healthcare Workforce
+  summary: Trump Administration Announces Nearly $55 Million to Expand Rural Maternal and Emergency Care,
+    Cancer Screening, and Alabama’s Rural Healthcare Workforce This federal investment will support 34
+    grants including maternal care networks and increase access to cancer screening across Alabama
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.235
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 95d2ee97e55baf16
+  title: Legacy, UnitedHealthcare reach new contract, affecting tens of thousands of Oregonians
+  summary: Legacy, UnitedHealthcare reach new contract, affecting tens of thousands of Oregonians The
+    new contract was announced just hours before the old one was due to expire Joanne Zuhl Thu, 10/01/2026
+    - 14:20 Legacy Health has reached a new deal with the insurance giant UnitedHealthcare, ensuring continued
+    in-network coverage for tens of thousands of Oregonians. Under the contract, all services provided
+    by Legacy’s hospitals, clinics and providers will be covered for the insurer’s members at in-netw...
+  source_name: The Lund Report
+  source_priority: 2
+  score_at_capture: 0.375
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 9614be8d591562ed
+  title: 'CMS ends ACA subsidies for 189,000 duplicate or deceased enrollees: 5 notes'
+  summary: 'CMS ended subsidies in 2026 for 189,000 people with federally subsidized marketplace coverage
+    who also had Medicare, Medicaid or Children’s Health Insurance Program coverage, or who were deceased,
+    HHS said Oct. 14. Here are five things to know: 1. The Trump administration in 2025 restored duplicate
+    enrollment enforcement and ended duplicate marketplace subsidies for about […] The post CMS ends ACA
+    subsidies for 189,000 duplicate or deceased enrollees: 5 notes appeared first on Becker''s Payer...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.58
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 974f74f73a5a45c6
+  title: Healey wants Trump administration’s help on bringing more gas into Massachusetts
+  summary: 'This article first appeared on CommonWealth Beacon and is republished here under a Creative
+    Commons Attribution-NoDerivatives 4.0 International License. Here’s something you probably didn’t
+    have on your bingo card: The Democratic governor of Massachusetts asking President Trump’s administration
+    to move faster in approving a gas expansion project. That’s exactly what Gov. Maura Healey did on
+    […]'
+  source_name: Rhode Island Current
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 978ba20e38d1440e
+  title: CMS releases list of participants in CJR-X payment model for joint replacement procedures
+  summary: The Centers for Medicare & Medicaid Services has published its list of participants for its
+    mandatory Comprehensive Care for Joint Replacement Expanded Model, or CJR-X. The payment model focuses
+    on lower extremity joint replacement procedures. CMS is requesting participating hospitals to complete
+    the online primary point of contact form and identify two individuals to serve as their primary points
+    of contact for CJR-X-related communications from the agency. The model, which initially ran in s...
+  source_name: AHA News
+  source_priority: 2
+  score_at_capture: 0.31
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 98361d3819638365
+  title: 'Keeping claims out of IDR: How payers are containing No Surprises Act costs'
+  summary: 'The No Surprises Act has delivered on one of its central promises: fewer surprise medical
+    bills. A survey from AHIP and the Blue Cross Blue Shield Association found that the NSA protected
+    patients from nearly 20 million potential surprise bills in 2024 alone. But the law has not worked
+    as intended in every respect. For […] The post Keeping claims out of IDR: How payers are containing
+    No Surprises Act costs appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 98cbbaca60e6ceee
+  title: Humana, BlackRock strike $2.8B deal to manage CenterWell clinics
+  summary: Humana will enter into a joint venture with investment firm BlackRock to manage and operate
+    its CenterWell primary care clinics for seniors, swapping out its current partner Welsh, Carson, Anderson
+    & Stowe.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: 9b3aa4f608402ed4
+  title: Medicare Improvement Fund Premium Rebate Frequently Asked Questions
+  summary: 'Medicare Improvement Fund Premium Rebate Frequently Asked Questions Q: What will the Medicare
+    Improvement Fund do for Medicare beneficiaries? A: The Administration is making a $90 Premium Rebate
+    available for Part B premiums to certain Medicare beneficiaries because the best way to improve Medicare
+    is to put healthcare dollars back where they belong – in the hands of our Medicare beneficiaries –
+    and make coverage more affordable.'
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.325
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: 9cb19516d97816c2
+  title: Better Medicare Alliance Responds to 2027 Medicare Advantage Star Ratings Announcement
+  summary: WASHINGTON — Better Medicare Alliance (BMA) today released the following statement in response
+    to the Centers for Medicare & Medicaid Services’ (CMS) release of the 2027 Medicare Advantage Star
+    Ratings … Continue reading "Better Medicare Alliance Responds to 2027 Medicare Advantage Star Ratings
+    Announcement" The post Better Medicare Alliance Responds to 2027 Medicare Advantage Star Ratings Announcement
+    appeared first on Better Medicare Alliance .
+  source_name: Better Medicare Alliance
+  source_priority: 2
+  score_at_capture: 0.37
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: 9e3d952854ebc5ac
+  title: Is the Medicare Open Enrollment period the same as the Marketplace Open Enrollment period? Can
+    I buy Medicare and Medigap plans through the Marketplace?
+  summary: There is some overlap in the enrollment periods for Medicare and the Marketplaces, but they
+    are not the same. The Medicare Open Enrollment period runs from October 15 through December 7 each
+    year.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.435
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: a07e1fac95c3073a
+  title: Amid Wyoming’s mental health struggles, governor hopes successor prioritizes the issue
+  summary: Gordon has made mental health a policy focus with initiatives to increase access and destigmatize.
+    The post Amid Wyoming’s mental health struggles, governor hopes successor prioritizes the issue appeared
+    first on WyoFile .
+  source_name: WyoFile
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: a0afbc4cd61183e1
+  title: CVS, DOJ reach $315M settlement in opioid prescription case
+  summary: CVS Health has reached a $315 million settlement with the Department of Justice that resolves
+    allegations the pharmacy giant knowingly filled unlawful opioid prescriptions.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.765
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: a40da60be8b3ce21
+  title: Blue Cross and Blue Shield of Louisiana names new CEO
+  summary: Blue Cross and Blue Shield of Louisiana has named Brian Keller president and CEO, effective
+    Dec. 1. Mr. Keller will succeed Bryan Camerlinck, who announced his planned retirement earlier this
+    year. Mr. Camerlinck will remain president and CEO through Nov. 30 to support the leadership transition,
+    according to an Oct. 13 Louisiana Blue news release. […] The post Blue Cross and Blue Shield of Louisiana
+    names new CEO appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: a41fe33fdf5f4e92
+  title: Kaiser Permanente to repay nurses 'potentially tens of millions' in mistakenly withheld wages
+  summary: Following an arbitration agreement, more than 1,000 nurses will be compensated for a payment
+    error that began in 2021, the California Nurses Association said. The major nonprofit confirmed the
+    plans but did not comment on the total amount.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: a8aff0a0e382d920
+  title: 'Preclusion gaps tied to $72M in Medicare Advantage, Part D payments: Report'
+  summary: 'Vulnerabilities in CMS’ preclusion process contributed to Medicare Advantage and Part D plans
+    making $72 million in payments for services linked to revoked providers from 2022 through 2024, the
+    HHS Office of Inspector General found. Revocation ends a provider’s enrollment in traditional Medicare
+    Parts A and B. The preclusion list bars payment to listed providers […] The post Preclusion gaps tied
+    to $72M in Medicare Advantage, Part D payments: Report appeared first on Becker''s Payer Issues |
+    P...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.64
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: a9cb22b018948a7e
+  title: I am 70 years old and covered by Medicare, but I’m wondering if I can purchase one of the health
+    plans offered through the Marketplace and drop my Medicare coverage? Is that an option for me or should
+    I keep my Medicare coverage?
+  summary: If you have Medicare, you should keep it. In fact, companies that sell Marketplace plans are
+    prohibited from selling these plans to you if they know you are covered by Medicare.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.195
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: ab22094461ffa7af
+  title: Michigan Supreme Court revives appeal of ‘factory farm’ discharge permit in light of Line 5 ruling
+  summary: A ruling from the Michigan Supreme Court regarding a permit for Enbridge’s Line 5 tunnel project
+    is echoing into other aspects of the state’s environmental permitting process, as the state’s high
+    court encouraged the Court of Appeals to take another look at a case centered on regulations for Michigan’s
+    factory farms. In late July, the […]
+  source_name: Michigan Advance
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ab7d04f1748b7a29
+  title: SCAN, Costco roll out Medicare Advantage plans in California, Nevada
+  summary: SCAN Health Plan and Costco shared Oct. 1 that their co-branded Medicare Advantage plans will
+    go live in California and Nevada in 2027. The HMO will be available in 17 California counties and
+    two Nevada counties on Jan. 1, a SCAN news release said. This is Costco’s first time offering MA.
+    “Entering Medicare Advantage is […] The post SCAN, Costco roll out Medicare Advantage plans in California,
+    Nevada appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: adcbff87b17ef076
+  title: Cigna board director to retire
+  summary: Cigna board director Donna Zarcone will retire at the end of 2026. Ms. Zarcone informed the
+    board of her decision on Oct. 6. According to her LinkedIn profile, she has been on Cigna’s board
+    since 2005. Ms. Zarcone is also currently on the board of investment firm Halstatt. Ms. Zarcone is
+    the former CEO of […] The post Cigna board director to retire appeared first on Becker's Payer Issues
+    | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ae7e2c58433a5fe9
+  title: HCSC halved its Medicare Advantage footprint but says it’s still playing the long game
+  summary: Health Care Service Corp. has cut its Medicare Advantage footprint in half less than two years
+    after buying Cigna’s Medicare business for $3.3 billion, but the Chicago-based insurer says the narrowed
+    focus will allow it to achieve sustainable growth over time. The company is coming off a costly year,
+    posting a net loss of more […] The post HCSC halved its Medicare Advantage footprint but says it’s
+    still playing the long game appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.56
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: ae9b2cff755e55d0
+  title: CMS launches 340B claims data repository
+  summary: The Centers for Medicare & Medicaid Services’ 340B Part D claims data repository became available
+    Oct. 1 for voluntary data submissions. While data submissions will remain voluntary for now, the agency
+    has proposed making data submissions mandatory starting Jan. 1, 2027. CMS has multiple resources available
+    to support 340B entities and their third-party administrators with data submissions, including a user
+    guide, companion guide, fact sheet and an FAQ.
+  source_name: AHA News
+  source_priority: 2
+  score_at_capture: 0.31
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: af181bed5c7b1075
+  title: 'STAT+: Medicare Advantage plans shift more costs onto seniors in 2027'
+  summary: Premiums are stable, but Medicare Advantage plans are making big changes that could make care
+    more expensive for patients.
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.36
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: b227f1557903282d
+  title: Little room for stakeholder consensus among potential Medicare Advantage reforms
+  summary: A survey of 52 experts spanning researchers, the Medicare Advantage industry, patient advocates
+    and policymakers wasn't able to identify a single policy proposal that would be received wholeheartedly
+    by all three groups.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: b2f7ffc1ef8edacd
+  title: Trump Administration Announces New Funding to Support Early Career Physicians Who Choose to Work
+    in Rural Delaware
+  summary: Trump Administration Announces New Funding to Support Early Career Physicians Who Choose to
+    Work in Rural Delaware This federal investment will award housing and assistance to help future physicians
+    train and practice in rural communities, ensuring Delawareans get the care they need close to home.
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.1
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: b498b1b1a01179d2
+  title: 'Poll: 43 percent support ''Medicare for all'''
+  summary: Nearly 43 percent of Americans support the idea of “Medicare for all,” according to an Axios/Ipsos
+    poll released Tuesday, as concerns over health costs mount ahead of the midterm elections. People
+    who said they support Medicare for all outnumbered its opponents by a nearly 2-to-1 margin, while
+    a bipartisan majority of Americans said they think the...
+  source_name: The Hill - Health Care
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: b8073a23562f50c1
+  title: H.R. 7362, Form 5500 Filing Simplification Act
+  summary: As ordered reported by the House Committee on Education and Workforce on May 21, 2026
+  source_name: Congressional Budget Office (CBO)
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ba5489add047444b
+  title: North Dakota insurance commissioner posts premium rate changes for next year
+  summary: North Dakota Insurance Commissioner Jon Godfread on Monday released health insurance premium
+    rate changes for Affordable Care Act plans for 2027. His news release includes a table of ACA small
+    group and individual market rate increases for companies including UnitedHealthcare, Blue Cross Blue
+    Shield of North Dakota and Sanford Health Plan. Godfread did reduce some […]
+  source_name: North Dakota Monitor
+  source_priority: 2
+  score_at_capture: 0.665
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: bc5368a0d94dc04f
+  title: Trump announces $90 payments for seniors’ Medicare premium costs ahead of midterm elections
+  summary: President Trump is promising more payments to voters just ahead of the Nov. 3 midterm elections
+    — this time for seniors' Medicare Part B premiums
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.285
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: c1b4909f471f5be7
+  title: Clinical Laboratory Improvement Amendments of 1988 (CLIA); Virtual Access, Gynecologic Cytology
+    Proficiency Testing (PT), Personnel Qualifications, and Other Changes
+  summary: This proposed rule would amend the Clinical Laboratory Improvement Amendments of 1988 (CLIA)
+    regulations to allow for virtual access under the CLIA certificate of the primary testing laboratory
+    that generated the data, with the exception of the subspecialty of cytology, and the use of digital
+    images for gynecologic cytology proficiency testing. This proposed rule also includes proposed changes
+    to personnel qualification requirements and other proposed changes pertaining to SARS-CoV-2 reportin...
+  source_name: Federal Register - CMS Rules
+  source_priority: 5
+  score_at_capture: 0.28
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: c28f018677428533
+  title: President Donald Trump says he’s providing disaster aid to Wisconsin after speaking with Tom
+    Tiffany
+  summary: President Donald Trump said that he would be providing nearly $18 million in relief to Wisconsin
+    to help with damage from July tornadoes in the Fox Valley after speaking to Republican U.S. Rep. Tom
+    Tiffany, who is running for governor. In July, a tornado hit parts of Appleton and Menasha, destroying
+    and damaging homes. Gov. […]
+  source_name: Wisconsin Examiner
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: c49543bcf2e28e3f
+  title: 'STAT+: BlackRock to buy majority stake in Humana’s CenterWell clinics for $2.8 billion'
+  summary: Humana is swapping out private equity sponsors for its CenterWell Senior Primary Care clinics.
+    Good bye, Welsh, Carson, Anderson & Stowe. Hello, BlackRock.
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: c5b815969d58f8c3
+  title: FTC sends price transparency warning letters to 24 large hospital systems
+  summary: Letters sent Monday warn that CMS guidances on price transparency are "a regulatory floor."
+    Hospitals are also subject to the FTC Act's prohibitions on unfair or deceptive marketplace practices,
+    which could apply to incomplete or inaccurate pricing information, the regulator said.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.49
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: c5d5549e2a60da54
+  title: 'STAT+: Medicare Advantage star ratings trigger new bonuses, and uncertainty'
+  summary: The federal government has released new quality ratings for Medicare Advantage insurers for
+    2027, with Humana emerging as the biggest winner. But deep uncertainty remains around Medicare Advantage
+    quality measures,…
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.68
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: c85b33a247f41576
+  title: HCA hospitals escalate payment fight with insurers
+  summary: Hospitals affiliated with Nashville, Tenn.-based HCA Healthcare have sued multiple insurers
+    over alleged claim denials and reimbursement issues in 2025 and 2026. These cases contribute to a
+    broader landscape of legal battles between providers and insurers. Most recently, seven hospitals
+    filed a lawsuit Oct. 5 against Anthem Blue Cross and Blue Shield Georgia, part of […] The post HCA
+    hospitals escalate payment fight with insurers appeared first on Becker's Payer Issues | Payer News
+    .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: c8e54554f079d292
+  title: CMS takes aim at duplicative ACA, Medicaid enrollments
+  summary: The Trump administration has put a focus on rooting out fraud, waste and abuse, and on Wednesday,
+    regulators offered a look at progress to date in those efforts.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.655
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: ca7b8bc14feb207f
+  title: Nearly Three-Quarters of Medicare Advantage Enrollees Could be Denied a Medigap Policy Due to
+    a Pre-Existing Condition
+  summary: This analysis examines the share of Medicare Advantage enrollees who have a pre-existing condition
+    that could result in a Medigap denial if they seek to switch to traditional Medicare outside their
+    one-time 12-month trial period, including national estimates and estimates by age and by state. KFF
+    finds that nearly three-quarters of Medicare Advantage enrollees (74%) or 20.9 million people in 2023
+    had a pre-existing medical condition identified from KFF’s review of Medigap applications that co...
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: cc38896d01601949
+  title: 'No Surprises Act arbitration awards near 6% of commercial medical spend in some regions: UnitedHealthcare'
+  summary: 'Arbitration awards under the No Surprises Act can reach nearly 6% of total commercial medical
+    spend in some regions, UnitedHealthcare CEO Tim Noel said during an Oct. 13 earnings call. The medical
+    cost trend for UnitedHealthcare’s commercial business is “exceeding” an initial expectation of 11%,
+    Mr. Noel said. While Mr. Noel pointed to clinician cost […] The post No Surprises Act arbitration
+    awards near 6% of commercial medical spend in some regions: UnitedHealthcare appeared first on Becker''...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ce0e3a1dd96368a2
+  title: Food bank to open volunteer center in former Charleston grocery store
+  summary: Mountaineer Food Bank plans to open a volunteer center in a former grocery store on Charleston,
+    West Virginia’s West Side. Charleston City Council on Monday approved the transfer of the old Save
+    a Lot building at 748 Virginia Street West to the organization, based in Gassaway. “We are deeply
+    excited about this opportunity to better […]
+  source_name: West Virginia Watch
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ceb65037c55d0497
+  title: Can I get information about Medigap policies on the Medicare coverage comparison website, or
+    use the website to sign up for a Medigap policy?
+  summary: 'You can find some information about Medigap policies on the Medicare coverage comparison website,
+    by going to the link to “Find a Medicare Supplement Insurance (Medigap) policy” under the Health &
+    Drug Plans: Find & Compare menu.'
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: cfff4c98dca6b71c
+  title: ACHP Members Lead 2027 Star Ratings and NCQA Ratings
+  summary: ACHP member plans averaged 4.23 Stars in 2027 Medicare Advantage Star Ratings, vs. 3.96 for
+    other plans, and earned 13 of 18 five-star NCQA ratings. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: d19b4e14ed08921b
+  title: 'Opinion: How CMS plans to fix a major flaw in the 340B drug discount program'
+  summary: “A small, well-intended discount for safety net hospitals became a large institutional subsidy
+    with expensive unintended consequences,” writes an HHS leader.
+  source_name: STAT News
+  source_priority: 3
+  score_at_capture: 0.55
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: d3fd2af2243f85fa
+  title: Humana soars, Alignment plummets in 2027 Medicare Advantage star ratings
+  summary: A Healthcare Dive analysis of highly anticipated stars data shows a mixed bag of winners and
+    losers, though — as expected — the quality scores slipped overall. See how major carriers fared for
+    2027.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.68
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: d42c929a5390fc8d
+  title: When Is the Open Enrollment period for Medicare? What changes can I make to my Medicare coverage
+    during this time?
+  summary: The Medicare Open Enrollment period runs from October 15 through December 7 each year. During
+    this period, you can make many changes to your Medicare coverage, depending on the coverage you already
+    have. You can change from traditional Medicare to a Medicare Advantage plan (or vice versa).
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.435
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: d5387d1c74e2e07b
+  title: Clover data breach affects more than 138,000
+  summary: A Clover Health July data breach affected 138,677 people, according to a notice filed with
+    HHS’ Office for Civil Rights. Clover flagged the incident to the Securities and Exchange Commission
+    on July 17 after first learning of unauthorized activity on July 4. The Office for Civil Rights listed
+    the Clover incident as a HIPAA case […] The post Clover data breach affects more than 138,000 appeared
+    first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: d54406bd7538ac55
+  title: Ascension pulls back from insurance to focus on care delivery
+  summary: 'St. Louis-based Ascension is continuing to scale back its health insurance business, shedding
+    ownership stakes in health plans and redirecting capital toward its core strength: care delivery.
+    The latest move is Ascension’s agreement to sell its ownership stake in Arizona Medicaid managed care
+    plan Mercy Care to CVS Health subsidiary Aetna. San Francisco-based Dignity Health, […] The post Ascension
+    pulls back from insurance to focus on care delivery appeared first on Becker''s Payer Issues | Pa...'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.595
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: d61d15bfb9a0cfa7
+  title: How Optum, Owensboro Health teamed up to build a virtual nursing program
+  summary: Owensboro Health is teaming up with Optum Insight to pair bedside nurses with virtual nurses
+    to free up frontline clinicians to dedicate more time to patient care.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: d7a2a26569c69896
+  title: How big a deal is the red-dyed diesel directive?
+  summary: LINCOLN — Sixth-generation Nebraska farmer John Hansen leaned into baseball lingo to describe
+    his take on dual diesel directives by President Donald Trump and Gov. Jim Pillen. He compared the
+    impact to a bunt single. The swing was less than full and the outcome far from a home run, he said.
+    “It’s somewhat helpful but small […]
+  source_name: Nebraska Examiner
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: d7a763302ceeb8ea
+  title: Alignment Healthcare Inc. et al. v. Department of Health and Human Services et al. (Alignment
+    II)
+  summary: Medicare Advantage Star Ratings litigation. The post Alignment Healthcare Inc. et al. v. Department
+    of Health and Human Services et al. (Alignment II) appeared first on Health Care Litigation Tracker
+    .
+  source_name: Georgetown Litigation Tracker - MA Star Ratings
+  source_priority: 4
+  score_at_capture: 0.61
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: d9acdf6d9be611a9
+  title: Nessel files federal antitrust lawsuit against Blue Cross Blue Shield of Michigan
+  summary: Michigan Attorney General Dana Nessel filed an antitrust lawsuit against Blue Cross Blue Shield
+    of Michigan Mutual Insurance Company Thursday, alleging that the company has violated both state and
+    federal law through agreements with other Blue Cross Blue Shield entities to “eliminate competition
+    for health insurance services to large employers like the State.” The lawsuit, […]
+  source_name: Michigan Advance
+  source_priority: 2
+  score_at_capture: 0.44
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: d9ec1bb0a83d7247
+  title: Transparency in Coverage Final Rules (CMS 9882-F)
+  summary: Transparency in Coverage Final Rules (CMS 9882-F) Introduction
+  source_name: CMS Newsroom
+  source_priority: 5
+  score_at_capture: 0.37
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: daf995ac7fd2cc44
+  title: Aetna to acquire health plan from Ascension, CommonSpirit
+  summary: San Francisco-based Dignity Health, part of Chicago-based CommonSpirit, reached an agreement
+    to transfer its share of co-owned Arizona managed care health plan, Mercy Care, to CVS Health subsidiary
+    Aetna. CommonSpirit had a 49.75% ownership interest in Mercy Care as of June 30, 2026, and June 30,
+    2025, according to CommonSpirit’s fiscal year 2026 report. Dignity […] The post Aetna to acquire health
+    plan from Ascension, CommonSpirit appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: dccd18edb829f9ec
+  title: ACHP Urges CMS to Align State Directed Payment Policy With Plans’ Financial Risk
+  summary: ACHP urges CMS to preserve separate payment terms for state directed payments and coordinate
+    with NAIC so risk-based capital reflects the risk plans bear. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.31
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: de3c7d868e1abed1
+  title: Former UnitedHealth Group CEO named chairman of venture capital firm
+  summary: Former UnitedHealth Group CEO Sir Andrew Witty has been named chairman of Hatteras Venture
+    Partners, a venture capital firm focused on healthcare innovation, investing across biopharmaceuticals,
+    medical devices and health technology. Mr. Witty is returning to Hatteras, where he served as a venture
+    partner from 2017 to 2019, according to a Sept. 30 news release […] The post Former UnitedHealth Group
+    CEO named chairman of venture capital firm appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: e02bf40687cc4ada
+  title: Medicare Advantage looks stable for 2027. Underneath, it’s shifting
+  summary: 'The Medicare Advantage market remains a bit of a paradox: it may look unchanged from a national
+    level heading into 2027, but seniors will have fewer plans to choose from in more than half of the
+    states and growth continues to be driven by special needs plans. The retreat continues what began
+    in 2025, when […] The post Medicare Advantage looks stable for 2027. Underneath, it’s shifting appeared
+    first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: e0af98353bf91d7b
+  title: Humana strikes $2.8B CenterWell senior clinic deal with BlackRock
+  summary: Humana has agreed to form a new joint venture with investment management firm BlackRock to
+    own and operate nearly 150 CenterWell Senior Primary Care clinics, replacing CenterWell’s existing
+    joint ventures with private equity firm Welsh, Carson, Anderson & Stowe. Funds and accounts managed
+    by HPS Investment Partners, part of BlackRock, will acquire Welsh Carson’s equity […] The post Humana
+    strikes $2.8B CenterWell senior clinic deal with BlackRock appeared first on Becker's Payer Issues
+    | Paye...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.395
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: e0dcd1963b220973
+  title: Centene to launch CHOICE options in 4 more states
+  summary: Centene is launching Custom Health Option and Individual Care Expense arrangements, recently
+    rebranded from individual coverage health reimbursement arrangements, in four more states in 2027.
+    Ambetter Health Solutions President Alan Silver told Becker’s Oct. 8 that the expansion includes Alabama,
+    Iowa, North Carolina and Pennsylvania. The company currently offers plans designed for CHOICE in 13
+    […] The post Centene to launch CHOICE options in 4 more states appeared first on Becker's Payer Iss...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: e14aef69c3b6aebb
+  title: Large majority in NJ backs voter ID requirements, poll finds
+  summary: Strong majorities trust New Jersey's election results will be accurate, but even larger majorities
+    want voter ID, per a new Rutgers poll.
+  source_name: New Jersey Monitor
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: e323ac2d2586f2fc
+  title: HRSA names 10 drugmakers for revised 340B rebate pilot ahead of 2027 launch
+  summary: The list of approved participants and drugs is larger than the controversial pilot's first
+    attempted launch. It comes the same day that CMS launched a soon-to-be-mandatory data repository for
+    Part D 340B claim submissions.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: e39c772cd522a3a1
+  title: CMS delegated exclusion authorities for Medicare, Medicaid
+  summary: The Department of Health and Human Services has delegated the Centers for Medicare & Medicaid
+    Services certain statutory authorities to exclude individuals and entities from federal healthcare
+    programs, including Medicare and Medicaid, effective immediately, HHS announced in a Federal Register
+    notice. The delegation grants CMS similar authority to exclude and permanently ban providers as the
+    HHS Office of Inspector General has following investigations. “As the agency directly responsible
+    for...
+  source_name: AHA News
+  source_priority: 2
+  score_at_capture: 0.31
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: e3af62ec02d4ecbb
+  title: Cigna targets ‘inefficient’ spending with clinical support model rollout
+  summary: Cigna Healthcare is launching Health Sense, a tailored customer and clinical support model
+    that unifies health, benefits and cost information, in early 2027. Health Sense will be embedded across
+    the Cigna experience, instead of operating as a standalone resource. The model will bring together
+    member context, surface that context to Cigna clinical and care teams […] The post Cigna targets ‘inefficient’
+    spending with clinical support model rollout appeared first on Becker's Payer Issues | Payer...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: e4ebd000e3afb774
+  title: Washington health system launches an insurance plan
+  summary: Tacoma, Wash.-based MultiCare Health System is launching a health insurance plan. MultiCare
+    Health Plan, announced Oct. 1, will operate as a wholly owned subsidiary of the 13-hospital nonprofit
+    system. Its first product is a Medicare Advantage HMO with prescription drug benefits, which will
+    be available for the 2027 plan year in three counties in Washington […] The post Washington health
+    system launches an insurance plan appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.21
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: e59c02663d96b706
+  title: 'Payers face a choice on price transparency: Comply or adopt'
+  summary: 'CMS shared its Transparency in Coverage rulemaking — formed in partnership with the Labor
+    and Treasury departments — on Oct. 5. Now, payers are reckoning with the changes. The rule updated
+    previous regulations introduced by the Trump administration in 2020, such as a requirement for payers
+    to post negotiated rates. The recent rule cuts so-called […] The post Payers face a choice on price
+    transparency: Comply or adopt appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.475
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: e968f6a422d9ed69
+  title: Medicare penalizes more hospitals for readmissions
+  summary: About 80% of hospitals are having their Medicare payments shaved down over high readmission
+    rates this fiscal year, compared with 78% the year prior, according to new CMS data. It continues
+    a worrying trend.
+  source_name: Healthcare Dive
+  source_priority: 3
+  score_at_capture: 0.24
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: ea4d1232ee61e6e6
+  title: UnitedHealth, Elevance make Fortune’s list of AI pioneers
+  summary: Fortune recognized five healthcare companies on its 2026 “AIQ 75” ranking. Fortune partnered
+    with Enterprise Technology Research and pulled from ServiceNow’s Enterprise AI Maturity Index. The
+    team assessed how Fortune 500 companies, the largest U.S. companies by revenue, deploy AI and value
+    those investments. Fortune released its first inaugural AIQ ranking in 2025. In 2026, […] The post
+    UnitedHealth, Elevance make Fortune’s list of AI pioneers appeared first on Becker's Payer Issues
+    | Payer...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.61
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ec1f39e8adcfa714
+  title: 'Strengthening Medicare Advantage in 2028: ACHP Recommendations to CMS'
+  summary: ACHP urges CMS to simplify risk adjustment, modernize network adequacy and refine Star Ratings
+    in 2028 to protect Medicare Advantage beneficiary choice. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.695
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: ec4b1718a7156728
+  title: Michigan secretary of state candidates weigh in on election transparency, Trump administration
+  summary: This article was originally published by Votebeat, a nonprofit news organization reporting
+    on voting access and election administration across the U.S. Sign up for Votebeat Michigan’s free
+    newsletter here. This November’s election will determine many things, but one of the most important
+    is who will oversee the 2028 presidential election in Michigan. In just a […]
+  source_name: Michigan Advance
+  source_priority: 2
+  score_at_capture: 0.04
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ed65704df9b605da
+  title: 'Rural Health Transformation Program: Early Implementation Actions and Monitoring Plans'
+  summary: What GAO Found The Rural Health Transformation program provides funding for states to conduct
+    rural health activities, such as recruiting clinicians to rural areas and providing training and technology
+    to improve care delivery in rural hospitals. In the latter half of 2025, the Centers for Medicare
+    & Medicaid Services (CMS) completed a number of early key actions to implement the Rural Health Transformation
+    program. These actions included the release of the notice of funding opportunity—which...
+  source_name: U.S. Government Accountability Office (GAO)
+  source_priority: 3
+  score_at_capture: 0.225
+  stratum: display
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: ee726c35d166c1db
+  title: Key Facts About Medigap Enrollment and Premiums for Medicare Beneficiaries
+  summary: This brief presents facts about Medigap, including the characteristics of Medicare beneficiaries
+    with a Medigap policy, variation in Medigap enrollment by state, and Medigap premiums.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.76
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: eee8f6195584dfd3
+  title: Optum Health’s turnaround picks up speed
+  summary: Optum Health’s earnings from operations climbed to $735 million in the third quarter, up from
+    $41 million a year earlier, as UnitedHealth Group’s care delivery arm continues to recover from a
+    challenging 2025. The unit’s operating margin rose to 3.2% from 0.2%, according to UnitedHealth’s
+    Oct. 13 earnings release. On an adjusted basis, the margin […] The post Optum Health’s turnaround
+    picks up speed appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.845
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: ef4a929b661783f5
+  title: 'Medicare Advantage prescription drug plan options decline for 3rd year in a row: KFF'
+  summary: 'Medicare Advantage plan choices are shrinking modestly, with the number of MA prescription
+    drug plan options for an average beneficiary dropping for the third year in a row, according to an
+    Oct. 1 KFF analysis of CMS data. The average beneficiary has 28 MA-PD plan choices available for general
+    enrollment in 2027, down from 32 […] The post Medicare Advantage prescription drug plan options decline
+    for 3rd year in a row: KFF appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.64
+  stratum: alert
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
+- item_id: f189d14508aec5fb
+  title: What is a Medicare Accountable Care Organization? Can I enroll in one when I sign up for Medicare
+    or during the Medicare Open Enrollment period?
+  summary: Medicare Accountable Care Organization (ACOs) are groups of doctors, hospitals, and other health
+    care providers who voluntarily form partnerships to have collective responsibility for the quality
+    and total cost of care delivered to their patients. ACOs are not health plans and you cannot “enroll”
+    in them.
+  source_name: KFF Medicare
+  source_priority: 3
+  score_at_capture: 0.52
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: f1b81dbb1df94260
+  title: Why would a payer own ASCs? IBX explains
+  summary: Independence Blue Cross has contracted with ASCs for years, but its new ownership stake in
+    a surgery center company signals the insurer decided contracts alone were not enough. “Contracting
+    remains an important part of Independence Blue Cross’s strategy, but that alone won’t create new capacity,”
+    a spokesperson for the Philadelphia-based insurer told Becker’s. “That’s why […] The post Why would
+    a payer own ASCs? IBX explains appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: f3ef83c0b7182d41
+  title: Michigan accuses BCBS of illegal insurance monopoly in new lawsuit
+  summary: In a new lawsuit, Michigan Attorney General Dana Nessel is accusing Blue Cross Blue Shield
+    of Michigan of conspiring with other Blues plans to block competition and using its grip on the health
+    insurance market to overcharge the state and underpay hospitals. “This illegal conduct has caused
+    the State and Michigan consumers to pay inflated […] The post Michigan accuses BCBS of illegal insurance
+    monopoly in new lawsuit appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: f49690f279f120f5
+  title: AHA blog responds to BCBS report suggesting hospitals’ use of AI documentation tools drives increased
+    healthcare costs
+  summary: An AHA blog published Oct. 5 responds to a Blue Cross Blue Shield Association report suggesting
+    that hospitals’ use of artificial intelligence-enabled documentation tools is driving higher healthcare
+    costs through increased coding intensity. “Correctly assessing the clinical status of a patient is
+    imperative to delivering high-quality care,” write Molly Smith, AHA group vice president of policy,
+    and Jen Holloman, AHA director of health IT policy. “Patients today are older and more clinically...
+  source_name: AHA News
+  source_priority: 2
+  score_at_capture: 0.44
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: f6418f782f896e88
+  title: Abridge, University of Texas System enter enterprise-wide agreement for expanded AI-enabled care
+  summary: The partnership establishes a systemwide framework for the eight UT health institutions to
+    access Abridge.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.06
+  stratum: subfloor
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: f74b27b75008e4f9
+  title: '''Blue Conspiracy''—Michigan attorney general hits BCBSM with antitrust suit'
+  summary: Michigan Attorney General Dana Nessel has filed suit against Blue Cross Blue Shield of Michigan,
+    alleging that the insurer operated in a monopoly in the state.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.46
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: f77a6fdb6d6afc64
+  title: PhRMA launches new legal challenge as CMS brings 'most favored nation' pricing to Medicare Part
+    B
+  summary: As the Trump administration advances plans to bring its “most favored nation” drug pricing
+    model to Medicare Part B, the pharmaceutical industry’s top lobbying group is pushing back in court.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.33
+  stratum: alert
+  predicted_tier: display
+  proposed_label: borderline_display
+  label: null
+  note: Medicare-adjacent, no MA line — display-only?
+- item_id: ff0ebfd369f931ca
+  title: UnitedHealth Group beats the Street with $4.1B in profit for Q3
+  summary: Another round of healthcare industry earnings reports kicked off Tuesday morning, with UnitedHealth
+    Group reporting $4.1 billion in profit for the third quarter.
+  source_name: Fierce Healthcare
+  source_priority: 3
+  score_at_capture: 0.41
+  stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context

@@ -27,11 +27,6 @@ name: Export archive for evaluation
 
 on:
   workflow_dispatch:
-  # TEMPORARY: one run from the PR branch to pull the archive before merge.
-  # Removed in the next commit.
-  push:
-    branches: [claude/eligibility-shadow]
-    paths: [".github/workflows/export-archive.yml"]
 
 permissions:
   contents: read
