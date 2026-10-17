@@ -2,8 +2,9 @@
 
 from datetime import datetime, timedelta
 
+from tests.conftest import seed_delivery_log
+
 from ma_signal_monitor.models import (
-    DeliveryResult,
     NormalizedItem,
     ScoredItem,
     SourceFetchOutcome,
@@ -62,25 +63,11 @@ class TestStateStore:
         temp_db.mark_seen("item_001", "Feed A", "Title", "https://x.com/1")
         assert temp_db.get_seen_count() == 1
 
-    def test_delivery_log(self, temp_db):
-        """Delivery results are logged."""
-        result = DeliveryResult(
-            alert_title="Test Alert",
-            success=True,
-            status_code=200,
-        )
-        temp_db.log_delivery(result)
-
-        conn = temp_db._get_conn()
-        row = conn.execute("SELECT * FROM delivery_log").fetchone()
-        assert row["alert_title"] == "Test Alert"
-        assert row["success"] == 1
-
     def test_run_metadata(self, temp_db):
         """Run start/end metadata is tracked."""
         run_id = temp_db.start_run()
         assert run_id is not None
-        temp_db.end_run(run_id, items_fetched=10, items_new=5, alerts_sent=3)
+        temp_db.end_run(run_id, items_fetched=10, items_new=5)
 
         conn = temp_db._get_conn()
         row = conn.execute(
@@ -88,7 +75,7 @@ class TestStateStore:
         ).fetchone()
         assert row["items_fetched"] == 10
         assert row["items_new"] == 5
-        assert row["alerts_sent"] == 3
+        assert row["alerts_sent"] == 0  # historical column, no longer written
         assert row["run_end"] is not None
 
     def test_cleanup_old_records(self, temp_db):
@@ -628,27 +615,12 @@ class TestAlertFeedback:
         ]
         assert row["threshold_at_score"] == 0.3
 
-    def test_delivery_log_stores_item_id(self, temp_db):
-        result = DeliveryResult(
-            alert_title="Test Alert", success=True, status_code=200, item_id="s1"
-        )
-        temp_db.log_delivery(result)
-        conn = temp_db._get_conn()
-        row = conn.execute("SELECT item_id FROM delivery_log").fetchone()
-        assert row["item_id"] == "s1"
-
     def test_get_alert_delivered(self, temp_db):
         assert temp_db.get_alert_delivered("s1") is False
-        temp_db.log_delivery(
-            DeliveryResult(
-                alert_title="T", success=False, status_code=500, item_id="s1"
-            )
-        )
+        seed_delivery_log(temp_db, "s1", success=False)
         # A failed delivery attempt doesn't count as "posted".
         assert temp_db.get_alert_delivered("s1") is False
-        temp_db.log_delivery(
-            DeliveryResult(alert_title="T", success=True, status_code=200, item_id="s1")
-        )
+        seed_delivery_log(temp_db, "s1")
         assert temp_db.get_alert_delivered("s1") is True
 
     def test_get_alert_feedback_unknown_story_returns_none(self, temp_db):
@@ -659,9 +631,7 @@ class TestAlertFeedback:
         temp_db.upsert_story(
             scored, primary_category="policy_regulatory", threshold_at_score=0.3
         )
-        temp_db.log_delivery(
-            DeliveryResult(alert_title="T", success=True, status_code=200, item_id="s1")
-        )
+        seed_delivery_log(temp_db, "s1")
         temp_db.add_feedback("s1", "alert_correct", channel="cli")
 
         info = temp_db.get_alert_feedback("s1")

@@ -4,7 +4,6 @@ Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
     ma-signal-feedback alert <item_id> <correct|false_positive|missed>
     ma-signal-feedback ingest-github
-    ma-signal-feedback ingest-ntfy
     ma-signal-feedback mine-keywords
     ma-signal-feedback disagreements
     ma-signal-feedback summary <item_id>
@@ -20,11 +19,13 @@ should have alerted but didn't (``missed``). This is data collection only —
 it does not retrain scoring weights. Run it periodically against recent
 alerts (see docs/feedback.md). ``correct``/``false_positive`` require the
 story to have actually been delivered; ``missed`` requires that it wasn't —
-the command checks ``delivery_log`` and refuses a mismatched label.
+the command checks ``delivery_log`` and refuses a mismatched label. Note
+``delivery_log`` is historical: outbound delivery was removed in 2026-10, so
+only stories from before then can count as posted.
 
-``ingest-github`` pulls crowd reactions from giscus-backed Discussions (needs
-GISCUS_* config and a GITHUB_TOKEN). ``ingest-ntfy`` pulls owner 👍/👎 votes from
-the ntfy feedback topic (needs NTFY_FEEDBACK_TOPIC).
+``ingest-github`` pulls reactions from giscus-backed Discussions (needs GISCUS_*
+config and a GITHUB_TOKEN). Reactions by FEEDBACK_OWNER_LOGIN are recorded as
+owner verdicts; everyone else's as crowd signal. CI runs it on every deploy.
 """
 
 import sys
@@ -116,20 +117,8 @@ def main() -> None:
             print(
                 f"giscus ingest: scanned {summary['discussions']} discussion(s), "
                 f"matched {summary['reactions_matched']} reaction(s), "
-                f"recorded {summary['recorded']} new row(s)."
-            )
-
-        elif cmd == "ingest-ntfy":
-            from ma_signal_monitor.feedback_ingest import ingest_ntfy_feedback
-
-            try:
-                summary = ingest_ntfy_feedback(config, store)
-            except ValueError as e:
-                print(f"Cannot ingest: {e}")
-                sys.exit(1)
-            print(
-                f"ntfy ingest: scanned {summary['messages']} message(s), "
-                f"recorded {summary['recorded']} new row(s)."
+                f"recorded {summary['recorded']} new row(s), "
+                f"{summary['recorded_owner']} of them owner verdict(s)."
             )
 
         elif cmd == "mine-keywords":

@@ -7,7 +7,8 @@ import pytest
 
 from ma_signal_monitor import feedback_cli
 from ma_signal_monitor.config import load_config
-from ma_signal_monitor.models import DeliveryResult, NormalizedItem, ScoredItem
+from tests.conftest import seed_delivery_log
+from ma_signal_monitor.models import NormalizedItem, ScoredItem
 from ma_signal_monitor.storage import StateStore
 
 
@@ -32,11 +33,7 @@ def _seed_story(root, item_id="s1", *, delivered=False, score=0.42):
             scored, primary_category="policy_regulatory", threshold_at_score=0.3
         )
         if delivered:
-            store.log_delivery(
-                DeliveryResult(
-                    alert_title="T", success=True, status_code=200, item_id=item_id
-                )
-            )
+            seed_delivery_log(store, item_id)
     finally:
         store.close()
 

@@ -1,5 +1,5 @@
-"""SQLite-based persistence for state, deduplication, delivery logs, and the
-browsable story archive that backs the web product."""
+"""SQLite-based persistence for state, deduplication, and the browsable story
+archive that backs the web product."""
 
 import json
 import logging
@@ -8,7 +8,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ma_signal_monitor.models import DeliveryResult, ScoredItem, SourceFetchOutcome
+from ma_signal_monitor.models import ScoredItem, SourceFetchOutcome
 
 logger = logging.getLogger("ma_signal_monitor.storage")
 
@@ -34,7 +34,17 @@ VALID_VERDICTS = frozenset(
 ALERT_VERDICTS = frozenset({"alert_correct", "alert_false_positive", "alert_missed"})
 # Channels whose votes are owner ground-truth (weight 1.0). Everything else is
 # advisory crowd signal that surfaces things for review but never auto-mutates.
-OWNER_CHANNELS = frozenset({"local_web", "ntfy", "cli"})
+#
+# "giscus_owner" is the owner's own giscus reaction on the public site (see
+# feedback_ingest.ingest_github_feedback). "ntfy" is HISTORICAL: an ntfy
+# action-button channel existed until 2026-10 and was removed unused; it stays
+# here only so any rows it wrote still read as owner verdicts. Nothing writes
+# it any more.
+OWNER_CHANNELS = frozenset({"local_web", "cli", "giscus_owner", "ntfy"})
+# SQL fragment "(?, ?, ...)" and its params for `channel IN` owner filters, so
+# the queries below cannot drift from OWNER_CHANNELS. Sorted for stable SQL.
+_OWNER_CHANNELS_SORTED = tuple(sorted(OWNER_CHANNELS))
+_OWNER_IN = "(" + ", ".join("?" for _ in _OWNER_CHANNELS_SORTED) + ")"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS seen_items (
@@ -46,6 +56,10 @@ CREATE TABLE IF NOT EXISTS seen_items (
     relevance_score REAL
 );
 
+-- HISTORICAL. Written by the outbound webhook delivery step, removed in 2026-10
+-- (the engine is web-only). Kept so existing rows, and the alert-outcome
+-- check that reads them (get_alert_delivered), still work; nothing new is
+-- written, and cleanup_old_records prunes it on its usual retention.
 CREATE TABLE IF NOT EXISTS delivery_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     alert_title TEXT NOT NULL,
@@ -154,7 +168,7 @@ CREATE TABLE IF NOT EXISTS candidate_sources (
 );
 
 -- Reader feedback on stories. Append-only audit log written by every channel
--- (local web buttons, ntfy actions, CLI, and later crowd reactions via giscus).
+-- (local web buttons, CLI, and giscus reactions on the public site).
 -- `weight` separates ground-truth owner votes (1.0) from advisory crowd signal
 -- (< 1.0). `source_ref` makes crowd re-ingest idempotent via the partial unique
 -- index below. Rows are never mutated after insert.
@@ -1062,8 +1076,8 @@ class StateStore:
         }
         owner = conn.execute(
             "SELECT verdict FROM feedback WHERE item_id = ? AND channel IN "
-            "('local_web', 'ntfy', 'cli') ORDER BY id DESC LIMIT 1",
-            (item_id,),
+            f"{_OWNER_IN} ORDER BY id DESC LIMIT 1",
+            (item_id, *_OWNER_CHANNELS_SORTED),
         ).fetchone()
         return {"counts": counts, "my_verdict": owner["verdict"] if owner else None}
 
@@ -1089,10 +1103,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+                   WHERE channel IN {owner_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
-               WHERE latest.verdict IN ('relevant', 'irrelevant')""",
+               WHERE latest.verdict IN ('relevant', 'irrelevant')""".format(
+                owner_in=_OWNER_IN
+            ),
+            _OWNER_CHANNELS_SORTED,
         ).fetchall()
         return [
             (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
@@ -1119,10 +1136,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+                   WHERE channel IN {owner_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
-               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""",
+               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""".format(
+                owner_in=_OWNER_IN
+            ),
+            _OWNER_CHANNELS_SORTED,
         ).fetchall()
         return [
             {
@@ -1145,24 +1165,18 @@ class StateStore:
         story_count: int,
         subject: str,
         html: str,
-        sent_at: str | None = None,
     ) -> None:
-        """Persist (or replace) a generated digest for a given UTC day."""
+        """Persist (or replace) a generated digest for a given UTC day.
+
+        The ``digests.sent_at`` column is historical (from an email path that
+        was never used and has been removed); it is left NULL.
+        """
         conn = self._get_conn()
         conn.execute(
             """INSERT OR REPLACE INTO digests
-               (digest_date, generated_at, story_count, subject, html, sent_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (digest_date, generated_at, story_count, subject, html, sent_at),
-        )
-        conn.commit()
-
-    def mark_digest_sent(self, digest_date: str, sent_at: str) -> None:
-        """Record that a digest was emailed."""
-        conn = self._get_conn()
-        conn.execute(
-            "UPDATE digests SET sent_at = ? WHERE digest_date = ?",
-            (sent_at, digest_date),
+               (digest_date, generated_at, story_count, subject, html)
+               VALUES (?, ?, ?, ?, ?)""",
+            (digest_date, generated_at, story_count, subject, html),
         )
         conn.commit()
 
@@ -1184,7 +1198,7 @@ class StateStore:
         """Return recent digests (date + metadata only) for the archive list."""
         conn = self._get_conn()
         return conn.execute(
-            """SELECT digest_date, generated_at, story_count, subject, sent_at
+            """SELECT digest_date, generated_at, story_count, subject
                FROM digests ORDER BY digest_date DESC LIMIT ?""",
             (limit,),
         ).fetchall()
@@ -1382,28 +1396,13 @@ class StateStore:
         ).fetchone()
         return row["oldest"] if row and row["oldest"] is not None else None
 
-    # --- Delivery Logging ---
-
-    def log_delivery(self, result: DeliveryResult) -> None:
-        """Log a delivery attempt."""
-        conn = self._get_conn()
-        conn.execute(
-            """INSERT INTO delivery_log
-               (alert_title, success, status_code, error, timestamp, item_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (
-                result.alert_title,
-                1 if result.success else 0,
-                result.status_code,
-                result.error,
-                result.timestamp.isoformat(),
-                result.item_id,
-            ),
-        )
-        conn.commit()
+    # --- Alert-outcome feedback ---
 
     def get_alert_delivered(self, item_id: str) -> bool:
-        """True if ``item_id`` was ever successfully posted to the webhook.
+        """True if ``delivery_log`` records ``item_id`` as successfully posted.
+
+        ``delivery_log`` is historical (see its schema comment); nothing new
+        is written, so this is True only for rows from before 2026-10.
 
         Backs the ``ma-signal-feedback alert`` command's sanity check: a
         ``correct``/``false_positive`` verdict only makes sense for a story
@@ -1446,24 +1445,6 @@ class StateStore:
             "alert_verdicts": [dict(r) for r in rows],
         }
 
-    def recent_alert_titles(self, since_days: int) -> list[str]:
-        """Titles of alerts successfully delivered in the last ``since_days``.
-
-        Used by near-duplicate alert suppression to avoid re-firing a story
-        that a prior run already alerted. ``delivery_log`` is retained ~30 days
-        (``delivery_log_retention_days``), so a small lookback is always
-        available. Returns [] for a non-positive lookback (cross-run check off).
-        """
-        if since_days <= 0:
-            return []
-        conn = self._get_conn()
-        cutoff = (datetime.utcnow() - timedelta(days=since_days)).isoformat()
-        rows = conn.execute(
-            "SELECT alert_title FROM delivery_log WHERE success = 1 AND timestamp >= ?",
-            (cutoff,),
-        ).fetchall()
-        return [r["alert_title"] for r in rows]
-
     # --- Run Metadata ---
 
     def start_run(self) -> int:
@@ -1482,23 +1463,25 @@ class StateStore:
         items_fetched: int = 0,
         items_new: int = 0,
         items_relevant: int = 0,
-        alerts_sent: int = 0,
         errors: int = 0,
         notes: str = "",
     ) -> None:
-        """Record the end of a processing run."""
+        """Record the end of a processing run.
+
+        ``run_metadata.alerts_sent`` is historical (written by the removed
+        webhook delivery step) and is left at its default.
+        """
         conn = self._get_conn()
         conn.execute(
             """UPDATE run_metadata
                SET run_end = ?, items_fetched = ?, items_new = ?,
-                   items_relevant = ?, alerts_sent = ?, errors = ?, notes = ?
+                   items_relevant = ?, errors = ?, notes = ?
                WHERE id = ?""",
             (
                 datetime.utcnow().isoformat(),
                 items_fetched,
                 items_new,
                 items_relevant,
-                alerts_sent,
                 errors,
                 notes,
                 run_id,

@@ -111,8 +111,6 @@ def sample_normalized_items() -> list[NormalizedItem]:
 def sample_config() -> AppConfig:
     """A minimal but valid AppConfig for testing."""
     return AppConfig(
-        webhook_url="https://webhook.site/test-uuid",
-        webhook_mode="test",
         log_level="DEBUG",
         db_path="data/test_state.db",
         config_dir="config",
@@ -357,12 +355,30 @@ def project_root_with_config(tmp_path) -> Path:
         yaml.dump(taxonomy, f)
 
     # .env
-    env_content = (
-        "WEBHOOK_URL=https://webhook.site/test-uuid\n"
-        "WEBHOOK_MODE=test\n"
-        "LOG_LEVEL=DEBUG\n"
-    )
+    env_content = "LOG_LEVEL=DEBUG\n"
     with open(tmp_path / ".env", "w") as f:
         f.write(env_content)
 
     return tmp_path
+
+
+def seed_delivery_log(store, item_id, *, success=True, title="T"):
+    """Insert a row into the historical ``delivery_log`` table.
+
+    Outbound delivery was removed in 2026-10, so nothing in the app writes this
+    table any more; tests of the alert-outcome check that still reads it
+    (``StateStore.get_alert_delivered``) seed it directly.
+    """
+    conn = store._get_conn()
+    conn.execute(
+        "INSERT INTO delivery_log (alert_title, success, status_code, timestamp, item_id) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (
+            title,
+            1 if success else 0,
+            200 if success else 500,
+            "2026-01-01T00:00:00",
+            item_id,
+        ),
+    )
+    conn.commit()

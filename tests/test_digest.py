@@ -1,17 +1,13 @@
 """Tests for the Daily Briefing digest."""
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from ma_signal_monitor import digest as digest_mod
 from ma_signal_monitor.digest import (
     build_digest,
     generate_digest,
     render_html,
-    render_text,
-    send_digest,
 )
 from ma_signal_monitor.models import NormalizedItem, ScoredItem
 from ma_signal_monitor.web.app import create_app
@@ -112,12 +108,11 @@ def test_build_digest_groups_by_category_in_order(sample_config, temp_db):
     )
 
 
-def test_render_html_and_text_contain_stories(sample_config, temp_db):
+def test_render_html_contains_stories(sample_config, temp_db):
     _seed_window(temp_db)
     d = build_digest(temp_db, sample_config, now=NOW)
     html = render_html(d, sample_config)
-    text = render_text(d)
-    assert "Star Ratings" in html and "Star Ratings" in text
+    assert "Star Ratings" in html
     assert "California" in html  # state name rendered
     assert "<html" in html.lower()
 
@@ -128,9 +123,7 @@ def test_digest_lede_present_and_rendered(sample_config, temp_db):
     assert d.lede is not None
     assert d.lede.total == 2  # full window count (both in-window stories)
     html = render_html(d, sample_config)
-    text = render_text(d)
     assert "What's happening" in html
-    assert "WHAT'S HAPPENING" in text
 
 
 def test_digest_lede_absent_for_empty_window(sample_config, temp_db):
@@ -146,42 +139,32 @@ def test_digest_lede_can_be_disabled(sample_config, temp_db):
     assert d.lede is None
 
 
-def test_send_digest_skips_when_unconfigured(sample_config, temp_db):
-    d = build_digest(temp_db, sample_config, now=NOW)
-    # sample_config has no SMTP host -> best-effort skip, returns False.
-    assert send_digest(d, "<html></html>", sample_config) is False
-
-
-def test_send_digest_uses_smtp_when_configured(sample_config, temp_db):
+def test_view_online_link_uses_public_base_url(sample_config, temp_db):
+    """The briefing renders in an iframe, so its links must be absolute and
+    must point at the configured site, not a stale default."""
     _seed_window(temp_db)
-    sample_config.smtp_host = "smtp.example.com"
-    sample_config.digest_from = "from@example.com"
-    sample_config.digest_to = "a@example.com, b@example.com"
-    d = build_digest(temp_db, sample_config, now=NOW)
-
-    fake_smtp = MagicMock()
-    with patch.object(digest_mod.smtplib, "SMTP") as smtp_cls:
-        smtp_cls.return_value.__enter__.return_value = fake_smtp
-        assert send_digest(d, render_html(d, sample_config), sample_config) is True
-    fake_smtp.send_message.assert_called_once()
+    sample_config.public_base_url = "https://signal.zaherkarp.com"
+    html = render_html(build_digest(temp_db, sample_config, now=NOW), sample_config)
+    assert 'href="https://signal.zaherkarp.com/briefing"' in html
+    assert "github.io" not in html
 
 
 def test_generate_digest_persists_and_is_idempotent(sample_config, temp_db):
     _seed_window(temp_db)
-    generate_digest(sample_config, temp_db, now=NOW, send=False)
+    generate_digest(sample_config, temp_db, now=NOW)
     row = temp_db.get_latest_digest()
     assert row is not None
     assert row["digest_date"] == "2024-06-01"
     assert row["story_count"] == 2
-    assert row["sent_at"] is None  # send=False
+    assert row["sent_at"] is None  # historical column, never written
     # Re-running the same day replaces, not duplicates.
-    generate_digest(sample_config, temp_db, now=NOW, send=False)
+    generate_digest(sample_config, temp_db, now=NOW)
     assert len(temp_db.list_digests()) == 1
 
 
 def test_briefing_page_renders(sample_config, temp_db):
     _seed_window(temp_db)
-    generate_digest(sample_config, temp_db, now=NOW, send=False)
+    generate_digest(sample_config, temp_db, now=NOW)
     client = TestClient(create_app(sample_config, temp_db))
     resp = client.get("/briefing")
     assert resp.status_code == 200

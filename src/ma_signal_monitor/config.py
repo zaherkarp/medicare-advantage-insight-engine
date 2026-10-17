@@ -123,8 +123,6 @@ class AppConfig:
     """Full application configuration."""
 
     # From .env
-    webhook_url: str = ""
-    webhook_mode: str = "test"  # "ntfy", "generic", "teams", "test"
     log_level: str = "INFO"
     db_path: str = "data/state.db"
     config_dir: str = "config"
@@ -181,7 +179,7 @@ class AppConfig:
     # MA-relevance eligibility gate (default OFF). When enabled, scoring computes
     # a per-story eligibility tier (BRIEF > ALERT > DISPLAY > EXCLUDE, see
     # eligibility.py) and applies the entity-group-dedup score correction; the
-    # briefing requires tier >= brief, the alert/webhook stream tier >= alert,
+    # briefing requires tier >= brief, a public draft tier >= alert,
     # and the public feed hides tier == exclude. Off => byte-identical to the
     # pre-gate pipeline. Set MA_ELIGIBILITY_GATE=true or processing.ma_eligibility
     # _gate: true to enable. Reversible: flip it back off or revert the PR.
@@ -195,33 +193,19 @@ class AppConfig:
     causal_layers: list[CausalLayerConfig] = field(default_factory=list)
     causal_edges: list[CausalEdgeConfig] = field(default_factory=list)
 
-    # Delivery settings from app.yaml
-    delivery_max_retries: int = 3
-    delivery_retry_backoff_base: int = 2
-    delivery_timeout: int = 30
-    delivery_batch_size: int = 1
-
-    # Near-duplicate alert suppression (delivery.dedup in app.yaml). Suppresses
-    # duplicate webhook firings for the same story republished by multiple
-    # sources — within a run, and against alerts fired in the last
-    # ``dedup_lookback_days``. Only the webhook stream is trimmed; every scored
-    # item is still archived. Similarity is title-token Jaccard (see
-    # similarity.py); a title at/above ``dedup_similarity_threshold`` is a dup.
-    dedup_enabled: bool = True
-    dedup_similarity_threshold: float = 0.6
-    dedup_lookback_days: int = 3
-
     # Feed near-duplicate grouping (processing.story_dedup in app.yaml). Labels
     # the same story carried by several sources so the browsable feed shows one
-    # representative (the archive keeps every row). Shares
-    # ``dedup_similarity_threshold`` with alert dedup.
+    # representative (the archive keeps every row). Similarity is title-token
+    # Jaccard (see similarity.py); a title at/above
+    # ``story_dedup_similarity_threshold`` is a near-duplicate.
     story_dedup_enabled: bool = True
+    story_dedup_similarity_threshold: float = 0.6
     story_dedup_lookback_days: int = 3
 
     # Layered-timeline emergent story threads (timeline.threads in app.yaml). The
     # /timeline/threads lane clusters the window into on-the-fly threads by
     # headline+entity IDF-weighted cosine (deliberately looser than
-    # ``dedup_similarity_threshold`` — a thread is broader than a near-duplicate),
+    # ``story_dedup_similarity_threshold`` — a thread is broader than a near-duplicate),
     # names each from its most distinctive terms, and orders them along the
     # declared causal model. All deterministic (no ML). Disabled -> the lane 404s.
     threads_enabled: bool = True
@@ -294,9 +278,8 @@ class AppConfig:
     ingest_interval_hours: int = 6  # used by the in-process scheduler & cadence label
     web_page_size: int = 25  # stories per page in the web feed
 
-    # Daily Briefing digest settings
-    digest_enabled: bool = False  # send the digest email on a daily schedule
-    digest_hour: int = 13  # UTC hour to send the daily digest
+    # Daily Briefing digest settings (rendered to /briefing; web only)
+    digest_hour: int = 13  # UTC hour the live app's scheduler builds the digest
     digest_lookback_hours: int = 24  # window of stories to include
     digest_max_items: int = 12  # max stories per digest
     digest_min_score: float = 0.3  # minimum relevance score to include
@@ -305,32 +288,24 @@ class AppConfig:
         True  # synthesis lede ("what's happening") atop the digest
     )
 
-    # SMTP delivery (stdlib smtplib; optional — digest also renders to the web)
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    smtp_use_tls: bool = True
-    digest_from: str = ""  # sender address; defaults to smtp_user if blank
-    digest_to: str = ""  # comma-separated recipient list
-    public_base_url: str = ""  # e.g. https://ma.example.com, for links in emails
+    # Absolute base for links inside the briefing HTML, which is shown in an
+    # iframe and so cannot rely on relative links. e.g. https://signal.zaherkarp.com
+    public_base_url: str = ""
 
     # giscus crowd feedback (public, client-side values — not secrets). When
     # giscus_repo + giscus_repo_id + giscus_category_id are all set, static
     # story pages mount a giscus thread keyed on item_id, and
     # ``ma-signal-feedback ingest-github`` can pull reactions back. The API
     # token for ingest is read from GITHUB_TOKEN at run time, never stored here.
+    # Reactions by ``feedback_owner_login`` (case-insensitive) are recorded as
+    # owner verdicts (channel "giscus_owner", weight 1.0); everyone else's are
+    # crowd signal (channel "github", weight 0.2). Empty => all crowd.
     giscus_repo: str = ""  # "owner/name"
     giscus_repo_id: str = ""
     giscus_category: str = "General"
     giscus_category_id: str = ""
     giscus_theme: str = "light"
-
-    # ntfy action-button feedback (owner channel, weight 1.0). When
-    # ntfy_feedback_topic is set, ntfy alerts carry 👍/👎 buttons that publish a
-    # vote to that topic; ``ma-signal-feedback ingest-ntfy`` polls it back in.
-    ntfy_server: str = "https://ntfy.sh"
-    ntfy_feedback_topic: str = ""
+    feedback_owner_login: str = ""
 
     # Source-yield review policy (see docs/feedback.md / source_review.py). A
     # source is flagged for review once it has this many items but a relevance
@@ -354,11 +329,6 @@ class AppConfig:
         return bool(
             self.giscus_repo and self.giscus_repo_id and self.giscus_category_id
         )
-
-    @property
-    def ntfy_feedback_enabled(self) -> bool:
-        """True when ntfy alerts should carry feedback action buttons."""
-        return bool(self.ntfy_feedback_topic)
 
     @property
     def causal_model_enabled(self) -> bool:
@@ -392,8 +362,6 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         load_dotenv(env_path)
 
     config = AppConfig(
-        webhook_url=os.getenv("WEBHOOK_URL", ""),
-        webhook_mode=os.getenv("WEBHOOK_MODE", "test"),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         db_path=os.getenv("DB_PATH", "data/state.db"),
         config_dir=os.getenv("CONFIG_DIR", "config"),
@@ -410,8 +378,6 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
         ma_eligibility_gate=os.getenv("MA_ELIGIBILITY_GATE", "false").lower()
         in ("1", "true", "yes"),
-        digest_enabled=os.getenv("DIGEST_ENABLED", "false").lower()
-        in ("1", "true", "yes"),
         digest_hour=int(os.getenv("DIGEST_HOUR", "13")),
         digest_lookback_hours=int(os.getenv("DIGEST_LOOKBACK_HOURS", "24")),
         digest_max_items=int(os.getenv("DIGEST_MAX_ITEMS", "12")),
@@ -421,21 +387,13 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         digest_subject_prefix=os.getenv("DIGEST_SUBJECT_PREFIX", "MA Daily Briefing"),
         digest_lede_enabled=os.getenv("DIGEST_LEDE_ENABLED", "true").lower()
         in ("1", "true", "yes"),
-        smtp_host=os.getenv("SMTP_HOST", ""),
-        smtp_port=int(os.getenv("SMTP_PORT", "587")),
-        smtp_user=os.getenv("SMTP_USER", ""),
-        smtp_password=os.getenv("SMTP_PASSWORD", ""),
-        smtp_use_tls=os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes"),
-        digest_from=os.getenv("DIGEST_FROM", ""),
-        digest_to=os.getenv("DIGEST_TO", ""),
         public_base_url=os.getenv("PUBLIC_BASE_URL", "").rstrip("/"),
         giscus_repo=os.getenv("GISCUS_REPO", ""),
         giscus_repo_id=os.getenv("GISCUS_REPO_ID", ""),
         giscus_category=os.getenv("GISCUS_CATEGORY", "General"),
         giscus_category_id=os.getenv("GISCUS_CATEGORY_ID", ""),
         giscus_theme=os.getenv("GISCUS_THEME", "light"),
-        ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
-        ntfy_feedback_topic=os.getenv("NTFY_FEEDBACK_TOPIC", ""),
+        feedback_owner_login=os.getenv("FEEDBACK_OWNER_LOGIN", "").strip(),
         source_review_min_sample=int(os.getenv("SOURCE_REVIEW_MIN_SAMPLE", "25")),
         source_review_yield_floor=float(os.getenv("SOURCE_REVIEW_YIELD_FLOOR", "0.05")),
         source_review_max_score_floor=float(
@@ -630,23 +588,6 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     with open(path) as f:
         data = yaml.safe_load(f)
 
-    delivery = data.get("delivery", {})
-    config.delivery_max_retries = delivery.get(
-        "max_retries", config.delivery_max_retries
-    )
-    config.delivery_retry_backoff_base = delivery.get(
-        "retry_backoff_base", config.delivery_retry_backoff_base
-    )
-    config.delivery_timeout = delivery.get("timeout", config.delivery_timeout)
-    config.delivery_batch_size = delivery.get("batch_size", config.delivery_batch_size)
-
-    dedup = delivery.get("dedup", {})
-    config.dedup_enabled = dedup.get("enabled", config.dedup_enabled)
-    config.dedup_similarity_threshold = dedup.get(
-        "similarity_threshold", config.dedup_similarity_threshold
-    )
-    config.dedup_lookback_days = dedup.get("lookback_days", config.dedup_lookback_days)
-
     processing = data.get("processing", {})
     config.min_relevance_score = processing.get(
         "min_relevance_score", config.min_relevance_score
@@ -666,6 +607,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
 
     story_dedup = processing.get("story_dedup", {})
     config.story_dedup_enabled = story_dedup.get("enabled", config.story_dedup_enabled)
+    config.story_dedup_similarity_threshold = story_dedup.get(
+        "similarity_threshold", config.story_dedup_similarity_threshold
+    )
     config.story_dedup_lookback_days = story_dedup.get(
         "lookback_days", config.story_dedup_lookback_days
     )
@@ -733,21 +677,6 @@ def _load_causal_model(path: Path, config: AppConfig) -> None:
 
 def _validate_config(config: AppConfig) -> None:
     """Validate configuration, raising ValueError on problems."""
-    if config.webhook_mode not in ("ntfy", "generic", "teams", "test"):
-        raise ValueError(
-            f"WEBHOOK_MODE must be 'ntfy', 'generic', 'teams', or 'test', got: {config.webhook_mode}"
-        )
-
-    if config.webhook_mode != "test" and not config.webhook_url:
-        import logging
-
-        logging.getLogger("ma_signal_monitor.config").warning(
-            "WEBHOOK_URL is not set but WEBHOOK_MODE='%s'. "
-            "Falling back to WEBHOOK_MODE='test' (dry-run).",
-            config.webhook_mode,
-        )
-        config.webhook_mode = "test"
-
     enabled_sources = [s for s in config.sources if s.enabled]
     if not enabled_sources:
         raise ValueError("No enabled sources found in sources.yaml")
