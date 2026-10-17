@@ -41,51 +41,21 @@ Verdicts: `relevant`, `irrelevant`, `wrong_category`, `great`. For
 `wrong_category`, the corrected category key is stored alongside — the highest
 value signal for future keyword tuning.
 
-## Alert-outcome feedback
+Earlier rows may also carry `alert_correct`, `alert_false_positive` or
+`alert_missed`, from an alert-outcome axis retired in 2026-10 with outbound
+delivery. It only ever checked against dry-run `delivery_log` rows, and the
+owner-labeled holdout in `evals/relevance` answers the same precision and
+recall question better. Those verdicts are no longer accepted, and every read
+path ignores them.
 
-A separate, narrower axis from the verdicts above: not "was this story
-relevant" but "was this specific **posted alert** worth surfacing" —
-`alert_correct`, `alert_false_positive` (posted, shouldn't have been), or
-`alert_missed` (never posted, should have been). This is the raw material
-for eventually justifying scoring weights with real precision/recall instead
-of intuition — nothing here retrains anything automatically; it's data
-collection only.
+## Scoring detail per story
 
-**Status (2026-10): open question.** This axis presupposes posted alerts, and
-outbound posting was removed in 2026-10 (the engine is web only). The
-`delivery_log` it checks is now historical and pruned on its usual 30-day
-retention, so after that no story counts as posted, `correct`/`false_positive`
-are always refused, and `missed` is always accepted. Whether to retire it or
-re-anchor it (for example on "got a public draft") is undecided.
-
-**Where it's captured:** the `cli` channel, same as `mark`:
-
-```bash
-ma-signal-feedback alert <item_id> correct
-ma-signal-feedback alert <item_id> false_positive
-ma-signal-feedback alert <item_id> missed
-```
-
-`correct`/`false_positive` require the story to have actually been delivered
-successfully (checked against `delivery_log`, which now carries the
-`item_id` of the story each attempt posted); `missed` requires the opposite.
-A mismatched label is rejected rather than silently recorded.
-
-**What's stored alongside it:** every archived story now carries its
-`scoring_breakdown` (the scorer's six-factor reasoning — keyword matches,
-source priority, entity match, MA-term boost, multi-category bonus,
-exclusions) and `threshold_at_score` (`min_relevance_score` at the moment it
-was scored, since that value moves as `taxonomy.yaml` is tuned). A label is
-only useful if it can be traced back to the exact scoring conditions that
-produced it, so both live on the `stories` row rather than being duplicated
-into the feedback row.
-
-**Querying it (read-only, no aggregation yet):**
-`ma-signal-feedback summary <item_id>` now also prints the combined score,
-threshold-at-score-time, delivery status, the full factor breakdown, and
-every alert verdict recorded for that story. There is no precision/recall
-report or disagreement-style digest for this data yet — that's future work
-once enough labels accumulate.
+Every archived story carries its `scoring_breakdown` (the scorer's per-factor
+reasoning: keyword matches, source priority, entity match, MA-term boost,
+multi-category bonus, exclusions) and `threshold_at_score`
+(`min_relevance_score` at the moment it was scored, since that value moves as
+`taxonomy.yaml` is tuned). `ma-signal-feedback summary <item_id>` prints both
+alongside the story's feedback counts.
 
 ## Live app widget
 

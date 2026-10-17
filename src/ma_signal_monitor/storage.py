@@ -14,24 +14,16 @@ logger = logging.getLogger("ma_signal_monitor.storage")
 
 # Allowed reader-feedback verdicts. Kept small and structured (not free-form)
 # so feedback feeds directly into the keyword-mining and source-yield loops.
-# The alert_* verdicts are a distinct axis from the rest: they assert an
-# outcome about a specific *posted-or-not-posted alert* (see
-# StateStore.get_alert_delivered), not a general opinion about the story.
-VALID_VERDICTS = frozenset(
-    {
-        "relevant",
-        "irrelevant",
-        "wrong_category",
-        "great",
-        "alert_correct",
-        "alert_false_positive",
-        "alert_missed",
-    }
-)
-# Verdicts specifically about alert-posting outcomes (feature: feedback loop
-# on scoring accuracy). Kept separate from VALID_VERDICTS' full set so
-# queries can select just this axis without hardcoding the prefix elsewhere.
-ALERT_VERDICTS = frozenset({"alert_correct", "alert_false_positive", "alert_missed"})
+#
+# HISTORICAL: alert_correct / alert_false_positive / alert_missed were an
+# "alert-outcome" axis, retired 2026-10 with outbound delivery. They only ever
+# checked against dry-run delivery_log rows, and the owner-labeled holdout in
+# evals/relevance answers the same question better. The feedback table is
+# append-only, so old rows may still carry them: they are no longer accepted
+# on insert, and every read path filters to VALID_VERDICTS so they are ignored.
+VALID_VERDICTS = frozenset({"relevant", "irrelevant", "wrong_category", "great"})
+_VALID_VERDICTS_SORTED = tuple(sorted(VALID_VERDICTS))
+_VERDICT_IN = "(" + ", ".join("?" * len(_VALID_VERDICTS_SORTED)) + ")"
 # Channels whose votes are owner ground-truth (weight 1.0). Everything else is
 # advisory crowd signal that surfaces things for review but never auto-mutates.
 #
@@ -56,10 +48,10 @@ CREATE TABLE IF NOT EXISTS seen_items (
     relevance_score REAL
 );
 
--- HISTORICAL. Written by the outbound webhook delivery step, removed in 2026-10
--- (the engine is web-only). Kept so existing rows, and the alert-outcome
--- check that reads them (get_alert_delivered), still work; nothing new is
--- written, and cleanup_old_records prunes it on its usual retention.
+-- HISTORICAL. Written by the outbound delivery step, removed in 2026-10 (the
+-- engine is web-only). Nothing writes or reads it any more; the table is kept
+-- so existing databases need no migration, and cleanup_old_records prunes its
+-- remaining rows on the usual retention.
 CREATE TABLE IF NOT EXISTS delivery_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     alert_title TEXT NOT NULL,
@@ -69,9 +61,7 @@ CREATE TABLE IF NOT EXISTS delivery_log (
     timestamp TEXT NOT NULL,
     -- The archived story this delivery attempt posted (or tried to post).
     -- NULL on rows written before this column existed. Added to existing DBs
-    -- by _ensure_column (see _init_db). Lets alert-outcome feedback (see the
-    -- `feedback` table below) confirm whether a given story was actually
-    -- posted to the webhook before a human labels it correct/false_positive.
+    -- by _ensure_column (see _init_db).
     item_id TEXT
 );
 
@@ -1070,14 +1060,14 @@ class StateStore:
             row["verdict"]: row["n"]
             for row in conn.execute(
                 "SELECT verdict, COUNT(*) AS n FROM feedback "
-                "WHERE item_id = ? GROUP BY verdict",
-                (item_id,),
+                f"WHERE item_id = ? AND verdict IN {_VERDICT_IN} GROUP BY verdict",
+                (item_id, *_VALID_VERDICTS_SORTED),
             ).fetchall()
         }
         owner = conn.execute(
             "SELECT verdict FROM feedback WHERE item_id = ? AND channel IN "
-            f"{_OWNER_IN} ORDER BY id DESC LIMIT 1",
-            (item_id, *_OWNER_CHANNELS_SORTED),
+            f"{_OWNER_IN} AND verdict IN {_VERDICT_IN} ORDER BY id DESC LIMIT 1",
+            (item_id, *_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchone()
         return {"counts": counts, "my_verdict": owner["verdict"] if owner else None}
 
@@ -1120,13 +1110,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN {owner_in}
+                   WHERE channel IN {owner_in} AND verdict IN {verdict_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
                WHERE latest.verdict IN ('relevant', 'irrelevant')""".format(
-                owner_in=_OWNER_IN
+                owner_in=_OWNER_IN, verdict_in=_VERDICT_IN
             ),
-            _OWNER_CHANNELS_SORTED,
+            (*_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchall()
         return [
             (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
@@ -1153,13 +1143,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN {owner_in}
+                   WHERE channel IN {owner_in} AND verdict IN {verdict_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
                WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""".format(
-                owner_in=_OWNER_IN
+                owner_in=_OWNER_IN, verdict_in=_VERDICT_IN
             ),
-            _OWNER_CHANNELS_SORTED,
+            (*_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchall()
         return [
             {
@@ -1413,53 +1403,20 @@ class StateStore:
         ).fetchone()
         return row["oldest"] if row and row["oldest"] is not None else None
 
-    # --- Alert-outcome feedback ---
+    # --- Scoring detail ---
 
-    def get_alert_delivered(self, item_id: str) -> bool:
-        """True if ``delivery_log`` records ``item_id`` as successfully posted.
-
-        ``delivery_log`` is historical (see its schema comment); nothing new
-        is written, so this is True only for rows from before 2026-10.
-
-        Backs the ``ma-signal-feedback alert`` command's sanity check: a
-        ``correct``/``false_positive`` verdict only makes sense for a story
-        that was actually posted, and ``missed`` only for one that wasn't.
-        """
-        conn = self._get_conn()
-        row = conn.execute(
-            "SELECT 1 FROM delivery_log WHERE item_id = ? AND success = 1 LIMIT 1",
-            (item_id,),
-        ).fetchone()
-        return row is not None
-
-    def get_alert_feedback(self, item_id: str) -> dict | None:
-        """Join a story's scoring detail with its alert-outcome feedback.
-
-        Returns the six-factor breakdown, combined score, and the threshold
-        in effect when it was scored — the scoring conditions a later
-        ``alert_correct``/``alert_false_positive``/``alert_missed`` label
-        needs to be traceable to — plus whether it was actually delivered and
-        every alert-outcome verdict recorded so far. Read-only reporting: no
-        aggregation across stories (that's future work once labels
-        accumulate). Returns None if the story isn't archived.
-        """
+    def get_scoring_detail(self, item_id: str) -> dict | None:
+        """A story's stored score, the threshold in effect when it was scored,
+        and its per-factor breakdown. Read-only; None if not archived."""
         story = self.get_story(item_id)
         if story is None:
             return None
-        conn = self._get_conn()
-        rows = conn.execute(
-            "SELECT verdict, channel, created_at FROM feedback "
-            "WHERE item_id = ? AND verdict IN (?, ?, ?) ORDER BY id DESC",
-            (item_id, *ALERT_VERDICTS),
-        ).fetchall()
         return {
             "item_id": item_id,
             "title": story["title"],
             "relevance_score": story["relevance_score"],
             "threshold_at_score": story["threshold_at_score"],
             "scoring_breakdown": json.loads(story["scoring_breakdown"] or "[]"),
-            "delivered": self.get_alert_delivered(item_id),
-            "alert_verdicts": [dict(r) for r in rows],
         }
 
     # --- Run Metadata ---

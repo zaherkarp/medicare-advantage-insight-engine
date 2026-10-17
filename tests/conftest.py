@@ -360,25 +360,3 @@ def project_root_with_config(tmp_path) -> Path:
         f.write(env_content)
 
     return tmp_path
-
-
-def seed_delivery_log(store, item_id, *, success=True, title="T"):
-    """Insert a row into the historical ``delivery_log`` table.
-
-    Outbound delivery was removed in 2026-10, so nothing in the app writes this
-    table any more; tests of the alert-outcome check that still reads it
-    (``StateStore.get_alert_delivered``) seed it directly.
-    """
-    conn = store._get_conn()
-    conn.execute(
-        "INSERT INTO delivery_log (alert_title, success, status_code, timestamp, item_id) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (
-            title,
-            1 if success else 0,
-            200 if success else 500,
-            "2026-01-01T00:00:00",
-            item_id,
-        ),
-    )
-    conn.commit()

@@ -1,8 +1,8 @@
 """Tests for state storage and persistence."""
 
+import pytest
 from datetime import datetime, timedelta
 
-from tests.conftest import seed_delivery_log
 
 from ma_signal_monitor.models import (
     NormalizedItem,
@@ -615,35 +615,49 @@ class TestAlertFeedback:
         ]
         assert row["threshold_at_score"] == 0.3
 
-    def test_get_alert_delivered(self, temp_db):
-        assert temp_db.get_alert_delivered("s1") is False
-        seed_delivery_log(temp_db, "s1", success=False)
-        # A failed delivery attempt doesn't count as "posted".
-        assert temp_db.get_alert_delivered("s1") is False
-        seed_delivery_log(temp_db, "s1")
-        assert temp_db.get_alert_delivered("s1") is True
+    def test_get_scoring_detail_unknown_story_returns_none(self, temp_db):
+        assert temp_db.get_scoring_detail("missing") is None
 
-    def test_get_alert_feedback_unknown_story_returns_none(self, temp_db):
-        assert temp_db.get_alert_feedback("missing") is None
-
-    def test_get_alert_feedback_joins_score_and_verdicts(self, temp_db):
+    def test_get_scoring_detail(self, temp_db):
         scored = _make_scored("s1", "Title", published=datetime(2024, 1, 5), score=0.42)
         temp_db.upsert_story(
             scored, primary_category="policy_regulatory", threshold_at_score=0.3
         )
-        seed_delivery_log(temp_db, "s1")
-        temp_db.add_feedback("s1", "alert_correct", channel="cli")
-
-        info = temp_db.get_alert_feedback("s1")
+        info = temp_db.get_scoring_detail("s1")
         assert info["relevance_score"] == 0.42
         assert info["threshold_at_score"] == 0.3
-        assert info["delivered"] is True
-        assert [v["verdict"] for v in info["alert_verdicts"]] == ["alert_correct"]
+        assert "delivered" not in info
 
-    def test_alert_verdicts_accepted(self, temp_db):
+    def test_retired_alert_verdicts_rejected(self, temp_db):
+        """Alert-outcome feedback was retired in 2026-10; its verdicts are no
+        longer accepted on insert."""
         for verdict in ("alert_correct", "alert_false_positive", "alert_missed"):
-            temp_db.add_feedback("s1", verdict, channel="cli")
-        assert temp_db.count_feedback() == 3
+            with pytest.raises(ValueError):
+                temp_db.add_feedback("s1", verdict, channel="cli")
+        assert temp_db.count_feedback() == 0
+
+    def test_legacy_alert_rows_are_ignored_on_read(self, temp_db):
+        """Old alert_* rows stay in the append-only table but must not surface:
+        not in the widget counts, not as the owner's latest verdict, and not in
+        the labeled/scored paths that keyword mining and the disagreement digest
+        read. The paired relevant row proves the paths are not simply empty."""
+        scored = _make_scored("s1", "Title", published=datetime(2024, 1, 5), score=0.42)
+        temp_db.upsert_story(scored, primary_category="policy_regulatory")
+        temp_db.add_feedback("s1", "relevant", channel="cli")
+        conn = temp_db._get_conn()
+        conn.execute(
+            "INSERT INTO feedback (item_id, verdict, channel, weight, created_at) "
+            "VALUES ('s1', 'alert_correct', 'cli', 1.0, '2099-01-01T00:00:00')"
+        )
+        conn.commit()
+
+        summary = temp_db.get_feedback_summary("s1")
+        assert summary["counts"] == {"relevant": 1}
+        assert summary["my_verdict"] == "relevant"
+        assert [v for _, v in temp_db.get_labeled_documents()] == ["relevant"]
+        assert [r["verdict"] for r in temp_db.get_scored_owner_feedback()] == [
+            "relevant"
+        ]
 
 
 class TestSourceYield:
