@@ -2,6 +2,8 @@ version: NEWS-TRENDS-01-v2
 as_of: 2026-10-17T12:00:00
 cases:
   - id: pp2-must-catch
+    operational_usefulness: must_catch
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T08:00:00
     first_seen: 2026-10-17T08:20:00
@@ -9,6 +11,8 @@ cases:
     summary: Primary CMS advance notice materials describe risk adjustment and operational changes for Medicare Advantage plans.
     expected: {feed: true, briefing: true, angles: true, alert: true}
   - id: pp2-unchanged-repeat
+    operational_usefulness: noise
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T08:00:00
     first_seen: 2026-10-17T09:10:00
@@ -16,6 +20,8 @@ cases:
     summary: The Second Plan Preview repeats the same CMS advance notice without a material change.
     expected: {feed: false, briefing: false, angles: false, alert: false}
   - id: pp2-material-update
+    operational_usefulness: material_update
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T10:00:00
     first_seen: 2026-10-17T10:15:00
@@ -23,6 +29,8 @@ cases:
     summary: The final rate announcement materially changes a benchmark from Plan Preview 2.
     expected: {feed: true, briefing: true, angles: true, alert: true}
   - id: dated-primary-analysis
+    operational_usefulness: decision_support
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T07:00:00
     first_seen: 2026-10-17T11:00:00
@@ -30,6 +38,8 @@ cases:
     summary: The dated primary document supports a Medicare Advantage contract and network change.
     expected: {feed: true, briefing: true, angles: true, alert: true}
   - id: below-score-must-catch
+    operational_usefulness: must_catch
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T06:00:00
     first_seen: 2026-10-17T11:20:00
@@ -37,9 +47,12 @@ cases:
     summary: A source-shaped plan update carries little taxonomy evidence beyond its Medicare Advantage context.
     expected: {feed: true, briefing: false, angles: false, alert: false}
   - id: conflicting-figures
+    operational_usefulness: requires_adjudication
+    public_availability: public
     rating_year: 2027
     event_date: 2026-10-17T09:30:00
     first_seen: 2026-10-17T11:40:00
     title: Reports conflict on 2027 Medicare Advantage premium increase
     summary: One report says 92 percent and another says 93 percent; the Medicare Advantage figures are not adjudicated.
     expected: {feed: true, briefing: true, angles: true, alert: true}
+

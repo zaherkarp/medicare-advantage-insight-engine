@@ -18,7 +18,31 @@ def test_replay_exercises_production_paths_and_dates():
     assert report["production_paths"]["angles_cards"] == "build_angles"
     assert report["angles_card_count"] > 0
     assert all(row["event_date"] != row["first_seen"] for row in report["results"])
+    assert all(row["metadata_round_trip"] for row in report["results"])
+    assert all(
+        row["metadata_sources"]
+        == {
+            "event_date": "stories.published_date",
+            "first_seen": "stories.fetched_at",
+        }
+        for row in report["results"]
+    )
     assert {row["rating_year"] for row in report["results"]} == {2027}
+
+
+def test_replay_labels_usefulness_separately_from_public_availability():
+    report = run_replay()
+    assert {
+        row["id"]: row["operational_usefulness"] for row in report["results"]
+    } == {
+        "pp2-must-catch": "must_catch",
+        "pp2-unchanged-repeat": "noise",
+        "pp2-material-update": "material_update",
+        "dated-primary-analysis": "decision_support",
+        "below-score-must-catch": "must_catch",
+        "conflicting-figures": "requires_adjudication",
+    }
+    assert {row["public_availability"] for row in report["results"]} == {"public"}
 
 
 def test_missing_claim_support_guard_is_reported_as_product_gap():
@@ -28,3 +52,4 @@ def test_missing_claim_support_guard_is_reported_as_product_gap():
     conflict = next(r for r in report["results"] if r["id"] == "conflicting-figures")
     assert conflict["observed"]["alert"] is True
     assert "draft_candidate" not in conflict["observed"]
+

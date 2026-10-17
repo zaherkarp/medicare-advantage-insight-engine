@@ -47,6 +47,11 @@ def _source_item(case: dict) -> NormalizedItem:
     )
 
 
+def _rating_year_from_item(item: NormalizedItem) -> int:
+    prefix = "rating-year-"
+    return int(next(tag.removeprefix(prefix) for tag in item.source_tags if tag.startswith(prefix)))
+
+
 def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
     fixture = yaml.safe_load(cases_path.read_text(encoding="utf-8"))
     now = datetime.fromisoformat(str(fixture["as_of"]))
@@ -108,6 +113,22 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
         results = []
         for case in cases:
             story = by_id[case["id"]]
+            stored = store.get_story(case["id"])
+            assert stored is not None
+            expected_event_date = datetime.fromisoformat(
+                str(case["event_date"])
+            ).isoformat()
+            expected_first_seen = datetime.fromisoformat(
+                str(case["first_seen"])
+            ).isoformat()
+            metadata_round_trip = (
+                stored["published_date"]
+                == story.item.published_date.isoformat()
+                == expected_event_date
+                and stored["fetched_at"]
+                == story.item.fetched_at.isoformat()
+                == expected_first_seen
+            )
             observed = {
                 "feed": case["id"] in feed_ids,
                 "briefing": case["id"] in briefing_ids,
@@ -117,16 +138,23 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             results.append(
                 {
                     "id": case["id"],
-                    "rating_year": case["rating_year"],
-                    "event_date": str(case["event_date"]),
-                    "first_seen": str(case["first_seen"]),
+                    "operational_usefulness": case["operational_usefulness"],
+                    "public_availability": case["public_availability"],
+                    "rating_year": _rating_year_from_item(story.item),
+                    "event_date": stored["published_date"],
+                    "first_seen": stored["fetched_at"],
+                    "metadata_sources": {
+                        "event_date": "stories.published_date",
+                        "first_seen": "stories.fetched_at",
+                    },
+                    "metadata_round_trip": metadata_round_trip,
                     "score": story.relevance_score,
                     "categories": story.matched_categories,
                     "eligibility_tier": story.eligibility_tier,
                     "duplicate_of": duplicate_map[case["id"]],
                     "expected": case["expected"],
                     "observed": observed,
-                    "passed": observed == case["expected"],
+                    "passed": observed == case["expected"] and metadata_round_trip,
                 }
             )
         store.close()
@@ -186,3 +214,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
