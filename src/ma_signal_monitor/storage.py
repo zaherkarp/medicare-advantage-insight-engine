@@ -1081,6 +1081,23 @@ class StateStore:
         ).fetchone()
         return {"counts": counts, "my_verdict": owner["verdict"] if owner else None}
 
+    def has_feedback_ref(self, source_ref: str) -> bool:
+        """True if any feedback row, on ANY channel, carries ``source_ref``.
+
+        The unique index is on ``(channel, source_ref)``, so it cannot stop the
+        same external event (one giscus reaction) landing twice under two
+        channels. That happens when a reaction's classification changes between
+        ingests, e.g. an owner reaction first recorded as crowd ``github``
+        before ``FEEDBACK_OWNER_LOGIN`` was set. Ingest checks this first so a
+        reaction is recorded once, under its first classification; the table
+        stays append-only rather than rewriting the earlier row.
+        """
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT 1 FROM feedback WHERE source_ref = ? LIMIT 1", (source_ref,)
+        ).fetchone()
+        return row is not None
+
     def count_feedback(self) -> int:
         """Total number of feedback rows recorded (all channels)."""
         conn = self._get_conn()

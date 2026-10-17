@@ -280,3 +280,37 @@ def test_owner_verdict_feeds_keyword_mining_labels(sample_config, temp_db):
 
     owner = temp_db.get_scored_owner_feedback()
     assert [(r["item_id"], r["verdict"]) for r in owner] == [("story-1", "irrelevant")]
+
+
+@responses.activate
+def test_reaction_already_filed_as_crowd_is_not_duplicated(sample_config, temp_db):
+    """An owner reaction ingested as crowd before FEEDBACK_OWNER_LOGIN was set
+    must not be inserted a second time as giscus_owner (the unique index is
+    per channel, so it would otherwise allow both)."""
+    _seed(temp_db, "story-1")
+    temp_db.add_feedback(
+        "story-1",
+        "relevant",
+        channel="github",
+        voter_key="zaherkarp",
+        source_ref="reaction:1",
+    )
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(
+            ("THUMBS_UP", 1, "zaherkarp"), ("THUMBS_UP", 2, "zaherkarp")
+        ),
+        status=200,
+    )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = "zaherkarp"
+
+    summary = ingest_github_feedback(config, temp_db, token="t")
+
+    # Reaction 1 stays its single crowd row; reaction 2 (new) is still recorded
+    # as owner, which is the paired case proving the skip is not blanket.
+    assert summary["recorded"] == 1
+    assert summary["recorded_owner"] == 1
+    assert temp_db.count_feedback() == 2
+    assert sorted(r["channel"] for r in _rows(temp_db)) == ["giscus_owner", "github"]

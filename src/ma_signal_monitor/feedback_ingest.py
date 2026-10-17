@@ -144,13 +144,18 @@ def ingest_github_feedback(
                 matched += 1
                 login = (r.get("user") or {}).get("login")
                 is_owner = bool(owner_login) and (login or "").lower() == owner_login
+                source_ref = f"reaction:{r['databaseId']}"
+                # One reaction is one row, whatever channel it was first filed
+                # under; see StateStore.has_feedback_ref.
+                if store.has_feedback_ref(source_ref):
+                    continue
                 before = store.count_feedback()
                 store.add_feedback(
                     item_id,
                     verdict,
                     channel="giscus_owner" if is_owner else "github",
                     voter_key=login,
-                    source_ref=f"reaction:{r['databaseId']}",
+                    source_ref=source_ref,
                 )
                 if store.count_feedback() > before:
                     recorded += 1
