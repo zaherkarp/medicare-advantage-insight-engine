@@ -1,57 +1,8 @@
 # Troubleshooting
 
-## ntfy.sh Issues
+## Duplicate Stories
 
-### Notifications not appearing
-- Verify you're subscribed to the correct topic: open `https://ntfy.sh/<your-topic>` in your browser
-- Check that `WEBHOOK_MODE=ntfy` in your `.env`
-- Check that `WEBHOOK_URL` matches the topic you subscribed to
-- Run `python scripts/seed_test_data.py --deliver` and look for `status 200` in the output
-
-### Notifications visible to others
-ntfy.sh topics are **public by default**. Anyone who knows your topic name can read your alerts. Use a unique, hard-to-guess topic name (e.g., `ma-monitor-a8f3k2x9`) for production use. For private topics, consider [self-hosting ntfy](https://docs.ntfy.sh/install/) or using a different delivery mode.
-
-### Markdown not rendering
-Ensure `WEBHOOK_MODE=ntfy` (not `generic` or `test`). The ntfy renderer sets `"markdown": true` in the payload. Markdown rendering is supported in the ntfy web UI and mobile apps.
-
-### Priority levels not working
-The ntfy renderer maps alert confidence to priority: high → 5 (urgent), medium → 3 (default), low → 2. Verify in the ntfy web UI that the priority badge appears on each notification.
-
-## Webhook Endpoint Errors
-
-### "WEBHOOK_URL is not set"
-Set `WEBHOOK_URL` in your `.env` file. For ntfy.sh: `https://ntfy.sh/your-topic-name`. For testing, use a webhook.site URL.
-
-### HTTP 400/403 from webhook endpoint
-- **400 Bad Request**: The payload format may not match what the endpoint expects. If using Teams, ensure `WEBHOOK_MODE=teams`. Try sending to webhook.site first with `WEBHOOK_MODE=test` to inspect the payload.
-- **403 Forbidden**: The webhook URL may be expired or revoked. Generate a new one.
-
-### HTTP 500 from webhook endpoint
-Server-side issue. The tool will retry automatically (up to 3 times with backoff). If it persists, the endpoint may be down.
-
-### Connection refused / timeout
-- Check that `WEBHOOK_URL` is correct and accessible from your network
-- Check for proxy/firewall restrictions
-- Verify the endpoint is online (try opening it in a browser)
-
-## Malformed Payloads
-
-### Teams card doesn't render
-- Verify `WEBHOOK_MODE=teams` in `.env`
-- Send the same alert to webhook.site (`WEBHOOK_MODE=test`) and inspect the JSON structure
-- Check that the Adaptive Card `version` is `"1.4"` and `$schema` is present
-- Teams has a ~28KB payload limit — check payload size
-- The Incoming Webhook connector may be disabled in your tenant's admin settings
-
-### JSON parsing error at endpoint
-Ensure the endpoint accepts `Content-Type: application/json`. The tool sets this header automatically.
-
-### Payload missing fields
-Check the log output. If normalization failed for an item, some fields may be empty. Look for `WARNING` entries in the log.
-
-## Duplicate Posts
-
-### Same alert posted twice
+### Same item processed twice
 This shouldn't happen if the state database is intact. Check:
 1. Is `data/state.db` present and not corrupted?
 2. Did the database get deleted between runs?
@@ -96,7 +47,7 @@ knobs referenced here.
 - Check its score and reasons:
   `sqlite3 data/state.db "SELECT title, relevance_score FROM stories WHERE title LIKE '%keyword%'"`.
   Below `ARCHIVE_MIN_SCORE` (default 0.1) → hidden from the site; below
-  `MIN_RELEVANCE_SCORE` (default 0.3) → no alert.
+  `MIN_RELEVANCE_SCORE` (default 0.3) → no analysis draft.
 - If it's from a low-priority source and names no payer or Medicare term, the
   **MA-context gate** suppressed its keyword matches. Add the missing anchor to
   `ma_context_terms`, add the payer to `watched_entities`, or lower
@@ -171,7 +122,8 @@ Bills Presented to the President — see `docs/loop.md` for the full record.)
   [Operations → SEC EDGAR Sources Require a Contact
   Email](operations.md#sec-edgar-sources-require-a-contact-email)).
 - **Alliance of Community Health Plans**: `error` — confirmed via a real
-  `scheduled-monitor.yml` run's logs: `403 Client Error: Forbidden for url:
+  `scheduled-monitor.yml` run's logs (that workflow was removed in 2026-10 with
+  push delivery; the same fetch runs in `deploy-pages.yml`): `403 Client Error: Forbidden for url:
   https://achp.org/feed/`. The same URL returns `200` with 10 parseable
   items from other networks (curl from a workstation, this repo's dev
   sandbox), and the full pipeline (fetch → normalize → score → persist)
@@ -205,23 +157,6 @@ All sources in `sources.yaml` have `enabled: false`. Enable at least one.
 
 ### "No taxonomy categories found"
 `config/taxonomy.yaml` is missing or has no `categories` section.
-
-## Teams Rendering Weirdness
-
-### Card renders on desktop but not mobile
-Teams mobile has more limited Adaptive Card support. The card should still render, but some formatting may differ. This is a Teams limitation.
-
-### Emojis don't show in confidence indicator
-The Teams renderer uses Unicode emojis (🟢🟡🔴) for confidence. If these don't render, it's a font/encoding issue on the Teams client.
-
-### Card is too tall / too much content
-Lower `max_summary_length` in `config/app.yaml` or increase `MIN_RELEVANCE_SCORE` to reduce the number of alerts.
-
-### "Action.OpenUrl" button doesn't work
-Verify the source URL is a valid, publicly accessible URL. Some Teams environments restrict external URL access.
-
-### Switching from Incoming Webhook to Workflow
-Microsoft is migrating from Incoming Webhooks to Power Automate Workflows. The payload format differs. If you're using a Workflow webhook, the Teams renderer will need to be adapted. As a workaround, use `WEBHOOK_MODE=generic` and configure the Workflow to parse the generic JSON payload.
 
 ## General
 

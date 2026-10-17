@@ -100,7 +100,6 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
   monthly file, confirm the parent-org column + format) before the feature can
   be planned — and confirmation the file host is reachable from the deploy
   runners.
-- **Slack renderer** — needs a Slack workspace/webhook to target.
-- **Cadence cost** — the tighter crons shipped in iteration 4 (Pages 2h,
-  alerts 3h) increase GitHub Actions usage; free for public repos, but
-  flagging the change of pace.
+- **Cadence cost** — the tighter Pages cron shipped in iteration 4 (2h)
+  increases GitHub Actions usage; flagging the change of pace. (The 3h alert
+  cron was removed in 2026-10 with push delivery.)

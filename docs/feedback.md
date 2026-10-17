@@ -3,13 +3,15 @@
 Feedback tunes what the monitor surfaces. It comes from two kinds of sources,
 kept deliberately separate by **weight**:
 
-- **Owner ("me-sourced")** — your own verdicts via the live web widget, the
-  `ma-signal-feedback` CLI, and (later) ntfy action buttons. These are ground
-  truth, recorded at **weight 1.0**.
-- **Crowd** — reactions from visitors on the public static site, collected via
-  giscus and pulled back with the GraphQL API. These are advisory signal,
-  recorded at **weight < 1.0**. Crowd input can flag things for your review but
-  never auto-changes scoring or sources on its own.
+- **Owner ("me-sourced")** — your own verdicts via your giscus reactions on the
+  public static site, the live web widget, and the `ma-signal-feedback` CLI.
+  These are ground truth, recorded at **weight 1.0**.
+- **Crowd** — everyone else's giscus reactions on the static site. These are
+  advisory signal, recorded at **weight < 1.0**. Crowd input can flag things for
+  your review but never auto-changes scoring or sources on its own.
+
+Both kinds of giscus reaction are pulled back with the GraphQL API on every
+Pages deploy; the owner is told apart from the crowd by GitHub login.
 
 Everything lands in one append-only `feedback` table (an audit log — rows are
 never mutated after insert), so a too-greedy signal can always be traced.
@@ -26,10 +28,14 @@ plumbing.
 
 | Channel | Weight | How it's recorded |
 |---|---|---|
+| `giscus_owner` | 1.0 | your own giscus reaction on a static story page (login = `FEEDBACK_OWNER_LOGIN`), pulled by `ma-signal-feedback ingest-github` |
 | `local_web` | 1.0 | 👍/👎 + "wrong category" widget on the live app → `POST /feedback` |
-| `ntfy` | 1.0 | 👍/👎 action buttons on ntfy alerts → `ma-signal-feedback ingest-ntfy` |
 | `cli` | 1.0 | `ma-signal-feedback mark <item_id> <verdict> [category]` |
-| `github` | 0.2 | giscus reactions pulled by `ma-signal-feedback ingest-github` |
+| `github` | 0.2 | anyone else's giscus reaction, pulled by the same command |
+
+`ntfy` may also appear on old rows and still counts as an owner channel. It
+came from ntfy alert buttons, which were removed unused in 2026-10 along with
+all outbound push; nothing writes it any more.
 
 Verdicts: `relevant`, `irrelevant`, `wrong_category`, `great`. For
 `wrong_category`, the corrected category key is stored alongside — the highest
@@ -45,12 +51,14 @@ for eventually justifying scoring weights with real precision/recall instead
 of intuition — nothing here retrains anything automatically; it's data
 collection only.
 
-**Where it's captured:** the `cli` channel, same as `mark`. Teams Incoming
-Webhooks (the current `WEBHOOK_MODE=teams` delivery path) are a fire-and-forget
-POST with no message id and no reaction read-back — capturing this from the
-Teams message itself would need a full Bot Framework registration, a large
-lift for a low-frequency, deliberate activity. A periodic CLI sweep is the
-lowest-effort fit for the existing architecture:
+**Status (2026-10): open question.** This axis presupposes posted alerts, and
+outbound posting was removed in 2026-10 (the engine is web only). The
+`delivery_log` it checks is now historical and pruned on its usual 30-day
+retention, so after that no story counts as posted, `correct`/`false_positive`
+are always refused, and `missed` is always accepted. Whether to retire it or
+re-anchor it (for example on "got a public draft") is undecided.
+
+**Where it's captured:** the `cli` channel, same as `mark`:
 
 ```bash
 ma-signal-feedback alert <item_id> correct
@@ -90,23 +98,7 @@ The story page shows a progressive-disclosure widget:
 Revisiting a story shows your last verdict (the 👍/👎 button comes back
 pressed). A plain-language explainer lives at `/about-feedback`.
 
-## ntfy action buttons (feedback at the moment of reading)
-
-When `WEBHOOK_MODE=ntfy` and `NTFY_FEEDBACK_TOPIC` is set, each alert carries
-👍 / 👎 buttons. Tapping one publishes `{item_id, verdict}` to a separate,
-private feedback topic (an ntfy `http` action). Pull those votes in with:
-
-```bash
-ma-signal-feedback ingest-ntfy
-```
-
-This polls the feedback topic's JSON endpoint and records each vote as an owner
-verdict (`channel="ntfy"`, weight 1.0), idempotent by ntfy message id
-(`source_ref=ntfy:<id>`). ntfy caps notifications at 3 buttons, so alerts show
-*View Source* + 👍 + 👎; richer corrections (wrong category) stay on the web
-widget. Choose a hard-to-guess topic name — anyone who knows it could post.
-
-## Crowd via giscus
+## giscus (owner and crowd)
 
 Set these (all public — giscus exposes them client-side; get them from
 <https://giscus.app> after enabling Discussions on the repo):
@@ -132,12 +124,20 @@ locally.
 
 ### Pulling reactions back
 
+`deploy-pages.yml` runs this on every deploy, after ingest and before the
+site is built, with the workflow's `GITHUB_TOKEN` (`discussions: read`) and
+`FEEDBACK_OWNER_LOGIN` set to the repository owner. A failure there warns and
+the deploy continues. To run it by hand:
+
 ```bash
-GITHUB_TOKEN=<read-only Discussions PAT> ma-signal-feedback ingest-github
+GITHUB_TOKEN=<read-only Discussions PAT> FEEDBACK_OWNER_LOGIN=<your login> \
+  ma-signal-feedback ingest-github
 ```
 
-This reads each Discussion's reactions via the GitHub GraphQL API and maps
-them to verdicts:
+This reads each Discussion's reactions via the GitHub GraphQL API. A reaction
+by `FEEDBACK_OWNER_LOGIN` (case-insensitive) is recorded as `giscus_owner` at
+weight 1.0; anyone else's as `github` at 0.2. With `FEEDBACK_OWNER_LOGIN`
+empty, every reaction is crowd. Reactions map to verdicts:
 
 | Reaction | Verdict |
 |---|---|

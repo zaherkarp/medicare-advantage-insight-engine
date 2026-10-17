@@ -1,5 +1,9 @@
 # PR Summary: MA Signal Monitor — Initial Implementation
 
+> **Note (2026-10).** The webhook delivery (ntfy, Teams, generic JSON) this PR
+> introduced was removed unused in 2026-10; the engine is now web only, and
+> Teams was never deployed against a real channel.
+
 > **Historical snapshot.** This describes the initial implementation PR and is
 > kept for reference. The project has grown since (SEC EDGAR/CMS fetchers live,
 > six taxonomy categories, story archive + web frontend, 227 tests). See
