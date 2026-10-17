@@ -134,6 +134,13 @@ def load_rows(db_path: str, since: str, until: str | None) -> list[Row]:
     return out
 
 
+def _hidden_class(r: Row) -> str:
+    """Why a visible story leaves the feed: its exclusion class, or the floor."""
+    if r.tier != "exclude":
+        return "score under the display floor after the alias correction"
+    return _reason_class(r.reason)
+
+
 def _reason_class(reason: str) -> str:
     """'excluded: medicaid_only:Medicaid' -> 'medicaid_only'; else the reason."""
     if reason.startswith("excluded: "):
@@ -143,7 +150,12 @@ def _reason_class(reason: str) -> str:
 
 def analyse(rows: list[Row]) -> dict:
     visible = [r for r in rows if r.score >= DISPLAY_FLOOR]
-    hidden = [r for r in visible if r.tier == "exclude"]
+    # Two ways off the feed: the display floor hides tier 'exclude', and the
+    # alias correction can push a score under the archive floor whatever the
+    # tier. Production stores the corrected score, so both count.
+    hidden = [
+        r for r in visible if r.tier == "exclude" or r.gated_score < DISPLAY_FLOOR
+    ]
 
     alerts_now = [r for r in rows if r.score >= ALERT_THRESHOLD]
     alerts_kept = [
@@ -190,7 +202,7 @@ def analyse(rows: list[Row]) -> dict:
         "visible_tiers": Counter(r.tier for r in visible),
         "visible": visible,
         "hidden": hidden,
-        "hidden_by_reason": Counter(_reason_class(r.reason) for r in hidden),
+        "hidden_by_reason": Counter(_hidden_class(r) for r in hidden),
         "alerts_now": alerts_now,
         "alerts_kept": alerts_kept,
         "alerts_lost": alerts_lost,
@@ -244,7 +256,10 @@ def render(a: dict, since: str, until: str | None) -> str:
     ]
     out += [f"- {cls}: {n}" for cls, n in a["hidden_by_reason"].most_common()]
     out += ["", f"Highest-scoring hidden stories (up to {LIST_CAP}):", ""]
-    out += [_line(r) for r in sorted(a["hidden"], key=lambda r: -r.score)[:LIST_CAP]]
+    out += [
+        _line(r, gated=True)
+        for r in sorted(a["hidden"], key=lambda r: -r.score)[:LIST_CAP]
+    ]
 
     out += [
         "",

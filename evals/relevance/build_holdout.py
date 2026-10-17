@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -93,21 +94,36 @@ def _stride(rows: list, cap: int) -> list:
     return [rows[int(i * step)] for i in range(cap)]
 
 
-def load_excluded_ids(paths: list[str]) -> set[str]:
-    """item_ids already used by earlier holdouts, so a new one stays disjoint.
+def content_signature(title: str | None, summary: str | None) -> str:
+    """Case- and punctuation-insensitive fingerprint of a story's text.
+
+    Ids hash the source and link, so the same text republished under a new link
+    (recurring Federal Register notices do this) gets a new id. Comparing on
+    content as well keeps a later holdout disjoint at the input the labeler
+    actually sees. The summary is cut to 500 characters, as stored in a holdout.
+    """
+    text = f"{title or ''}\n{(summary or '')[:500]}".lower()
+    return hashlib.sha256(re.sub(r"\W+", " ", text).strip().encode()).hexdigest()
+
+
+def load_excluded(paths: list[str]) -> tuple[set[str], set[str]]:
+    """(item_ids, content signatures) already used by earlier holdouts.
 
     A story that was labeled once must never be scored again as "held out":
     the owner has seen it, and the gate may since have been adjusted with it in
-    mind. Excluding by id is exact; titles repeat across sources, ids do not.
+    mind. Excluding by id alone misses republished text, so both are returned.
     """
     import yaml
 
-    out: set[str] = set()
+    ids: set[str] = set()
+    sigs: set[str] = set()
     for path in paths:
         with open(path) as f:
             data = yaml.safe_load(f) or {}
-        out.update(it["item_id"] for it in data.get("items", []))
-    return out
+        for it in data.get("items", []):
+            ids.add(it["item_id"])
+            sigs.add(content_signature(it.get("title"), it.get("summary")))
+    return ids, sigs
 
 
 def build(
@@ -115,6 +131,7 @@ def build(
     since: str = HELDOUT_SINCE,
     until: str | None = None,
     exclude_ids: set[str] | None = None,
+    exclude_sigs: set[str] | None = None,
 ) -> dict:
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
@@ -131,9 +148,17 @@ def build(
     q += " ORDER BY item_id"
     rows = cur.execute(q, params).fetchall()
     con.close()
-    excluded = exclude_ids or set()
-    n_excluded = sum(1 for r in rows if r["item_id"] in excluded)
-    rows = [r for r in rows if r["item_id"] not in excluded]
+    ex_ids = exclude_ids or set()
+    ex_sigs = exclude_sigs or set()
+    excluded = bool(ex_ids or ex_sigs)
+
+    def _seen(r) -> bool:
+        return r["item_id"] in ex_ids or (
+            bool(ex_sigs) and content_signature(r["title"], r["summary"]) in ex_sigs
+        )
+
+    n_excluded = sum(1 for r in rows if _seen(r))
+    rows = [r for r in rows if not _seen(r)]
 
     alert, display, subfloor = [], [], []
     for r in rows:
@@ -224,11 +249,13 @@ def main() -> None:
 
     import yaml
 
+    ex_ids, ex_sigs = load_excluded(args.exclude)
     data = build(
         args.db,
         since=args.since,
         until=args.until,
-        exclude_ids=load_excluded_ids(args.exclude),
+        exclude_ids=ex_ids,
+        exclude_sigs=ex_sigs,
     )
     with open(args.out, "w") as f:
         f.write(

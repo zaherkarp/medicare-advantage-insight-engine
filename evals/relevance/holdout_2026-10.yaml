@@ -5,35 +5,19 @@ _meta:
     fill `label` by owner review before reporting any precision/recall.
   heldout_since: '2026-10-01'
   heldout_until: '2026-10-15'
-  excluded_prior_items: 0
+  excluded_prior_items: 1
   strata:
     alert: 119
     display_sampled: 60
     subfloor_sampled: 25
   n: 204
-  content_sha256: bc4ef70d95edb5544ddcf0018b0eb9464f1a8587aebfc0a886456f3104674d6b
+  content_sha256: e32e0073c4361c88c5d33c8bcb55e0989d23be33418ba71e6e96b0abb8c4903b
   label_values:
   - relevant_brief
   - relevant_context
   - borderline_display
   - irrelevant
 items:
-- item_id: 000d8dbdbe460041
-  title: 'Agency Information Collection Activities: Proposed Collection; Comment Request'
-  summary: The Centers for Medicare & Medicaid Services (CMS) is announcing an opportunity for the public
-    to comment on CMS' intention to collect information from the public. Under the Paperwork Reduction
-    Act of 1995 (PRA), federal agencies are required to publish notice in the Federal Register concerning
-    each proposed collection of information (including each proposed extension or reinstatement of an
-    existing collection of information) and to allow 60 days for public comment on the proposed action.
-    Int...
-  source_name: Federal Register - CMS Notices
-  source_priority: 4
-  score_at_capture: 0.26
-  stratum: display
-  predicted_tier: display
-  proposed_label: borderline_display
-  label: null
-  note: Medicare-adjacent, no MA line — display-only?
 - item_id: 00528ded45f34128
   title: BCBS Association reabsorbs data analytics business
   summary: The Blue Cross Blue Shield Association is bringing its data and analytics work “under one internal
@@ -1007,6 +991,18 @@ items:
   proposed_label: borderline_display
   label: null
   note: Medicare-adjacent, no MA line — display-only?
+- item_id: 5e713b888483c008
+  title: ACHP Recommendations for an Inferred Risk Adjustment Model
+  summary: ACHP urges CMS to preserve separate payment terms for state directed payments and coordinate
+    with NAIC so risk-based capital reflects the risk plans bear. Source
+  source_name: Alliance of Community Health Plans
+  source_priority: 2
+  score_at_capture: 0.22
+  stratum: display
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: null
+  note: carries an MA-specific signal
 - item_id: 60353750de6e7f57
   title: 'Humana’s star ratings turnaround: 5 notes'
   summary: 'Humana has pulled off a Medicare Advantage star ratings turnaround, with 95% of the insurer’s
@@ -1413,20 +1409,6 @@ items:
   proposed_label: borderline_display
   label: null
   note: Medicare-adjacent, no MA line — display-only?
-- item_id: 7d8e07a440d4f9d5
-  title: 'Medigap Guaranteed Issue Requirements: An Overview of Federal and State Rules'
-  summary: This issue brief analyzes federal and state rules related to guaranteed issue requirements
-    for Medigap policies and how they impact beneficiaries’ access to Medigap, including the implications
-    for Medicare beneficiaries with pre-existing medical conditions and those under age 65 with long-term
-    disabilities.
-  source_name: KFF Medicare
-  source_priority: 3
-  score_at_capture: 0.21
-  stratum: display
-  predicted_tier: brief
-  proposed_label: relevant_brief
-  label: null
-  note: carries an MA-specific signal
 - item_id: 805be6e4399e7d8e
   title: UnitedHealthcare’s AI assistant expands to 21 million members
   summary: UnitedHealthcare’s AI assistant Avery is now available to 21 million commercial, Medicare and
@@ -1964,6 +1946,21 @@ items:
   source_priority: 3
   score_at_capture: 0.765
   stratum: alert
+  predicted_tier: exclude
+  proposed_label: irrelevant
+  label: null
+  note: owner-designated noise class or no Medicare context
+- item_id: a123d21f636b181e
+  title: Insurers, AMA join forces on provider directory data standard
+  summary: DataSpring, powered by CAQH, assembled a collective of insurers, along with the American Medical
+    Association, to launch a new standard to measure provider directory data quality for individual clinicians
+    on Oct. 13. DataSpring, owned by major health insurers, bridges payer and provider data. Along with
+    DataSpring and the AMA, the Provider Data Collective includes Aetna, […] The post Insurers, AMA join
+    forces on provider directory data standard appeared first on Becker's Payer Issues | Payer N...
+  source_name: Becker's Payer Issues
+  source_priority: 3
+  score_at_capture: 0.26
+  stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
   label: null

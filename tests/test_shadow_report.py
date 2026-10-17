@@ -152,16 +152,71 @@ def test_holdout_window_and_exclusion(tmp_path):
     prior = tmp_path / "prior.yaml"
     prior.write_text(yaml.safe_dump({"items": [{"item_id": "a-ma"}]}))
 
+    ex_ids, ex_sigs = build_holdout.load_excluded([str(prior)])
     data = build_holdout.build(
         db,
         since="2026-10-01",
         until="2026-10-15",
-        exclude_ids=build_holdout.load_excluded_ids([str(prior)]),
+        exclude_ids=ex_ids,
+        exclude_sigs=ex_sigs,
     )
     ids = {it["item_id"] for it in data["items"]}
     assert ids == {"b-medicaid", "c-alias"}  # window, dedup and exclusion
     assert data["_meta"]["heldout_until"] == "2026-10-15"
     assert data["_meta"]["excluded_prior_items"] == 1
+
+
+def test_holdout_excludes_republished_text_under_a_new_id(tmp_path):
+    # Same text as an earlier holdout item, different id (a new link): the
+    # labeler has seen this input, so it must not re-enter. Case and
+    # punctuation differences do not make it new.
+    db = _db(tmp_path, ROWS)
+    medicaid = next(r for r in ROWS if r["id"] == "b-medicaid")
+    prior = tmp_path / "prior.yaml"
+    prior.write_text(
+        yaml.safe_dump(
+            {
+                "items": [
+                    {
+                        "item_id": "some-other-id",
+                        "title": medicaid["title"].upper() + "!",
+                        "summary": medicaid["summary"],
+                    }
+                ]
+            }
+        )
+    )
+    ex_ids, ex_sigs = build_holdout.load_excluded([str(prior)])
+    data = build_holdout.build(
+        db, since="2026-10-01", exclude_ids=ex_ids, exclude_sigs=ex_sigs
+    )
+    assert "b-medicaid" not in {it["item_id"] for it in data["items"]}
+    assert data["_meta"]["excluded_prior_items"] == 1
+
+
+def test_feed_counts_alias_correction_under_the_floor(tmp_path):
+    # A tier-'display' story visible at 0.16 only because one payer counted
+    # twice: corrected to under 0.1, production's archive floor hides it.
+    rows = ROWS + [
+        {
+            "id": "f-floor",
+            "title": "UnitedHealthcare and UnitedHealth talk Medicare in a podcast",
+            "score": 0.16,
+            "entities": ["UnitedHealthcare", "UnitedHealth"],
+            "breakdown": _reasons(
+                ("entity_match", 0.2),
+                ("entity_match", 0.2),
+                ("exclusion_keyword", -0.25),
+                ("source_priority", 0.01),
+            ),
+        }
+    ]
+    loaded = shadow_report.load_rows(_db(tmp_path, rows), "2026-10-01", None)
+    a = shadow_report.analyse(loaded)
+    floor = next(r for r in loaded if r.item_id == "f-floor")
+    assert floor.tier != "exclude" and floor.gated_score < 0.1
+    assert "f-floor" in {r.item_id for r in a["hidden"]}
+    assert any("display floor" in k for k in a["hidden_by_reason"])
 
 
 def test_holdout_defaults_add_no_meta_keys(tmp_path):
