@@ -1,6 +1,5 @@
-"""Tests for giscus → feedback ingest."""
+"""Tests for giscus → feedback ingest (owner and crowd reactions)."""
 
-import json
 from datetime import datetime
 
 import pytest
@@ -9,7 +8,6 @@ import responses
 from ma_signal_monitor.feedback_ingest import (
     GITHUB_GRAPHQL_URL,
     ingest_github_feedback,
-    ingest_ntfy_feedback,
 )
 from ma_signal_monitor.models import NormalizedItem, ScoredItem
 
@@ -158,75 +156,161 @@ def test_ingest_is_idempotent(sample_config, temp_db):
     assert temp_db.count_feedback() == 1
 
 
-# --- ntfy ingest ---
-
-NTFY_JSON_URL = "https://ntfy.sh/fb-topic/json"
+# --- owner vs crowd reactions ---
 
 
-def _ntfy_config(sample_config):
-    sample_config.ntfy_feedback_topic = "fb-topic"
-    sample_config.ntfy_server = "https://ntfy.sh"
-    return sample_config
-
-
-def _ndjson(*objs):
-    return "\n".join(json.dumps(o) for o in objs)
-
-
-def test_ntfy_requires_config(sample_config, temp_db):
-    with pytest.raises(ValueError):
-        ingest_ntfy_feedback(sample_config, temp_db)
-
-
-@responses.activate
-def test_ntfy_maps_votes(sample_config, temp_db):
-    _seed(temp_db, "story-1")
-    responses.add(
-        responses.GET,
-        NTFY_JSON_URL,
-        body=_ndjson(
-            {"id": "m1", "event": "open"},  # non-message, ignored
+def _reaction_page(*reactions):
+    """One discussion for story-1 carrying the given (content, id, login) reactions."""
+    return _one_page(
+        [
             {
-                "id": "m2",
-                "event": "message",
-                "message": json.dumps({"item_id": "story-1", "verdict": "relevant"}),
-            },
-            {
-                "id": "m3",
-                "event": "message",
-                "message": json.dumps({"item_id": "ghost", "verdict": "relevant"}),
-            },
-            {"id": "m4", "event": "message", "message": "not json"},
-        ),
-        status=200,
-    )
-
-    summary = ingest_ntfy_feedback(_ntfy_config(sample_config), temp_db)
-
-    assert summary["recorded"] == 1
-    s = temp_db.get_feedback_summary("story-1")
-    # ntfy is an owner channel → weight 1.0 → sets my_verdict.
-    assert s["my_verdict"] == "relevant"
-
-
-@responses.activate
-def test_ntfy_idempotent(sample_config, temp_db):
-    _seed(temp_db, "story-1")
-    responses.add(
-        responses.GET,
-        NTFY_JSON_URL,
-        body=_ndjson(
-            {
-                "id": "m2",
-                "event": "message",
-                "message": json.dumps({"item_id": "story-1", "verdict": "relevant"}),
+                "title": "story-1",
+                "reactions": {
+                    "nodes": [
+                        {"content": c, "databaseId": i, "user": {"login": login}}
+                        for c, i, login in reactions
+                    ]
+                },
             }
+        ]
+    )
+
+
+def _rows(store):
+    conn = store._get_conn()
+    return [
+        dict(r)
+        for r in conn.execute(
+            "SELECT voter_key, channel, weight, verdict FROM feedback ORDER BY id"
+        ).fetchall()
+    ]
+
+
+@responses.activate
+def test_owner_reaction_is_owner_verdict(sample_config, temp_db):
+    """The owner's own reaction records as giscus_owner at weight 1.0 and sets
+    my_verdict; another login's records as crowd (github, 0.2) and does not."""
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(("THUMBS_UP", 1, "zaherkarp"), ("THUMBS_DOWN", 2, "alice")),
+        status=200,
+    )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = "zaherkarp"
+
+    summary = ingest_github_feedback(config, temp_db, token="t")
+
+    assert summary["recorded"] == 2
+    assert summary["recorded_owner"] == 1
+    assert _rows(temp_db) == [
+        {
+            "voter_key": "zaherkarp",
+            "channel": "giscus_owner",
+            "weight": 1.0,
+            "verdict": "relevant",
+        },
+        {
+            "voter_key": "alice",
+            "channel": "github",
+            "weight": 0.2,
+            "verdict": "irrelevant",
+        },
+    ]
+    # Only the owner row counts as "my verdict".
+    assert temp_db.get_feedback_summary("story-1")["my_verdict"] == "relevant"
+
+
+@responses.activate
+def test_owner_login_match_is_case_insensitive(sample_config, temp_db):
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(("HEART", 1, "ZaherKarp")),
+        status=200,
+    )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = "zaherkarp"
+
+    ingest_github_feedback(config, temp_db, token="t")
+
+    assert _rows(temp_db)[0]["channel"] == "giscus_owner"
+
+
+@responses.activate
+def test_empty_owner_login_records_everything_as_crowd(sample_config, temp_db):
+    """No owner configured: even the owner's account is crowd signal. This is
+    the paired negative for the owner test above, so a channel that labelled
+    every reaction owner could not pass both."""
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(("THUMBS_UP", 1, "zaherkarp"), ("THUMBS_UP", 2, "alice")),
+        status=200,
+    )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = ""
+
+    summary = ingest_github_feedback(config, temp_db, token="t")
+
+    assert summary["recorded_owner"] == 0
+    assert {r["channel"] for r in _rows(temp_db)} == {"github"}
+    assert {r["weight"] for r in _rows(temp_db)} == {0.2}
+    assert temp_db.get_feedback_summary("story-1")["my_verdict"] is None
+
+
+@responses.activate
+def test_owner_verdict_feeds_keyword_mining_labels(sample_config, temp_db):
+    """giscus_owner rows are owner ground truth everywhere OWNER_CHANNELS is
+    read, not just in my_verdict."""
+    _seed(temp_db, "story-1")
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(("THUMBS_DOWN", 1, "zaherkarp")),
+        status=200,
+    )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = "zaherkarp"
+
+    ingest_github_feedback(config, temp_db, token="t")
+
+    owner = temp_db.get_scored_owner_feedback()
+    assert [(r["item_id"], r["verdict"]) for r in owner] == [("story-1", "irrelevant")]
+
+
+@responses.activate
+def test_reaction_already_filed_as_crowd_is_not_duplicated(sample_config, temp_db):
+    """An owner reaction ingested as crowd before FEEDBACK_OWNER_LOGIN was set
+    must not be inserted a second time as giscus_owner (the unique index is
+    per channel, so it would otherwise allow both)."""
+    _seed(temp_db, "story-1")
+    temp_db.add_feedback(
+        "story-1",
+        "relevant",
+        channel="github",
+        voter_key="zaherkarp",
+        source_ref="reaction:1",
+    )
+    responses.add(
+        responses.POST,
+        GITHUB_GRAPHQL_URL,
+        json=_reaction_page(
+            ("THUMBS_UP", 1, "zaherkarp"), ("THUMBS_UP", 2, "zaherkarp")
         ),
         status=200,
     )
+    config = _giscus_config(sample_config)
+    config.feedback_owner_login = "zaherkarp"
 
-    first = ingest_ntfy_feedback(_ntfy_config(sample_config), temp_db)
-    second = ingest_ntfy_feedback(sample_config, temp_db)
-    assert first["recorded"] == 1
-    assert second["recorded"] == 0
-    assert temp_db.count_feedback() == 1
+    summary = ingest_github_feedback(config, temp_db, token="t")
+
+    # Reaction 1 stays its single crowd row; reaction 2 (new) is still recorded
+    # as owner, which is the paired case proving the skip is not blanket.
+    assert summary["recorded"] == 1
+    assert summary["recorded_owner"] == 1
+    assert temp_db.count_feedback() == 2
+    assert sorted(r["channel"] for r in _rows(temp_db)) == ["giscus_owner", "github"]

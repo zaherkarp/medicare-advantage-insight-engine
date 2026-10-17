@@ -17,6 +17,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Read giscus reactions (GitHub Discussions) for the feedback-ingest step.
+  discussions: read
 
 # Don't run deploys concurrently, but let an in-progress one finish.
 concurrency:
@@ -45,19 +47,7 @@ jobs:
       # empty form is the one the code is designed around and survives that
       # normalization being refactored away.
       #
-      # PAGES_URL feeds PUBLIC_BASE_URL for the Daily Briefing digest's
-      # absolute links below; it is NOT how the archive DB is restored or
-      # persisted (see "Restore archive DB from cache" / "Save archive DB to
-      # cache" below). The DB used to round-trip through this URL, but it is
-      # no longer published at all, so that path stopped existing rather than
-      # merely moving. PAGES_URL still names the OLD github.io/<repo> URL and
-      # still works, because GitHub 301s it to the custom domain; it is the
-      # last thing here encoding where the site is published, and it can be
-      # deleted outright once the digest emailer goes (its only remaining
-      # consumer). See this repo's PR #70 discussion.
       STATIC_BASE_PATH: ""
-      PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-      WEBHOOK_MODE: test
       MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
       USER_AGENT: ${{ vars.USER_AGENT || 'MA-Signal-Monitor (research; contact via repo)' }}
       # sec.gov 403s any User-Agent without a real contact email (see
@@ -159,19 +149,33 @@ jobs:
       - name: Ingest latest signals
         run: ma-signal-monitor
 
+      - name: Ingest giscus feedback (owner verdicts + crowd reactions)
+        # Pulls reactions from the giscus Discussions on story pages into the
+        # archive's feedback table. The repository owner's own reactions are
+        # recorded as owner verdicts (weight 1.0), everyone else's as crowd
+        # signal (0.2). See docs/feedback.md. A failure here must not cost the
+        # deploy, so it warns and continues -- but visibly, with an annotation,
+        # never silently.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEEDBACK_OWNER_LOGIN: ${{ github.repository_owner }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY || 'General' }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+        run: |
+          if ! ma-signal-feedback ingest-github; then
+            echo "::warning::giscus feedback ingest failed; deploying without new feedback rows. See the step log."
+          fi
+
       - name: Backfill categorization under current taxonomy
         run: ma-signal-backfill --rescore
 
-      - name: Generate Daily Briefing (and email if configured)
+      - name: Generate Daily Briefing
         env:
-          DIGEST_ENABLED: ${{ secrets.SMTP_HOST != '' && 'true' || 'false' }}
-          PUBLIC_BASE_URL: ${{ env.PAGES_URL }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
-          DIGEST_TO: ${{ secrets.DIGEST_TO }}
+          # Absolute base for links inside the briefing HTML, which renders in
+          # an iframe on /briefing and so cannot use relative links.
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL || 'https://signal.zaherkarp.com' }}
         run: ma-signal-digest
 
       - name: Build static site

@@ -1670,7 +1670,6 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "latest_digest": latest_digest,
                 "fts_enabled": store.fts_enabled,
                 "ingest_interval_hours": config.ingest_interval_hours,
-                "digest_enabled": config.digest_enabled,
                 "source_yield": source_yield,
                 "flagged_sources": flagged,
                 "flagged_names": flagged_names,

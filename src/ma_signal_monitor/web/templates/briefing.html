@@ -14,7 +14,6 @@
     <div class="briefing-meta muted">
       Generated {{ digest['generated_at'].replace('T', ' ')[:16] }} UTC ·
       {{ digest['story_count'] }} signal{{ '' if digest['story_count'] == 1 else 's' }}
-      {% if digest['sent_at'] %}· emailed{% endif %}
     </div>
     <iframe class="briefing-frame" title="{{ digest['subject'] }}"
             srcdoc="{{ digest['html'] }}"
@@ -28,7 +27,7 @@
         {% for d in archive %}
           <li>
             <a href="/briefing/{{ d['digest_date'] }}">{{ d['digest_date'] }}</a>
-            <span class="muted">— {{ d['story_count'] }} signal{{ '' if d['story_count'] == 1 else 's' }}{% if d['sent_at'] %} · emailed{% endif %}</span>
+            <span class="muted">— {{ d['story_count'] }} signal{{ '' if d['story_count'] == 1 else 's' }}</span>
           </li>
         {% endfor %}
       </ul>

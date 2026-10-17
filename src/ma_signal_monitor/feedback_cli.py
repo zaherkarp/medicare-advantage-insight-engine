@@ -2,9 +2,7 @@
 
 Usage:
     ma-signal-feedback mark <item_id> <verdict> [category]
-    ma-signal-feedback alert <item_id> <correct|false_positive|missed>
     ma-signal-feedback ingest-github
-    ma-signal-feedback ingest-ntfy
     ma-signal-feedback mine-keywords
     ma-signal-feedback disagreements
     ma-signal-feedback summary <item_id>
@@ -14,17 +12,9 @@ Usage:
 history into the golden set. Verdicts: relevant | irrelevant | wrong_category |
 great. For ``wrong_category`` pass the corrected category key as ``[category]``.
 
-``alert`` records whether a story that was actually posted to the webhook was
-worth surfacing (``correct`` / ``false_positive``), or whether a story that
-should have alerted but didn't (``missed``). This is data collection only —
-it does not retrain scoring weights. Run it periodically against recent
-alerts (see docs/feedback.md). ``correct``/``false_positive`` require the
-story to have actually been delivered; ``missed`` requires that it wasn't —
-the command checks ``delivery_log`` and refuses a mismatched label.
-
-``ingest-github`` pulls crowd reactions from giscus-backed Discussions (needs
-GISCUS_* config and a GITHUB_TOKEN). ``ingest-ntfy`` pulls owner 👍/👎 votes from
-the ntfy feedback topic (needs NTFY_FEEDBACK_TOPIC).
+``ingest-github`` pulls reactions from giscus-backed Discussions (needs GISCUS_*
+config and a GITHUB_TOKEN). Reactions by FEEDBACK_OWNER_LOGIN are recorded as
+owner verdicts; everyone else's as crowd signal. CI runs it on every deploy.
 """
 
 import sys
@@ -32,14 +22,6 @@ from pathlib import Path
 
 from ma_signal_monitor.config import load_config
 from ma_signal_monitor.storage import VALID_VERDICTS, StateStore
-
-# Friendly CLI words for the `alert` command, mapped to the verdicts stored
-# in the `feedback` table (see storage.ALERT_VERDICTS).
-_ALERT_VERDICT_WORDS = {
-    "correct": "alert_correct",
-    "false_positive": "alert_false_positive",
-    "missed": "alert_missed",
-}
 
 
 def _open(root: Path) -> tuple:
@@ -77,34 +59,6 @@ def main() -> None:
             )
             print(f"Recorded {verdict} for {item_id}.")
 
-        elif cmd == "alert" and len(args) >= 3:
-            item_id, word = args[1], args[2]
-            if word not in _ALERT_VERDICT_WORDS:
-                print(
-                    f"Unknown alert verdict {word!r}. "
-                    f"Choose: {', '.join(_ALERT_VERDICT_WORDS)}"
-                )
-                sys.exit(2)
-            if store.get_story(item_id) is None:
-                print(f"No story with id {item_id}.")
-                sys.exit(1)
-            delivered = store.get_alert_delivered(item_id)
-            verdict = _ALERT_VERDICT_WORDS[word]
-            if word in ("correct", "false_positive") and not delivered:
-                print(
-                    f"{item_id} was never successfully posted to the webhook "
-                    "— use 'missed' instead, or check delivery_log."
-                )
-                sys.exit(2)
-            if word == "missed" and delivered:
-                print(
-                    f"{item_id} WAS posted to the webhook — use 'correct' or "
-                    "'false_positive' instead."
-                )
-                sys.exit(2)
-            store.add_feedback(item_id, verdict, channel="cli")
-            print(f"Recorded alert outcome '{word}' for {item_id}.")
-
         elif cmd == "ingest-github":
             from ma_signal_monitor.feedback_ingest import ingest_github_feedback
 
@@ -116,20 +70,8 @@ def main() -> None:
             print(
                 f"giscus ingest: scanned {summary['discussions']} discussion(s), "
                 f"matched {summary['reactions_matched']} reaction(s), "
-                f"recorded {summary['recorded']} new row(s)."
-            )
-
-        elif cmd == "ingest-ntfy":
-            from ma_signal_monitor.feedback_ingest import ingest_ntfy_feedback
-
-            try:
-                summary = ingest_ntfy_feedback(config, store)
-            except ValueError as e:
-                print(f"Cannot ingest: {e}")
-                sys.exit(1)
-            print(
-                f"ntfy ingest: scanned {summary['messages']} message(s), "
-                f"recorded {summary['recorded']} new row(s)."
+                f"recorded {summary['recorded']} new row(s), "
+                f"{summary['recorded_owner']} of them owner verdict(s)."
             )
 
         elif cmd == "mine-keywords":
@@ -200,31 +142,22 @@ def main() -> None:
             else:
                 print("  no feedback yet")
 
-            alert_info = store.get_alert_feedback(item_id)
-            if alert_info:
-                print(f"\n  combined score: {alert_info['relevance_score']}")
-                print(f"  threshold at score time: {alert_info['threshold_at_score']}")
-                print(
-                    f"  posted to webhook: {'yes' if alert_info['delivered'] else 'no'}"
-                )
-                if alert_info["scoring_breakdown"]:
+            detail = store.get_scoring_detail(item_id)
+            if detail:
+                print(f"\n  combined score: {detail['relevance_score']}")
+                print(f"  threshold at score time: {detail['threshold_at_score']}")
+                if detail["scoring_breakdown"]:
                     print("  scoring breakdown:")
-                    for r in alert_info["scoring_breakdown"]:
+                    for r in detail["scoring_breakdown"]:
                         print(
                             f"    {r['factor']:<18} {r['contribution']:+.3f}  {r['detail']}"
-                        )
-                if alert_info["alert_verdicts"]:
-                    print("  alert verdicts:")
-                    for v in alert_info["alert_verdicts"]:
-                        print(
-                            f"    {v['verdict']:<20} ({v['channel']}, {v['created_at']})"
                         )
 
         elif cmd == "stats":
             print(f"Total feedback rows: {store.count_feedback()}")
 
         else:
-            print(main.__doc__)
+            print(__doc__)
             sys.exit(2)
     finally:
         store.close()

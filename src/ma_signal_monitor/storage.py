@@ -1,5 +1,5 @@
-"""SQLite-based persistence for state, deduplication, delivery logs, and the
-browsable story archive that backs the web product."""
+"""SQLite-based persistence for state, deduplication, and the browsable story
+archive that backs the web product."""
 
 import json
 import logging
@@ -8,33 +8,35 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ma_signal_monitor.models import DeliveryResult, ScoredItem, SourceFetchOutcome
+from ma_signal_monitor.models import ScoredItem, SourceFetchOutcome
 
 logger = logging.getLogger("ma_signal_monitor.storage")
 
 # Allowed reader-feedback verdicts. Kept small and structured (not free-form)
 # so feedback feeds directly into the keyword-mining and source-yield loops.
-# The alert_* verdicts are a distinct axis from the rest: they assert an
-# outcome about a specific *posted-or-not-posted alert* (see
-# StateStore.get_alert_delivered), not a general opinion about the story.
-VALID_VERDICTS = frozenset(
-    {
-        "relevant",
-        "irrelevant",
-        "wrong_category",
-        "great",
-        "alert_correct",
-        "alert_false_positive",
-        "alert_missed",
-    }
-)
-# Verdicts specifically about alert-posting outcomes (feature: feedback loop
-# on scoring accuracy). Kept separate from VALID_VERDICTS' full set so
-# queries can select just this axis without hardcoding the prefix elsewhere.
-ALERT_VERDICTS = frozenset({"alert_correct", "alert_false_positive", "alert_missed"})
+#
+# HISTORICAL: alert_correct / alert_false_positive / alert_missed were an
+# "alert-outcome" axis, retired 2026-10 with outbound delivery. They only ever
+# checked against dry-run delivery_log rows, and the owner-labeled holdout in
+# evals/relevance answers the same question better. The feedback table is
+# append-only, so old rows may still carry them: they are no longer accepted
+# on insert, and every read path filters to VALID_VERDICTS so they are ignored.
+VALID_VERDICTS = frozenset({"relevant", "irrelevant", "wrong_category", "great"})
+_VALID_VERDICTS_SORTED = tuple(sorted(VALID_VERDICTS))
+_VERDICT_IN = "(" + ", ".join("?" * len(_VALID_VERDICTS_SORTED)) + ")"
 # Channels whose votes are owner ground-truth (weight 1.0). Everything else is
 # advisory crowd signal that surfaces things for review but never auto-mutates.
-OWNER_CHANNELS = frozenset({"local_web", "ntfy", "cli"})
+#
+# "giscus_owner" is the owner's own giscus reaction on the public site (see
+# feedback_ingest.ingest_github_feedback). "ntfy" is HISTORICAL: an ntfy
+# action-button channel existed until 2026-10 and was removed unused; it stays
+# here only so any rows it wrote still read as owner verdicts. Nothing writes
+# it any more.
+OWNER_CHANNELS = frozenset({"local_web", "cli", "giscus_owner", "ntfy"})
+# SQL fragment "(?, ?, ...)" and its params for `channel IN` owner filters, so
+# the queries below cannot drift from OWNER_CHANNELS. Sorted for stable SQL.
+_OWNER_CHANNELS_SORTED = tuple(sorted(OWNER_CHANNELS))
+_OWNER_IN = "(" + ", ".join("?" for _ in _OWNER_CHANNELS_SORTED) + ")"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS seen_items (
@@ -46,6 +48,10 @@ CREATE TABLE IF NOT EXISTS seen_items (
     relevance_score REAL
 );
 
+-- HISTORICAL. Written by the outbound delivery step, removed in 2026-10 (the
+-- engine is web-only). Nothing writes or reads it any more; the table is kept
+-- so existing databases need no migration, and cleanup_old_records prunes its
+-- remaining rows on the usual retention.
 CREATE TABLE IF NOT EXISTS delivery_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     alert_title TEXT NOT NULL,
@@ -55,9 +61,7 @@ CREATE TABLE IF NOT EXISTS delivery_log (
     timestamp TEXT NOT NULL,
     -- The archived story this delivery attempt posted (or tried to post).
     -- NULL on rows written before this column existed. Added to existing DBs
-    -- by _ensure_column (see _init_db). Lets alert-outcome feedback (see the
-    -- `feedback` table below) confirm whether a given story was actually
-    -- posted to the webhook before a human labels it correct/false_positive.
+    -- by _ensure_column (see _init_db).
     item_id TEXT
 );
 
@@ -154,7 +158,7 @@ CREATE TABLE IF NOT EXISTS candidate_sources (
 );
 
 -- Reader feedback on stories. Append-only audit log written by every channel
--- (local web buttons, ntfy actions, CLI, and later crowd reactions via giscus).
+-- (local web buttons, CLI, and giscus reactions on the public site).
 -- `weight` separates ground-truth owner votes (1.0) from advisory crowd signal
 -- (< 1.0). `source_ref` makes crowd re-ingest idempotent via the partial unique
 -- index below. Rows are never mutated after insert.
@@ -1056,16 +1060,33 @@ class StateStore:
             row["verdict"]: row["n"]
             for row in conn.execute(
                 "SELECT verdict, COUNT(*) AS n FROM feedback "
-                "WHERE item_id = ? GROUP BY verdict",
-                (item_id,),
+                f"WHERE item_id = ? AND verdict IN {_VERDICT_IN} GROUP BY verdict",
+                (item_id, *_VALID_VERDICTS_SORTED),
             ).fetchall()
         }
         owner = conn.execute(
             "SELECT verdict FROM feedback WHERE item_id = ? AND channel IN "
-            "('local_web', 'ntfy', 'cli') ORDER BY id DESC LIMIT 1",
-            (item_id,),
+            f"{_OWNER_IN} AND verdict IN {_VERDICT_IN} ORDER BY id DESC LIMIT 1",
+            (item_id, *_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchone()
         return {"counts": counts, "my_verdict": owner["verdict"] if owner else None}
+
+    def has_feedback_ref(self, source_ref: str) -> bool:
+        """True if any feedback row, on ANY channel, carries ``source_ref``.
+
+        The unique index is on ``(channel, source_ref)``, so it cannot stop the
+        same external event (one giscus reaction) landing twice under two
+        channels. That happens when a reaction's classification changes between
+        ingests, e.g. an owner reaction first recorded as crowd ``github``
+        before ``FEEDBACK_OWNER_LOGIN`` was set. Ingest checks this first so a
+        reaction is recorded once, under its first classification; the table
+        stays append-only rather than rewriting the earlier row.
+        """
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT 1 FROM feedback WHERE source_ref = ? LIMIT 1", (source_ref,)
+        ).fetchone()
+        return row is not None
 
     def count_feedback(self) -> int:
         """Total number of feedback rows recorded (all channels)."""
@@ -1089,10 +1110,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+                   WHERE channel IN {owner_in} AND verdict IN {verdict_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
-               WHERE latest.verdict IN ('relevant', 'irrelevant')""",
+               WHERE latest.verdict IN ('relevant', 'irrelevant')""".format(
+                owner_in=_OWNER_IN, verdict_in=_VERDICT_IN
+            ),
+            (*_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchall()
         return [
             (f"{r['title']} {r['summary'] or ''}".strip(), r["verdict"]) for r in rows
@@ -1119,10 +1143,13 @@ class StateStore:
                               PARTITION BY item_id ORDER BY id DESC
                           ) AS rn
                    FROM feedback
-                   WHERE channel IN ('local_web', 'ntfy', 'cli')
+                   WHERE channel IN {owner_in} AND verdict IN {verdict_in}
                ) latest
                ON latest.item_id = s.item_id AND latest.rn = 1
-               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""",
+               WHERE latest.verdict IN ('relevant', 'great', 'irrelevant')""".format(
+                owner_in=_OWNER_IN, verdict_in=_VERDICT_IN
+            ),
+            (*_OWNER_CHANNELS_SORTED, *_VALID_VERDICTS_SORTED),
         ).fetchall()
         return [
             {
@@ -1145,24 +1172,18 @@ class StateStore:
         story_count: int,
         subject: str,
         html: str,
-        sent_at: str | None = None,
     ) -> None:
-        """Persist (or replace) a generated digest for a given UTC day."""
+        """Persist (or replace) a generated digest for a given UTC day.
+
+        The ``digests.sent_at`` column is historical (from an email path that
+        was never used and has been removed); it is left NULL.
+        """
         conn = self._get_conn()
         conn.execute(
             """INSERT OR REPLACE INTO digests
-               (digest_date, generated_at, story_count, subject, html, sent_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (digest_date, generated_at, story_count, subject, html, sent_at),
-        )
-        conn.commit()
-
-    def mark_digest_sent(self, digest_date: str, sent_at: str) -> None:
-        """Record that a digest was emailed."""
-        conn = self._get_conn()
-        conn.execute(
-            "UPDATE digests SET sent_at = ? WHERE digest_date = ?",
-            (sent_at, digest_date),
+               (digest_date, generated_at, story_count, subject, html)
+               VALUES (?, ?, ?, ?, ?)""",
+            (digest_date, generated_at, story_count, subject, html),
         )
         conn.commit()
 
@@ -1184,7 +1205,7 @@ class StateStore:
         """Return recent digests (date + metadata only) for the archive list."""
         conn = self._get_conn()
         return conn.execute(
-            """SELECT digest_date, generated_at, story_count, subject, sent_at
+            """SELECT digest_date, generated_at, story_count, subject
                FROM digests ORDER BY digest_date DESC LIMIT ?""",
             (limit,),
         ).fetchall()
@@ -1382,87 +1403,21 @@ class StateStore:
         ).fetchone()
         return row["oldest"] if row and row["oldest"] is not None else None
 
-    # --- Delivery Logging ---
+    # --- Scoring detail ---
 
-    def log_delivery(self, result: DeliveryResult) -> None:
-        """Log a delivery attempt."""
-        conn = self._get_conn()
-        conn.execute(
-            """INSERT INTO delivery_log
-               (alert_title, success, status_code, error, timestamp, item_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (
-                result.alert_title,
-                1 if result.success else 0,
-                result.status_code,
-                result.error,
-                result.timestamp.isoformat(),
-                result.item_id,
-            ),
-        )
-        conn.commit()
-
-    def get_alert_delivered(self, item_id: str) -> bool:
-        """True if ``item_id`` was ever successfully posted to the webhook.
-
-        Backs the ``ma-signal-feedback alert`` command's sanity check: a
-        ``correct``/``false_positive`` verdict only makes sense for a story
-        that was actually posted, and ``missed`` only for one that wasn't.
-        """
-        conn = self._get_conn()
-        row = conn.execute(
-            "SELECT 1 FROM delivery_log WHERE item_id = ? AND success = 1 LIMIT 1",
-            (item_id,),
-        ).fetchone()
-        return row is not None
-
-    def get_alert_feedback(self, item_id: str) -> dict | None:
-        """Join a story's scoring detail with its alert-outcome feedback.
-
-        Returns the six-factor breakdown, combined score, and the threshold
-        in effect when it was scored — the scoring conditions a later
-        ``alert_correct``/``alert_false_positive``/``alert_missed`` label
-        needs to be traceable to — plus whether it was actually delivered and
-        every alert-outcome verdict recorded so far. Read-only reporting: no
-        aggregation across stories (that's future work once labels
-        accumulate). Returns None if the story isn't archived.
-        """
+    def get_scoring_detail(self, item_id: str) -> dict | None:
+        """A story's stored score, the threshold in effect when it was scored,
+        and its per-factor breakdown. Read-only; None if not archived."""
         story = self.get_story(item_id)
         if story is None:
             return None
-        conn = self._get_conn()
-        rows = conn.execute(
-            "SELECT verdict, channel, created_at FROM feedback "
-            "WHERE item_id = ? AND verdict IN (?, ?, ?) ORDER BY id DESC",
-            (item_id, *ALERT_VERDICTS),
-        ).fetchall()
         return {
             "item_id": item_id,
             "title": story["title"],
             "relevance_score": story["relevance_score"],
             "threshold_at_score": story["threshold_at_score"],
             "scoring_breakdown": json.loads(story["scoring_breakdown"] or "[]"),
-            "delivered": self.get_alert_delivered(item_id),
-            "alert_verdicts": [dict(r) for r in rows],
         }
-
-    def recent_alert_titles(self, since_days: int) -> list[str]:
-        """Titles of alerts successfully delivered in the last ``since_days``.
-
-        Used by near-duplicate alert suppression to avoid re-firing a story
-        that a prior run already alerted. ``delivery_log`` is retained ~30 days
-        (``delivery_log_retention_days``), so a small lookback is always
-        available. Returns [] for a non-positive lookback (cross-run check off).
-        """
-        if since_days <= 0:
-            return []
-        conn = self._get_conn()
-        cutoff = (datetime.utcnow() - timedelta(days=since_days)).isoformat()
-        rows = conn.execute(
-            "SELECT alert_title FROM delivery_log WHERE success = 1 AND timestamp >= ?",
-            (cutoff,),
-        ).fetchall()
-        return [r["alert_title"] for r in rows]
 
     # --- Run Metadata ---
 
@@ -1482,23 +1437,25 @@ class StateStore:
         items_fetched: int = 0,
         items_new: int = 0,
         items_relevant: int = 0,
-        alerts_sent: int = 0,
         errors: int = 0,
         notes: str = "",
     ) -> None:
-        """Record the end of a processing run."""
+        """Record the end of a processing run.
+
+        ``run_metadata.alerts_sent`` is historical (written by the removed
+        webhook delivery step) and is left at its default.
+        """
         conn = self._get_conn()
         conn.execute(
             """UPDATE run_metadata
                SET run_end = ?, items_fetched = ?, items_new = ?,
-                   items_relevant = ?, alerts_sent = ?, errors = ?, notes = ?
+                   items_relevant = ?, errors = ?, notes = ?
                WHERE id = ?""",
             (
                 datetime.utcnow().isoformat(),
                 items_fetched,
                 items_new,
                 items_relevant,
-                alerts_sent,
                 errors,
                 notes,
                 run_id,
