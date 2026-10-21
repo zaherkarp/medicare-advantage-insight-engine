@@ -1,0 +1,117 @@
+version: NEWS-WATCH-03A-D-v1
+retrieved_at: 2026-10-20T22:05:00-05:00
+index_coverage: source-shaped regression fixtures; acquisition coverage unknown
+label_provenance: assistant_recommendation_not_owner_confirmed
+cases:
+  - id: kff-medigap-underwriting
+    source_name: KFF Medicare
+    source_url: https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/
+    source_priority: 3
+    source_tags: [research, policy]
+    publication_date: 2026-10-13T12:00:00
+    event_date: 2026-10-13
+    first_seen: 2026-10-19T13:35:00
+    data_period: "2023"
+    effective_date: null
+    title: Nearly three-quarters of Medicare Advantage enrollees could face Medigap underwriting
+    summary: KFF analysis of 2023 diagnoses examines conditions that could trigger Medigap denial.
+    recommendation: develop
+    expected: {current_drafted: false, candidate_drafted: true}
+  - id: aca-broker-guidance
+    source_name: Policy Wire
+    source_url: https://example.invalid/aca-broker-guidance
+    source_priority: 5
+    source_tags: [policy]
+    publication_date: 2026-10-20T09:00:00
+    event_date: 2026-10-20
+    first_seen: 2026-10-20T09:05:00
+    data_period: null
+    effective_date: null
+    title: Affordable Care Act broker enrollment and commission guidance expands
+    summary: Insurance marketplace agents get new network and premium instructions for individual market commercial plans.
+    recommendation: skipped
+    expected: {current_drafted: true, candidate_drafted: false}
+  - id: commercial-directory-research
+    source_name: Directory Research
+    source_url: https://example.invalid/commercial-directory
+    source_priority: 5
+    source_tags: [research]
+    publication_date: 2026-10-20T10:00:00
+    event_date: 2026-10-05
+    first_seen: 2026-10-20T10:10:00
+    data_period: "2025"
+    effective_date: null
+    title: Commercial plan provider directory network research
+    summary: A commercial plan study compares employer plan directories and network accuracy.
+    recommendation: skipped
+    expected: {current_drafted: true, candidate_drafted: false}
+  - id: no-surprises-audit
+    source_name: CMS Newsroom
+    source_url: https://example.invalid/no-surprises-audit
+    source_priority: 5
+    source_tags: [official]
+    publication_date: 2026-10-20T11:00:00
+    event_date: 2026-10-16
+    first_seen: 2026-10-20T11:05:00
+    data_period: null
+    effective_date: null
+    title: CMS No Surprises Act audits examine insurer network practices
+    summary: The general CMS audit covers payment and provider network compliance under the No Surprises Act.
+    recommendation: skipped
+    expected: {current_drafted: true, candidate_drafted: false}
+  - id: evergreen-faq
+    source_name: Research FAQ
+    source_url: https://example.invalid/evergreen-faq
+    source_priority: 3
+    source_tags: [research]
+    publication_date: 2026-10-20T12:00:00
+    event_date: null
+    first_seen: 2026-10-20T12:05:00
+    data_period: null
+    effective_date: null
+    title: Frequently asked questions about health coverage
+    summary: An undated evergreen explainer contains no new event or dated policy development.
+    recommendation: skipped
+    expected: {current_drafted: false, candidate_drafted: false}
+  - id: standalone-part-d
+    source_name: Medicare Policy
+    source_url: https://example.invalid/standalone-part-d
+    source_priority: 5
+    source_tags: [policy]
+    publication_date: 2026-10-20T13:00:00
+    event_date: 2026-10-20
+    first_seen: 2026-10-20T13:10:00
+    data_period: null
+    effective_date: 2027-01-01
+    title: Standalone Part D premium enrollment guidance changes
+    summary: The notice applies only to standalone prescription drug plans.
+    recommendation: held
+    expected: {current_drafted: true, candidate_drafted: false}
+  - id: ordinary-scan-verb
+    source_name: Research Wire
+    source_url: https://example.invalid/ordinary-scan
+    source_priority: 3
+    source_tags: [research]
+    publication_date: 2026-10-20T14:00:00
+    event_date: 2026-10-20
+    first_seen: 2026-10-20T14:05:00
+    data_period: null
+    effective_date: null
+    title: Researchers scan commercial directories for network and premium changes
+    summary: The scan compares enrollment tools and generic insurer directories.
+    recommendation: skipped
+    expected: {current_drafted: true, candidate_drafted: false}
+  - id: healthfirst-stars-filing
+    source_name: Litigation Tracker
+    source_url: https://example.invalid/healthfirst-stars-filing
+    source_priority: 4
+    source_tags: [litigation, primary]
+    publication_date: 2026-10-20T15:00:00
+    event_date: 2026-10-19
+    first_seen: 2026-10-20T15:10:00
+    data_period: "2027 Star Ratings"
+    effective_date: null
+    title: Healthfirst files Medicare Advantage star ratings complaint
+    summary: The complaint challenges a 2027 Medicare Advantage star rating and related payment effects.
+    recommendation: develop
+    expected: {current_drafted: true, candidate_drafted: true}

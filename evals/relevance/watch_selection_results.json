@@ -1,0 +1,357 @@
+{
+  "config_identity": {
+    "candidate": "eligibility replay on; contextual alias matcher; research_evidence_boost=0.10",
+    "current": "shipped flags; research_evidence_boost=0; legacy alias matcher",
+    "production_flags_changed": false
+  },
+  "coverage_limits": [
+    "Source-shaped fixtures do not prove acquisition, recall, or precision.",
+    "Fetched remains unknown because no live source adapter is exercised.",
+    "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
+    "Tuning fixtures must not be reused as the fresh unseen evaluation window."
+  ],
+  "fixture_version": "NEWS-WATCH-03A-D-v1",
+  "index_coverage": "source-shaped regression fixtures; acquisition coverage unknown",
+  "passed": true,
+  "results": [
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": "brief",
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.31
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.21
+      },
+      "dates": {
+        "data_period": "2023",
+        "effective_date": null,
+        "event_date": "2026-10-13",
+        "first_seen": "2026-10-19 13:35:00",
+        "publication_date": "2026-10-13 12:00:00"
+      },
+      "expected": {
+        "candidate_drafted": true,
+        "current_drafted": false
+      },
+      "id": "kff-medigap-underwriting",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/"
+    },
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 1.0
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 09:05:00",
+        "publication_date": "2026-10-20 09:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": true
+      },
+      "id": "aca-broker-guidance",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/aca-broker-guidance"
+    },
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.302
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.302
+      },
+      "dates": {
+        "data_period": "2025",
+        "effective_date": null,
+        "event_date": "2026-10-05",
+        "first_seen": "2026-10-20 10:10:00",
+        "publication_date": "2026-10-20 10:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": true
+      },
+      "id": "commercial-directory-research",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/commercial-directory"
+    },
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.672
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.672
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-16",
+        "first_seen": "2026-10-20 11:05:00",
+        "publication_date": "2026-10-20 11:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": true
+      },
+      "id": "no-surprises-audit",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/no-surprises-audit"
+    },
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": null,
+        "first_seen": "2026-10-20 12:05:00",
+        "publication_date": "2026-10-20 12:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": false
+      },
+      "id": "evergreen-faq",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/evergreen-faq"
+    },
+    {
+      "candidate": {
+        "angles": true,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "eligibility_tier": "display",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 1.0
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": "2027-01-01",
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 13:10:00",
+        "publication_date": "2026-10-20 13:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": true
+      },
+      "id": "standalone-part-d",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "held",
+      "source_url": "https://example.invalid/standalone-part-d"
+    },
+    {
+      "candidate": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 14:05:00",
+        "publication_date": "2026-10-20 14:00:00"
+      },
+      "expected": {
+        "candidate_drafted": false,
+        "current_drafted": true
+      },
+      "id": "ordinary-scan-verb",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/ordinary-scan"
+    },
+    {
+      "candidate": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": "brief",
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.5
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.5
+      },
+      "dates": {
+        "data_period": "2027 Star Ratings",
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-20 15:10:00",
+        "publication_date": "2026-10-20 15:00:00"
+      },
+      "expected": {
+        "candidate_drafted": true,
+        "current_drafted": true
+      },
+      "id": "healthfirst-stars-filing",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://example.invalid/healthfirst-stars-filing"
+    }
+  ],
+  "retrieved_at": "2026-10-20 22:05:00-05:00"
+}

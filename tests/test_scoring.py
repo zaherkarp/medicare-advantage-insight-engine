@@ -3,7 +3,12 @@
 from datetime import datetime
 
 from ma_signal_monitor.models import NormalizedItem
-from ma_signal_monitor.scoring import _keyword_in_text, score_item, score_items
+from ma_signal_monitor.scoring import (
+    _entity_in_text,
+    _keyword_in_text,
+    score_item,
+    score_items,
+)
 
 
 class TestKeywordMatching:
@@ -26,6 +31,12 @@ class TestKeywordMatching:
     def test_handles_punctuation_edged_keywords(self):
         assert _keyword_in_text("value-based", "a value-based contract")
         assert _keyword_in_text("C-SNP", "enrolled in a C-SNP plan")
+
+    def test_scan_entity_requires_organization_context(self):
+        assert not _entity_in_text("SCAN", "Researchers scan claims for patterns")
+        assert not _entity_in_text("SCAN", "Researchers SCAN claims for patterns")
+        assert _entity_in_text("SCAN", "SCAN Health Plan expands its network")
+        assert _entity_in_text("SCAN", "The SCAN payer serves Medicare Advantage")
 
 
 class TestScoring:
@@ -359,3 +370,68 @@ class TestMaTermBoost:
         sample_config.ma_boost_terms = ["Medicare Advantage"]
         scored = score_item(self._item("Hospital opens new cancer wing"), sample_config)
         assert not any(r.factor == "ma_term" for r in scored.reasons)
+
+
+class TestResearchEvidenceBoost:
+    """Research provenance needs substantive Medicare evidence to add weight."""
+
+    @staticmethod
+    def _item(title, summary="", tags=None):
+        return NormalizedItem(
+            item_id="research001",
+            source_name="KFF Medicare",
+            source_type="rss",
+            source_priority=3,
+            source_tags=tags or ["research", "policy"],
+            title=title,
+            link="https://www.kff.org/example",
+            published_date=datetime(2026, 10, 13),
+            summary=summary,
+        )
+
+    def test_kff_medigap_evidence_crosses_threshold(self, sample_config):
+        sample_config.ma_context_terms = ["Medicare", "Medigap"]
+        sample_config.ma_boost_terms = ["Medigap"]
+        item = self._item(
+            "Many Medicare Advantage enrollees could face Medigap underwriting"
+        )
+
+        sample_config.scoring.research_evidence_boost = 0.0
+        baseline = score_item(item, sample_config)
+        assert baseline.relevance_score == 0.21
+        assert baseline.relevance_score < sample_config.min_relevance_score
+
+        sample_config.scoring.research_evidence_boost = 0.10
+        candidate = score_item(item, sample_config)
+        assert candidate.relevance_score == 0.31
+        assert candidate.relevance_score >= sample_config.min_relevance_score
+        assert any(r.factor == "research_evidence" for r in candidate.reasons)
+
+    def test_off_topic_research_receives_no_boost(self, sample_config):
+        item = self._item(
+            "Commercial provider directory market forecast",
+            "Vendors compare generic directory scanning tools.",
+        )
+        scored = score_item(item, sample_config)
+        assert not any(r.factor == "research_evidence" for r in scored.reasons)
+        assert scored.relevance_score < sample_config.min_relevance_score
+
+    def test_scan_verb_does_not_unlock_context_or_entity_boost(self, sample_config):
+        sample_config.watched_entities = ["SCAN"]
+        sample_config.ma_context_terms = ["Medicare Advantage"]
+        sample_config.scoring.ma_context_min_priority = 5
+        item = NormalizedItem(
+            item_id="scan-verb",
+            source_name="Research Wire",
+            source_type="rss",
+            source_priority=3,
+            source_tags=["research"],
+            title="Researchers scan a commercial provider directory",
+            link="https://example.invalid/scan-verb",
+            published_date=datetime(2026, 10, 20),
+            summary="The scan compares network listings and premium tools.",
+        )
+        scored = score_item(item, sample_config)
+        assert scored.matched_entities == []
+        assert any(r.factor == "ma_context_gate" for r in scored.reasons)
+        assert not any(r.factor == "research_evidence" for r in scored.reasons)

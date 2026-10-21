@@ -39,6 +39,26 @@ def _keyword_in_text(keyword: str, text: str) -> bool:
     return bool(_keyword_pattern(keyword).search(text))
 
 
+def _entity_in_text(entity: str, text: str) -> bool:
+    """Match a watched entity while requiring context for ambiguous names.
+
+    ``SCAN`` is both a payer brand and an ordinary verb.  Treat the explicit
+    name "SCAN Health Plan" as unambiguous; a bare uppercase ``SCAN`` must be
+    accompanied by organization context.  Other watched entities retain the
+    established whole-token, case-insensitive behavior.
+    """
+    if entity != "SCAN":
+        return _keyword_in_text(entity, text)
+    if _keyword_in_text("SCAN Health Plan", text):
+        return True
+    if not re.search(r"(?<!\w)SCAN(?!\w)", text):
+        return False
+    return any(
+        _keyword_in_text(anchor, text)
+        for anchor in ("health plan", "Medicare Advantage", "payer", "insurer")
+    )
+
+
 def _has_ma_context(text: str, config: AppConfig) -> bool:
     """True if the text actually establishes Medicare Advantage context.
 
@@ -48,7 +68,7 @@ def _has_ma_context(text: str, config: AppConfig) -> bool:
     a general-news firehose doesn't read as an MA signal (see :func:`score_item`).
     """
     for entity in config.watched_entities:
-        if _keyword_in_text(entity, text):
+        if _entity_in_text(entity, text):
             return True
     for term in config.ma_context_terms:
         if _keyword_in_text(term, text):
@@ -73,7 +93,8 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     matched_entities: list[str] = []
     raw_score = 0.0
 
-    text_combined = f"{item.title} {item.summary}".lower()
+    text_original = f"{item.title} {item.summary}"
+    text_combined = text_original.lower()
     title_lower = item.title.lower()
 
     # Broad, general-interest sources (low priority) constantly brush a taxonomy
@@ -84,7 +105,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     # they are never gated. Set scoring.ma_context_min_priority to 0 to disable.
     ma_context_gated = (
         item.source_priority < sc.ma_context_min_priority
-        and not _has_ma_context(text_combined, config)
+        and not _has_ma_context(text_original, config)
     )
 
     # 1. Keyword matches per category (suppressed for gated broad sources so the
@@ -146,7 +167,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
 
     # 3. Named entity detection
     for entity in config.watched_entities:
-        if _keyword_in_text(entity, text_combined):
+        if _entity_in_text(entity, text_original):
             raw_score += sc.entity_match_boost
             matched_entities.append(entity)
             reasons.append(
@@ -187,8 +208,10 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     # keywords — a story can be squarely about an MA plan without brushing any
     # category vocabulary (e.g. a health system dropping a payer's MA plans).
     # Applied once for the first matching term, like the entity boost.
+    ma_term_matched = False
     for term in config.ma_boost_terms:
         if _keyword_in_text(term, text_combined):
+            ma_term_matched = True
             raw_score += sc.ma_term_boost
             reasons.append(
                 ScoringReason(
@@ -198,6 +221,26 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
                 )
             )
             break
+
+    # Research sources can carry decision-useful Medicare evidence without a
+    # headline shaped like breaking news.  Give a small, explicit boost only
+    # when the source declares research provenance *and* the item has both MA
+    # context and substantive taxonomy/MA vocabulary.  This admits the known
+    # KFF Medigap miss without lowering the blanket alert threshold or lifting
+    # off-topic research merely because its publisher is trusted.
+    if (
+        "research" in item.source_tags
+        and _has_ma_context(text_original, config)
+        and (matched_categories or ma_term_matched)
+    ):
+        raw_score += sc.research_evidence_boost
+        reasons.append(
+            ScoringReason(
+                factor="research_evidence",
+                detail="research source with Medicare/MA evidence",
+                contribution=sc.research_evidence_boost,
+            )
+        )
 
     # 4. Multi-category boost
     if len(matched_categories) > 1:

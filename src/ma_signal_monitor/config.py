@@ -105,6 +105,10 @@ class ScoringConfig:
     # this, a story titled "X drops UnitedHealthcare Medicare Advantage" can
     # score below the alert bar because no category keyword happens to match.
     ma_term_boost: float = 0.15
+    # A narrow lift for research-tagged items that also contain Medicare/MA
+    # context and substantive taxonomy or MA vocabulary.  This is not a source
+    # trust bypass: off-topic research receives no boost.
+    research_evidence_boost: float = 0.10
     # Sources with priority below this must carry Medicare/MA context (a watched
     # payer or an ma_context_terms match) for their taxonomy-keyword matches to
     # count as signal. Raised 3 -> 5 (2026-08-04): everything from priority 3 up
@@ -621,6 +625,7 @@ def _load_taxonomy(path: Path, config: AppConfig) -> None:
         title_keyword_multiplier=scoring_data.get("title_keyword_multiplier", 1.5),
         exclusion_penalty=scoring_data.get("exclusion_penalty", 0.25),
         ma_term_boost=scoring_data.get("ma_term_boost", 0.15),
+        research_evidence_boost=scoring_data.get("research_evidence_boost", 0.10),
         ma_context_min_priority=scoring_data.get("ma_context_min_priority", 5),
     )
 
