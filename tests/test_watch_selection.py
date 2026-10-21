@@ -30,3 +30,7 @@ def test_benchmark_discloses_unknowns_and_provenance():
         for row in report["results"]
     )
     assert any("claim support gate" in limit for limit in report["coverage_limits"])
+    assert any(
+        "PR77 owns the broader eligibility-gate evaluation" in limit
+        for limit in report["coverage_limits"]
+    )

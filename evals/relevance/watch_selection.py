@@ -171,6 +171,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
             "Gate-on suppression is a hypothetical experiment, not post-merge production behavior.",
             "PR75 overlaps config and removes PR74-era alert behavior; reconciliation is required before integration.",
+            "PR77 owns the broader eligibility-gate evaluation; these eight tuning fixtures do not supersede its October holdout, owner-label process, recall evidence, or gate decision.",
             "Tuning fixtures must not be reused as the fresh unseen evaluation window.",
         ],
         "results": rows,
