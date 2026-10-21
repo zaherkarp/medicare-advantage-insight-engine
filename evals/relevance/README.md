@@ -116,6 +116,28 @@ as an "MA <tier>" badge.
 - **Anti-contamination.** The held-out set is content-hashed (`_meta.content_sha256`)
   and excludes titles already present in `golden_set.yaml`.
 
+## Recall floors for the October holdout (pre-registered 2026-10-21)
+
+Set by the owner before any October label was scored, and checked by
+`scorecard.py` as PASS/FAIL lines:
+
+- **No `relevant_brief` story hidden.** Tier `exclude` takes a story off the
+  feed, where nothing can recover it.
+- **At most one `relevant_brief` story demoted**, meaning still on the feed but
+  below the briefing tier, and only if it is a one-off. Two misses with one
+  cause are a pattern and fail regardless of the count; the scorecard lists
+  demoted stories so that call can be made.
+- **No `relevant_context` story hidden.**
+- **Payer strategy news is `relevant_context`** (deals, joint ventures, plans
+  leaving insurance). The 1-15 October shadow report shows the current gate
+  hiding such stories as "no Medicare context", so the third floor is the one
+  most at risk.
+
+**Contamination note.** That shadow report covered the same window as
+`holdout_2026-10.yaml`, so its titles have been seen. A rule written in
+response to a failure here (for example, a payer-strategy rule) must be judged
+on a later window, not re-scored on this holdout.
+
 ## Acceptance / rollback / stop (for the follow-up production PR)
 
 Wire the gate into `scoring.py`/`digest.py` behind a **default-off** flag only if,

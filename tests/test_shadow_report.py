@@ -225,3 +225,30 @@ def test_holdout_defaults_add_no_meta_keys(tmp_path):
     assert "heldout_until" not in data["_meta"]
     assert "excluded_prior_items" not in data["_meta"]
     assert data["_meta"]["heldout_since"] == build_holdout.HELDOUT_SINCE
+
+
+def _it(label, tier, title="t"):
+    return {"_label": label, "_tier": tier, "title": title}
+
+
+def test_scorecard_floors_pass_and_fail():
+    from evals.relevance import scorecard
+
+    ok = [
+        _it("relevant_brief", "brief"),
+        _it("relevant_brief", "alert"),  # one demotion is allowed
+        _it("relevant_context", "display"),
+        _it("irrelevant", "exclude"),
+    ]
+    assert scorecard.floors(ok)["passed"]
+
+    two_demoted = ok + [_it("relevant_brief", "display")]
+    f = scorecard.floors(two_demoted)
+    assert not f["passed"] and len(f["brief_demoted"]) == 2
+
+    brief_hidden = scorecard.floors(ok + [_it("relevant_brief", "exclude")])
+    assert not brief_hidden["passed"] and len(brief_hidden["brief_hidden"]) == 1
+
+    context_hidden = scorecard.floors(ok + [_it("relevant_context", "exclude")])
+    assert not context_hidden["passed"]
+    assert len(context_hidden["context_hidden"]) == 1
