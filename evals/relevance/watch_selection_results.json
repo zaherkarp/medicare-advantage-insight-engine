@@ -1,13 +1,17 @@
 {
   "config_identity": {
-    "candidate": "eligibility replay on; contextual alias matcher; research_evidence_boost=0.10",
-    "current": "shipped flags; research_evidence_boost=0; legacy alias matcher",
-    "production_flags_changed": false
+    "current": "gate off; research_context_boost=0; legacy alias matcher",
+    "gate_experiment": "hypothetical gate on; contextual alias matcher; research_context_boost=0.10",
+    "production_flags_changed": false,
+    "shipped_after_commit": "gate off; contextual alias matcher; research_context_boost=0.10"
   },
   "coverage_limits": [
     "Source-shaped fixtures do not prove acquisition, recall, or precision.",
     "Fetched remains unknown because no live source adapter is exercised.",
     "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
+    "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
+    "Gate-on suppression is a hypothetical experiment, not post-merge production behavior.",
+    "PR75 overlaps config and removes PR74-era alert behavior; reconciliation is required before integration.",
     "Tuning fixtures must not be reused as the fresh unseen evaluation window."
   ],
   "fixture_version": "NEWS-WATCH-03A-D-v1",
@@ -15,18 +19,6 @@
   "passed": true,
   "results": [
     {
-      "candidate": {
-        "angles": false,
-        "archived": true,
-        "briefing": false,
-        "displayed": true,
-        "drafted": true,
-        "eligibility_tier": "brief",
-        "fetched": "unknown",
-        "legacy_alert": true,
-        "matched_entities": [],
-        "score": 0.31
-      },
       "current": {
         "angles": false,
         "archived": true,
@@ -47,28 +39,56 @@
         "publication_date": "2026-10-13 12:00:00"
       },
       "expected": {
-        "candidate_drafted": true,
-        "current_drafted": false
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.31
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.31
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": "brief",
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.31
       },
       "id": "kff-medigap-underwriting",
       "label_provenance": "assistant_recommendation_not_owner_confirmed",
       "passed": true,
       "recommendation": "develop",
-      "source_url": "https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/"
-    },
-    {
-      "candidate": {
+      "shipped_after_commit": {
         "angles": false,
         "archived": true,
         "briefing": false,
-        "displayed": false,
-        "drafted": false,
-        "eligibility_tier": "exclude",
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
         "fetched": "unknown",
-        "legacy_alert": false,
+        "legacy_alert": true,
         "matched_entities": [],
-        "score": 1.0
+        "score": 0.31
       },
+      "source_url": "https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/"
+    },
+    {
       "current": {
         "angles": true,
         "archived": true,
@@ -89,17 +109,26 @@
         "publication_date": "2026-10-20 09:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        }
       },
-      "id": "aca-broker-guidance",
-      "label_provenance": "assistant_recommendation_not_owner_confirmed",
-      "passed": true,
-      "recommendation": "skipped",
-      "source_url": "https://example.invalid/aca-broker-guidance"
-    },
-    {
-      "candidate": {
+      "gate_experiment": {
         "angles": false,
         "archived": true,
         "briefing": false,
@@ -109,8 +138,27 @@
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
-        "score": 0.302
+        "score": 1.0
       },
+      "id": "aca-broker-guidance",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 1.0
+      },
+      "source_url": "https://example.invalid/aca-broker-guidance"
+    },
+    {
       "current": {
         "angles": true,
         "archived": true,
@@ -131,17 +179,26 @@
         "publication_date": "2026-10-20 10:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.302
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.302
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.302
+        }
       },
-      "id": "commercial-directory-research",
-      "label_provenance": "assistant_recommendation_not_owner_confirmed",
-      "passed": true,
-      "recommendation": "skipped",
-      "source_url": "https://example.invalid/commercial-directory"
-    },
-    {
-      "candidate": {
+      "gate_experiment": {
         "angles": false,
         "archived": true,
         "briefing": false,
@@ -151,8 +208,27 @@
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
-        "score": 0.672
+        "score": 0.302
       },
+      "id": "commercial-directory-research",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.302
+      },
+      "source_url": "https://example.invalid/commercial-directory"
+    },
+    {
       "current": {
         "angles": true,
         "archived": true,
@@ -173,17 +249,26 @@
         "publication_date": "2026-10-20 11:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.672
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.672
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.672
+        }
       },
-      "id": "no-surprises-audit",
-      "label_provenance": "assistant_recommendation_not_owner_confirmed",
-      "passed": true,
-      "recommendation": "skipped",
-      "source_url": "https://example.invalid/no-surprises-audit"
-    },
-    {
-      "candidate": {
+      "gate_experiment": {
         "angles": false,
         "archived": true,
         "briefing": false,
@@ -193,8 +278,27 @@
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
-        "score": 0.06
+        "score": 0.672
       },
+      "id": "no-surprises-audit",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.672
+      },
+      "source_url": "https://example.invalid/no-surprises-audit"
+    },
+    {
       "current": {
         "angles": false,
         "archived": true,
@@ -215,28 +319,56 @@
         "publication_date": "2026-10-20 12:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": false
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "shipped_after_commit": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
       },
       "id": "evergreen-faq",
       "label_provenance": "assistant_recommendation_not_owner_confirmed",
       "passed": true,
       "recommendation": "skipped",
-      "source_url": "https://example.invalid/evergreen-faq"
-    },
-    {
-      "candidate": {
-        "angles": true,
+      "shipped_after_commit": {
+        "angles": false,
         "archived": true,
         "briefing": false,
-        "displayed": true,
+        "displayed": false,
         "drafted": false,
-        "eligibility_tier": "display",
+        "eligibility_tier": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
-        "score": 1.0
+        "score": 0.06
       },
+      "source_url": "https://example.invalid/evergreen-faq"
+    },
+    {
       "current": {
         "angles": true,
         "archived": true,
@@ -257,28 +389,56 @@
         "publication_date": "2026-10-20 13:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "display",
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "eligibility_tier": "display",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 1.0
       },
       "id": "standalone-part-d",
       "label_provenance": "assistant_recommendation_not_owner_confirmed",
       "passed": true,
       "recommendation": "held",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 1.0
+      },
       "source_url": "https://example.invalid/standalone-part-d"
     },
     {
-      "candidate": {
-        "angles": false,
-        "archived": true,
-        "briefing": false,
-        "displayed": false,
-        "drafted": false,
-        "eligibility_tier": "exclude",
-        "fetched": "unknown",
-        "legacy_alert": false,
-        "matched_entities": [],
-        "score": 0.06
-      },
       "current": {
         "angles": true,
         "archived": true,
@@ -301,28 +461,58 @@
         "publication_date": "2026-10-20 14:00:00"
       },
       "expected": {
-        "candidate_drafted": false,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [
+            "SCAN"
+          ],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "shipped_after_commit": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": "exclude",
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
       },
       "id": "ordinary-scan-verb",
       "label_provenance": "assistant_recommendation_not_owner_confirmed",
       "passed": true,
       "recommendation": "skipped",
+      "shipped_after_commit": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.06
+      },
       "source_url": "https://example.invalid/ordinary-scan"
     },
     {
-      "candidate": {
-        "angles": true,
-        "archived": true,
-        "briefing": true,
-        "displayed": true,
-        "drafted": true,
-        "eligibility_tier": "brief",
-        "fetched": "unknown",
-        "legacy_alert": true,
-        "matched_entities": [],
-        "score": 0.5
-      },
       "current": {
         "angles": true,
         "archived": true,
@@ -343,13 +533,53 @@
         "publication_date": "2026-10-20 15:00:00"
       },
       "expected": {
-        "candidate_drafted": true,
-        "current_drafted": true
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.5
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.5
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.5
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": "brief",
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.5
       },
       "id": "healthfirst-stars-filing",
       "label_provenance": "assistant_recommendation_not_owner_confirmed",
       "passed": true,
       "recommendation": "develop",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "eligibility_tier": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [],
+        "score": 0.5
+      },
       "source_url": "https://example.invalid/healthfirst-stars-filing"
     }
   ],

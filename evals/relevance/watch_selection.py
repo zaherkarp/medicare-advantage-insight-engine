@@ -40,11 +40,11 @@ def _item(case: dict) -> NormalizedItem:
     )
 
 
-def _run_surface(cases: list[dict], *, candidate: bool) -> dict[str, dict]:
+def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
     with patch.dict(os.environ, {"SEC_CONTACT_EMAIL": "replay@example.invalid"}):
         config = load_config(ROOT)
-    config.ma_eligibility_gate = candidate
-    config.scoring.research_evidence_boost = 0.10 if candidate else 0.0
+    config.ma_eligibility_gate = mode == "gate_experiment"
+    config.scoring.research_context_boost = 0.0 if mode == "current" else 0.10
     config.archive_min_score = 0.1
     config.min_relevance_score = 0.3
     config.digest_min_score = 0.3
@@ -53,13 +53,15 @@ def _run_surface(cases: list[dict], *, candidate: bool) -> dict[str, dict]:
     # Reproduce the prior case-insensitive bare-alias behavior for the current
     # side without retaining that behavior in production code.
     matcher = nullcontext()
-    if not candidate:
+    if mode == "current":
         matcher = patch(
             "ma_signal_monitor.scoring._entity_in_text",
             side_effect=lambda entity, text: _keyword_in_text(entity, text),
         )
     with matcher, tempfile.TemporaryDirectory(prefix="news-watch-selection-") as tmp:
-        store = StateStore(Path(tmp) / "state.db", eligibility_gate=candidate)
+        store = StateStore(
+            Path(tmp) / "state.db", eligibility_gate=config.ma_eligibility_gate
+        )
         scored = score_items([_item(case) for case in cases], config)
         by_id = {row.item.item_id: row for row in scored}
         for row in scored:
@@ -116,14 +118,20 @@ def _run_surface(cases: list[dict], *, candidate: bool) -> dict[str, dict]:
 def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
     fixture = yaml.safe_load(cases_path.read_text(encoding="utf-8"))
     cases = fixture["cases"]
-    current = _run_surface(cases, candidate=False)
-    candidate = _run_surface(cases, candidate=True)
+    current = _run_surface(cases, mode="current")
+    shipped = _run_surface(cases, mode="shipped_after_commit")
+    gate_experiment = _run_surface(cases, mode="gate_experiment")
     rows = []
     for case in cases:
         expected = case["expected"]
-        passed = (
-            current[case["id"]]["drafted"] == expected["current_drafted"]
-            and candidate[case["id"]]["drafted"] == expected["candidate_drafted"]
+        observed = {
+            "current": current[case["id"]],
+            "shipped_after_commit": shipped[case["id"]],
+            "gate_experiment": gate_experiment[case["id"]],
+        }
+        passed = all(
+            all(observed[surface][field] == value for field, value in fields.items())
+            for surface, fields in expected.items()
         )
         rows.append(
             {
@@ -142,8 +150,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
                 "recommendation": case["recommendation"],
                 "label_provenance": fixture["label_provenance"],
                 "expected": expected,
-                "current": current[case["id"]],
-                "candidate": candidate[case["id"]],
+                **observed,
                 "passed": passed,
             }
         )
@@ -152,14 +159,18 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
         "retrieved_at": str(fixture["retrieved_at"]),
         "index_coverage": fixture["index_coverage"],
         "config_identity": {
-            "current": "shipped flags; research_evidence_boost=0; legacy alias matcher",
-            "candidate": "eligibility replay on; contextual alias matcher; research_evidence_boost=0.10",
+            "current": "gate off; research_context_boost=0; legacy alias matcher",
+            "shipped_after_commit": "gate off; contextual alias matcher; research_context_boost=0.10",
+            "gate_experiment": "hypothetical gate on; contextual alias matcher; research_context_boost=0.10",
             "production_flags_changed": False,
         },
         "coverage_limits": [
             "Source-shaped fixtures do not prove acquisition, recall, or precision.",
             "Fetched remains unknown because no live source adapter is exercised.",
             "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
+            "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
+            "Gate-on suppression is a hypothetical experiment, not post-merge production behavior.",
+            "PR75 overlaps config and removes PR74-era alert behavior; reconciliation is required before integration.",
             "Tuning fixtures must not be reused as the fresh unseen evaluation window.",
         ],
         "results": rows,

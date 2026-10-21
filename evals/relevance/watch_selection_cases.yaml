@@ -16,7 +16,10 @@ cases:
     title: Nearly three-quarters of Medicare Advantage enrollees could face Medigap underwriting
     summary: KFF analysis of 2023 diagnoses examines conditions that could trigger Medigap denial.
     recommendation: develop
-    expected: {current_drafted: false, candidate_drafted: true}
+    expected:
+      current: {score: 0.21, drafted: false, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.31, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.31, drafted: true, eligibility_tier: brief, matched_entities: []}
   - id: aca-broker-guidance
     source_name: Policy Wire
     source_url: https://example.invalid/aca-broker-guidance
@@ -30,7 +33,10 @@ cases:
     title: Affordable Care Act broker enrollment and commission guidance expands
     summary: Insurance marketplace agents get new network and premium instructions for individual market commercial plans.
     recommendation: skipped
-    expected: {current_drafted: true, candidate_drafted: false}
+    expected:
+      current: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 1.0, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: commercial-directory-research
     source_name: Directory Research
     source_url: https://example.invalid/commercial-directory
@@ -44,7 +50,10 @@ cases:
     title: Commercial plan provider directory network research
     summary: A commercial plan study compares employer plan directories and network accuracy.
     recommendation: skipped
-    expected: {current_drafted: true, candidate_drafted: false}
+    expected:
+      current: {score: 0.302, drafted: true, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.302, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.302, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: no-surprises-audit
     source_name: CMS Newsroom
     source_url: https://example.invalid/no-surprises-audit
@@ -58,7 +67,10 @@ cases:
     title: CMS No Surprises Act audits examine insurer network practices
     summary: The general CMS audit covers payment and provider network compliance under the No Surprises Act.
     recommendation: skipped
-    expected: {current_drafted: true, candidate_drafted: false}
+    expected:
+      current: {score: 0.672, drafted: true, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.672, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.672, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: evergreen-faq
     source_name: Research FAQ
     source_url: https://example.invalid/evergreen-faq
@@ -72,7 +84,10 @@ cases:
     title: Frequently asked questions about health coverage
     summary: An undated evergreen explainer contains no new event or dated policy development.
     recommendation: skipped
-    expected: {current_drafted: false, candidate_drafted: false}
+    expected:
+      current: {score: 0.06, drafted: false, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.06, drafted: false, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.06, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: standalone-part-d
     source_name: Medicare Policy
     source_url: https://example.invalid/standalone-part-d
@@ -86,7 +101,10 @@ cases:
     title: Standalone Part D premium enrollment guidance changes
     summary: The notice applies only to standalone prescription drug plans.
     recommendation: held
-    expected: {current_drafted: true, candidate_drafted: false}
+    expected:
+      current: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 1.0, drafted: false, eligibility_tier: display, matched_entities: []}
   - id: ordinary-scan-verb
     source_name: Research Wire
     source_url: https://example.invalid/ordinary-scan
@@ -100,7 +118,10 @@ cases:
     title: Researchers scan commercial directories for network and premium changes
     summary: The scan compares enrollment tools and generic insurer directories.
     recommendation: skipped
-    expected: {current_drafted: true, candidate_drafted: false}
+    expected:
+      current: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: [SCAN]}
+      shipped_after_commit: {score: 0.06, drafted: false, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.06, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: healthfirst-stars-filing
     source_name: Litigation Tracker
     source_url: https://example.invalid/healthfirst-stars-filing
@@ -114,4 +135,7 @@ cases:
     title: Healthfirst files Medicare Advantage star ratings complaint
     summary: The complaint challenges a 2027 Medicare Advantage star rating and related payment effects.
     recommendation: develop
-    expected: {current_drafted: true, candidate_drafted: true}
+    expected:
+      current: {score: 0.5, drafted: true, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.5, drafted: true, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.5, drafted: true, eligibility_tier: brief, matched_entities: []}

@@ -377,7 +377,7 @@ scoring:
   # Research provenance is useful only when the item also carries substantive
   # Medicare/MA evidence. This lifts the known KFF Medigap miss without
   # lowering the global alert threshold or rescuing off-topic research.
-  research_evidence_boost: 0.10
+  research_context_boost: 0.10
   # Sources with priority below this must carry Medicare/MA context (a watched
   # payer or an ma_context_terms match) before keyword matches count. At 5 only
   # the two priority-5 feeds stay exempt — CMS Newsroom and Federal Register CMS

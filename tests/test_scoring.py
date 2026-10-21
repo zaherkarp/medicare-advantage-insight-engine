@@ -35,8 +35,12 @@ class TestKeywordMatching:
     def test_scan_entity_requires_organization_context(self):
         assert not _entity_in_text("SCAN", "Researchers scan claims for patterns")
         assert not _entity_in_text("SCAN", "Researchers SCAN claims for patterns")
+        assert not _entity_in_text(
+            "SCAN", "Researchers SCAN Medicare Advantage directories"
+        )
         assert _entity_in_text("SCAN", "SCAN Health Plan expands its network")
         assert _entity_in_text("SCAN", "The SCAN payer serves Medicare Advantage")
+        assert _entity_in_text("SCAN", "SCAN expands its California service area")
 
 
 class TestScoring:
@@ -372,7 +376,7 @@ class TestMaTermBoost:
         assert not any(r.factor == "ma_term" for r in scored.reasons)
 
 
-class TestResearchEvidenceBoost:
+class TestResearchContextBoost:
     """Research provenance needs substantive Medicare evidence to add weight."""
 
     @staticmethod
@@ -396,16 +400,16 @@ class TestResearchEvidenceBoost:
             "Many Medicare Advantage enrollees could face Medigap underwriting"
         )
 
-        sample_config.scoring.research_evidence_boost = 0.0
+        sample_config.scoring.research_context_boost = 0.0
         baseline = score_item(item, sample_config)
         assert baseline.relevance_score == 0.21
         assert baseline.relevance_score < sample_config.min_relevance_score
 
-        sample_config.scoring.research_evidence_boost = 0.10
+        sample_config.scoring.research_context_boost = 0.10
         candidate = score_item(item, sample_config)
         assert candidate.relevance_score == 0.31
         assert candidate.relevance_score >= sample_config.min_relevance_score
-        assert any(r.factor == "research_evidence" for r in candidate.reasons)
+        assert any(r.factor == "research_context" for r in candidate.reasons)
 
     def test_off_topic_research_receives_no_boost(self, sample_config):
         item = self._item(
@@ -413,7 +417,7 @@ class TestResearchEvidenceBoost:
             "Vendors compare generic directory scanning tools.",
         )
         scored = score_item(item, sample_config)
-        assert not any(r.factor == "research_evidence" for r in scored.reasons)
+        assert not any(r.factor == "research_context" for r in scored.reasons)
         assert scored.relevance_score < sample_config.min_relevance_score
 
     def test_scan_verb_does_not_unlock_context_or_entity_boost(self, sample_config):
@@ -434,4 +438,4 @@ class TestResearchEvidenceBoost:
         scored = score_item(item, sample_config)
         assert scored.matched_entities == []
         assert any(r.factor == "ma_context_gate" for r in scored.reasons)
-        assert not any(r.factor == "research_evidence" for r in scored.reasons)
+        assert not any(r.factor == "research_context" for r in scored.reasons)

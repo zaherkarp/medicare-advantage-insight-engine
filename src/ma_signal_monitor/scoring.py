@@ -51,11 +51,12 @@ def _entity_in_text(entity: str, text: str) -> bool:
         return _keyword_in_text(entity, text)
     if _keyword_in_text("SCAN Health Plan", text):
         return True
-    if not re.search(r"(?<!\w)SCAN(?!\w)", text):
-        return False
-    return any(
-        _keyword_in_text(anchor, text)
-        for anchor in ("health plan", "Medicare Advantage", "payer", "insurer")
+    return bool(
+        re.search(
+            r"(?<!\w)SCAN(?!\w)(?:\W+\w+){0,2}\W+"
+            r"(?:payer|insurer|expands|launches|partners|announces|files)",
+            text,
+        )
     )
 
 
@@ -233,12 +234,12 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
         and _has_ma_context(text_original, config)
         and (matched_categories or ma_term_matched)
     ):
-        raw_score += sc.research_evidence_boost
+        raw_score += sc.research_context_boost
         reasons.append(
             ScoringReason(
-                factor="research_evidence",
-                detail="research source with Medicare/MA evidence",
-                contribution=sc.research_evidence_boost,
+                factor="research_context",
+                detail="research source with substantive Medicare/MA context",
+                contribution=sc.research_context_boost,
             )
         )
 
