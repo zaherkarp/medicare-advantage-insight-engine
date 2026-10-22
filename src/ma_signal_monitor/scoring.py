@@ -54,8 +54,27 @@ def _entity_in_text(entity: str, text: str) -> bool:
     return bool(
         re.search(
             r"(?<!\w)SCAN(?!\w)(?:\W+\w+){0,2}\W+"
-            r"(?:payer|insurer|expands|launches|partners|announces|files)",
+            r"(?i:group|payer|insurer|ceo|chief executive|expands|launches|"
+            r"partners|announces|files)",
             text,
+        )
+    )
+
+
+def _is_evergreen_faq(item: NormalizedItem) -> bool:
+    """Identify FAQ-shaped research pages that are not new evidence.
+
+    The research-context boost exists to admit dated analysis that otherwise
+    sits just below the alert threshold.  Source provenance plus Medicare
+    vocabulary is not enough for an evergreen FAQ, which caused several real
+    public-index FAQ pages to become draft-grade in the NEWS-WATCH comparison.
+    """
+    text = f"{item.title} {item.summary}"
+    return bool(
+        re.search(
+            r"\b(?:faq|faqs|frequently asked questions|questions and answers)\b",
+            text,
+            re.IGNORECASE,
         )
     )
 
@@ -233,6 +252,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
         "research" in item.source_tags
         and _has_ma_context(text_original, config)
         and (matched_categories or ma_term_matched)
+        and not _is_evergreen_faq(item)
     ):
         raw_score += sc.research_context_boost
         reasons.append(

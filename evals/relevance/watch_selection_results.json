@@ -7,6 +7,7 @@
   },
   "coverage_limits": [
     "Source-shaped fixtures do not prove acquisition, recall, or precision.",
+    "The 8d11/5ff2/942e controls preserve item identities and recorded failure shapes, but their minimized text is not a byte-for-byte copy of the unavailable private comparison bundle.",
     "Fetched remains unknown because no live source adapter is exercised.",
     "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
     "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
@@ -15,9 +16,14 @@
     "PR77 owns the broader eligibility-gate evaluation; these eight tuning fixtures do not supersede its October holdout, owner-label process, recall evidence, or gate decision.",
     "Tuning fixtures must not be reused as the fresh unseen evaluation window."
   ],
-  "fixture_version": "NEWS-WATCH-03A-D-v1",
+  "fixture_version": "NEWS-WATCH-03A-D-v2",
   "index_coverage": "source-shaped regression fixtures; acquisition coverage unknown",
   "passed": true,
+  "production_paths": {
+    "decoded_angles_facets": "web.routes._facet_view",
+    "persistence_classification_and_duplicates": "main._persist_stories",
+    "saved_story_readback": "web.routes._story_view"
+  },
   "results": [
     {
       "current": {
@@ -26,7 +32,13 @@
         "briefing": false,
         "displayed": true,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -62,10 +74,16 @@
       "gate_experiment": {
         "angles": false,
         "archived": true,
-        "briefing": false,
+        "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -78,10 +96,16 @@
       "shipped_after_commit": {
         "angles": false,
         "archived": true,
-        "briefing": false,
+        "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -96,7 +120,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -135,7 +165,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": "exclude",
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -151,7 +183,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -166,7 +204,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -205,7 +249,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": "exclude",
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -221,7 +267,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -236,7 +288,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -275,7 +333,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": "exclude",
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -291,7 +351,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -306,7 +372,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
         "eligibility_tier": null,
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -345,7 +413,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
         "eligibility_tier": "exclude",
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -361,7 +431,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
         "eligibility_tier": null,
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -376,7 +448,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -415,7 +493,13 @@
         "briefing": false,
         "displayed": true,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": "display",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -431,7 +515,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -446,7 +536,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [
@@ -489,7 +585,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": "exclude",
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -505,7 +603,9 @@
         "briefing": false,
         "displayed": false,
         "drafted": false,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": null,
         "fetched": "unknown",
         "legacy_alert": false,
         "matched_entities": [],
@@ -520,7 +620,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -559,7 +665,13 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
@@ -575,13 +687,468 @@
         "briefing": true,
         "displayed": true,
         "drafted": true,
+        "duplicate_of": null,
         "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
         "fetched": "unknown",
         "legacy_alert": true,
         "matched_entities": [],
         "score": 0.5
       },
       "source_url": "https://example.invalid/healthfirst-stars-filing"
+    },
+    {
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.21
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": null,
+        "first_seen": "2026-10-19 12:05:00",
+        "publication_date": "2026-10-19 12:00:00"
+      },
+      "expected": {
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "shipped_after_commit": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.21
+      },
+      "id": "8d11fb0f6f8e63bc",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "shipped_after_commit": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [],
+        "score": 0.21
+      },
+      "source_url": "https://example.invalid/source-record/8d11fb0f6f8e63bc"
+    },
+    {
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.56
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 13:05:00",
+        "publication_date": "2026-10-19 13:00:00"
+      },
+      "expected": {
+        "current": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.56
+      },
+      "id": "5ff220ff735bbf59",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "shipped_after_commit": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.56
+      },
+      "source_url": "https://example.invalid/source-record/5ff220ff735bbf59"
+    },
+    {
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.54
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 13:15:00",
+        "publication_date": "2026-10-19 13:10:00"
+      },
+      "expected": {
+        "current": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "shipped_after_commit": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": "brief",
+        "facet_types": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.54
+      },
+      "id": "scan-costco-reprint",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "duplicate",
+      "shipped_after_commit": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.54
+      },
+      "source_url": "https://example.invalid/source-record/scan-costco-reprint"
+    },
+    {
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.26
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 14:05:00",
+        "publication_date": "2026-10-19 14:00:00"
+      },
+      "expected": {
+        "current": {
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "eligibility_tier": "exclude",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "shipped_after_commit": {
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.26
+      },
+      "id": "942eef5fa2f856e6",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "shipped_after_commit": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": false,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.26
+      },
+      "source_url": "https://example.invalid/source-record/942eef5fa2f856e6"
+    },
+    {
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.41
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 15:05:00",
+        "publication_date": "2026-10-19 15:00:00"
+      },
+      "expected": {
+        "current": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "shipped_after_commit": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.41
+      },
+      "id": "scan-walmart-control",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "shipped_after_commit": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "legacy_alert": true,
+        "matched_entities": [
+          "SCAN"
+        ],
+        "score": 0.41
+      },
+      "source_url": "https://example.invalid/source-record/scan-walmart-control"
     }
   ],
   "retrieved_at": "2026-10-20 22:05:00-05:00"

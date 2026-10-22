@@ -17,9 +17,11 @@ from ma_signal_monitor.angles import build_angles
 from ma_signal_monitor.config import load_config
 from ma_signal_monitor.digest import build_digest
 from ma_signal_monitor.drafting import draft_alerts
+from ma_signal_monitor.main import _persist_stories
 from ma_signal_monitor.models import NormalizedItem
 from ma_signal_monitor.scoring import _keyword_in_text, score_items
 from ma_signal_monitor.storage import StateStore
+from ma_signal_monitor.web.routes import _facet_view, _story_view
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CASES = Path(__file__).with_name("watch_selection_cases.yaml")
@@ -48,7 +50,10 @@ def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
     config.archive_min_score = 0.1
     config.min_relevance_score = 0.3
     config.digest_min_score = 0.3
-    config.digest_lookback_hours = 48
+    # Cover the bounded fixture window, including KFF's October 13 publication
+    # date.  The previous 48-hour clock silently made that known miss look
+    # absent from Briefing even after it cleared the score threshold.
+    config.digest_lookback_hours = 24 * 14
 
     # Reproduce the prior case-insensitive bare-alias behavior for the current
     # side without retaining that behavior in production code.
@@ -64,12 +69,8 @@ def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
         )
         scored = score_items([_item(case) for case in cases], config)
         by_id = {row.item.item_id: row for row in scored}
-        for row in scored:
-            store.upsert_story(
-                row,
-                primary_category=(row.matched_categories or ["uncategorized"])[0],
-                threshold_at_score=config.min_relevance_score,
-            )
+        alerts = draft_alerts(scored, config)
+        _persist_stories(scored, alerts, config, store)
 
         displayed = {
             row["item_id"]
@@ -82,10 +83,11 @@ def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
             story.item_id for _label, stories in briefing.sections for story in stories
         }
         facets = [
-            dict(row)
+            _facet_view(row)
             for row in store.get_recent_story_facets(
-                since=datetime.fromisoformat("2026-10-20T00:00:00"),
+                since=datetime.fromisoformat("2026-10-07T00:00:00"),
                 min_score=config.archive_min_score,
+                until=datetime.fromisoformat("2026-10-21T00:00:00"),
             )
         ]
         angle_ids = {
@@ -93,9 +95,7 @@ def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
             for card in build_angles(facets, [], config)["angles"]
             for story in card["stories"]
         }
-        drafted_ids = {
-            alert.scored_item.item.item_id for alert in draft_alerts(scored, config)
-        }
+        alert_ids = {alert.scored_item.item.item_id for alert in alerts}
         result = {
             case["id"]: {
                 "fetched": "unknown",
@@ -103,11 +103,23 @@ def _run_surface(cases: list[dict], *, mode: str) -> dict[str, dict]:
                 "displayed": case["id"] in displayed,
                 "briefing": case["id"] in briefing_ids,
                 "angles": case["id"] in angle_ids,
-                "drafted": case["id"] in drafted_ids,
-                "legacy_alert": case["id"] in drafted_ids,
+                "drafted": bool(
+                    _story_view(store.get_story(case["id"]))["public_draft"]
+                ),
+                "legacy_alert": case["id"] in alert_ids,
                 "score": by_id[case["id"]].relevance_score,
                 "eligibility_tier": by_id[case["id"]].eligibility_tier,
                 "matched_entities": by_id[case["id"]].matched_entities,
+                "duplicate_of": store.get_story(case["id"])["duplicate_of"],
+                "facet_types": {
+                    key: type(
+                        next(row[key] for row in facets if row["item_id"] == case["id"])
+                    ).__name__
+                    for key in ("categories", "entities", "states")
+                }
+                if case["id"] in displayed
+                and store.get_story(case["id"])["duplicate_of"] is None
+                else None,
             }
             for case in cases
         }
@@ -164,8 +176,14 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             "gate_experiment": "hypothetical gate on; contextual alias matcher; research_context_boost=0.10",
             "production_flags_changed": False,
         },
+        "production_paths": {
+            "persistence_classification_and_duplicates": "main._persist_stories",
+            "saved_story_readback": "web.routes._story_view",
+            "decoded_angles_facets": "web.routes._facet_view",
+        },
         "coverage_limits": [
             "Source-shaped fixtures do not prove acquisition, recall, or precision.",
+            "The 8d11/5ff2/942e controls preserve item identities and recorded failure shapes, but their minimized text is not a byte-for-byte copy of the unavailable private comparison bundle.",
             "Fetched remains unknown because no live source adapter is exercised.",
             "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
             "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",

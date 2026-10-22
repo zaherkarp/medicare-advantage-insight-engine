@@ -39,6 +39,8 @@ class TestKeywordMatching:
             "SCAN", "Researchers SCAN Medicare Advantage directories"
         )
         assert _entity_in_text("SCAN", "SCAN Health Plan expands its network")
+        assert _entity_in_text("SCAN", "SCAN Group and Costco launch MA products")
+        assert _entity_in_text("SCAN", "SCAN Group names a new CEO")
         assert _entity_in_text("SCAN", "The SCAN payer serves Medicare Advantage")
         assert _entity_in_text("SCAN", "SCAN expands its California service area")
 

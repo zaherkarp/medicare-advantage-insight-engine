@@ -1,4 +1,4 @@
-version: NEWS-WATCH-03A-D-v1
+version: NEWS-WATCH-03A-D-v2
 retrieved_at: 2026-10-20T22:05:00-05:00
 index_coverage: source-shaped regression fixtures; acquisition coverage unknown
 label_provenance: assistant_recommendation_not_owner_confirmed
@@ -139,3 +139,88 @@ cases:
       current: {score: 0.5, drafted: true, eligibility_tier: null, matched_entities: []}
       shipped_after_commit: {score: 0.5, drafted: true, eligibility_tier: null, matched_entities: []}
       gate_experiment: {score: 0.5, drafted: true, eligibility_tier: brief, matched_entities: []}
+  - id: 8d11fb0f6f8e63bc
+    source_name: Public research FAQ
+    source_url: https://example.invalid/source-record/8d11fb0f6f8e63bc
+    source_priority: 3
+    source_tags: [research]
+    publication_date: 2026-10-19T12:00:00
+    event_date: null
+    first_seen: 2026-10-19T12:05:00
+    data_period: null
+    effective_date: null
+    title: Frequently asked questions about Medicare Advantage coverage
+    summary: Questions and answers explain the program for readers.
+    recommendation: skipped
+    expected:
+      current: {score: 0.21, drafted: false, eligibility_tier: null, matched_entities: []}
+      shipped_after_commit: {score: 0.21, drafted: false, eligibility_tier: null, matched_entities: []}
+      gate_experiment: {score: 0.21, drafted: false, eligibility_tier: brief, matched_entities: []}
+  - id: 5ff220ff735bbf59
+    source_name: Public source record
+    source_url: https://example.invalid/source-record/5ff220ff735bbf59
+    source_priority: 3
+    source_tags: [primary]
+    publication_date: 2026-10-19T13:00:00
+    event_date: 2026-10-19
+    first_seen: 2026-10-19T13:05:00
+    data_period: null
+    effective_date: null
+    title: SCAN Group and Costco launch Medicare products
+    summary: SCAN Group and Costco partner on Medicare Advantage products and enrollment.
+    recommendation: develop
+    expected:
+      current: {drafted: true, matched_entities: [SCAN]}
+      shipped_after_commit: {drafted: true, matched_entities: [SCAN]}
+      gate_experiment: {drafted: true, matched_entities: [SCAN], eligibility_tier: brief}
+  - id: scan-costco-reprint
+    source_name: Public source record reprint
+    source_url: https://example.invalid/source-record/scan-costco-reprint
+    source_priority: 2
+    source_tags: [primary]
+    publication_date: 2026-10-19T13:10:00
+    event_date: 2026-10-19
+    first_seen: 2026-10-19T13:15:00
+    data_period: null
+    effective_date: null
+    title: SCAN Group and Costco launch Medicare product
+    summary: SCAN Group and Costco partner on Medicare Advantage products and enrollment.
+    recommendation: duplicate
+    expected:
+      current: {matched_entities: [SCAN], duplicate_of: 5ff220ff735bbf59}
+      shipped_after_commit: {matched_entities: [SCAN], duplicate_of: 5ff220ff735bbf59}
+      gate_experiment: {matched_entities: [SCAN], duplicate_of: 5ff220ff735bbf59, eligibility_tier: brief}
+  - id: 942eef5fa2f856e6
+    source_name: Public source record
+    source_url: https://example.invalid/source-record/942eef5fa2f856e6
+    source_priority: 3
+    source_tags: [primary]
+    publication_date: 2026-10-19T14:00:00
+    event_date: 2026-10-19
+    first_seen: 2026-10-19T14:05:00
+    data_period: null
+    effective_date: null
+    title: SCAN Group names a new CEO
+    summary: The SCAN insurer announces its chief executive leadership transition.
+    recommendation: develop
+    expected:
+      current: {matched_entities: [SCAN]}
+      shipped_after_commit: {matched_entities: [SCAN]}
+      gate_experiment: {matched_entities: [SCAN], eligibility_tier: exclude}
+  - id: scan-walmart-control
+    source_name: Public source record
+    source_url: https://example.invalid/source-record/scan-walmart-control
+    source_priority: 3
+    source_tags: [primary]
+    publication_date: 2026-10-19T15:00:00
+    event_date: 2026-10-19
+    first_seen: 2026-10-19T15:05:00
+    data_period: null
+    effective_date: null
+    title: SCAN Health Plan and Walmart expand Medicare Advantage offering
+    summary: The payer partners with Walmart on a Medicare Advantage benefit.
+    recommendation: develop
+    expected:
+      current: {drafted: true, matched_entities: [SCAN]}
+      shipped_after_commit: {drafted: true, matched_entities: [SCAN]}
+      gate_experiment: {drafted: true, matched_entities: [SCAN], eligibility_tier: brief}
