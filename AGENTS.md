@@ -21,8 +21,13 @@ with no pull request, where no CI run, reviewer or report could see it.
    This supersedes step (f) of the protocol in `docs/loop.md`, which used to
    say "merge when CI is green".
 4. **Never change the rules you work under in the same PR as other work.**
-   Changes to `AGENTS.md`, `docs/goal.md`, `docs/loop.md`, `.github/` or the
-   golden set and its floors under `evals/` go in their own PR.
+   Changes to `AGENTS.md`, `docs/goal.md`, `docs/loop.md`, `.github/`, the
+   production golden set (`tests/fixtures/golden_set.yaml`) or its
+   precision and recall floors (`tests/test_golden_set.py`) go in their own
+   PR. The same applies to the owner-labelled holdouts under
+   `evals/relevance/`: they are research data rather than the release gate,
+   but they record the owner's verdicts and must not be edited to fit a
+   scorer change.
 5. **Run the checks before pushing**, the same ones CI runs:
    `pip install -e ".[dev]"`, then `ruff format --check src/ tests/ scripts/`,
    `ruff check src/ tests/ scripts/`, and `python -m pytest`. A red PR is not
