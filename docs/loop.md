@@ -33,7 +33,7 @@ Per iteration:
 - **(e) Verify locally** — `ruff format` + `ruff check` + full `pytest`
   (golden set explicitly); exercise web features via the test client; build the
   static export for UI changes.
-- **(f) Ship** — push, open a PR against `main`, merge when CI is green.
+- **(f) Ship** — push and open a PR against `main`. The owner merges it; agents never merge their own PRs (`AGENTS.md`, rule 3, 2026-10-28).
 - **(g) On red CI** — read failing job logs, fix on the same PR, re-verify.
   After 3 failed fix rounds: close the PR, record the item under Blocked, move on.
 - **(h) Record** — update the iteration log and scorecard snapshot here (in the
