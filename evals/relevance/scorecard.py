@@ -14,6 +14,17 @@ briefing is the top-scoring slice of the alert-grade set):
 * Alert precision      = P(label in {relevant_brief, relevant_context} | alerted)
 * False-positive types = negative-class breakdown of current alert-grade misses
 * Volume               = count clearing each bar
+* Recall floors        = the owner's pre-registered pass/fail bar (below)
+
+Recall floors (owner, 2026-10-21, set before any October label was scored):
+
+* No ``relevant_brief`` story may be HIDDEN (tier ``exclude``: off the feed).
+* At most ONE ``relevant_brief`` story may be DEMOTED (still on the feed, but
+  below the briefing tier), and only if it is a one-off rather than a pattern.
+  The count is checked here; "not a pattern" is a judgment, so the demoted
+  stories are listed for the owner to read.
+* No ``relevant_context`` story may be HIDDEN. Payer strategy news (deals,
+  joint ventures, plan exits) is labeled ``relevant_context`` by owner ruling.
 
 Baseline briefing/alert bar = stored ``relevance_score`` >= 0.3.
 Candidate briefing bar = eligibility tier >= brief; alert bar = tier >= alert.
@@ -146,6 +157,57 @@ def report(path: str) -> None:
     if kept_rb:
         for it in kept_rb[:8]:
             print(f"        - [{it['score_at_capture']:.2f}] {it['title'][:64]}")
+
+    _print_floors(items)
+
+
+MAX_BRIEF_DEMOTED = 1
+
+
+def floors(items: list[dict]) -> dict:
+    """The owner's recall floors for the candidate gate. Pure, for testing.
+
+    Expects each item to carry ``_label`` and ``_tier`` (as ``report`` sets).
+    """
+    brief = [it for it in items if it["_label"] == "relevant_brief"]
+    context = [it for it in items if it["_label"] == "relevant_context"]
+    brief_hidden = [it for it in brief if it["_tier"] == "exclude"]
+    brief_demoted = [
+        it
+        for it in brief
+        if it["_tier"] != "exclude" and not eligible_for(it["_tier"], "brief")
+    ]
+    context_hidden = [it for it in context if it["_tier"] == "exclude"]
+    checks = {
+        "no brief story hidden": not brief_hidden,
+        f"at most {MAX_BRIEF_DEMOTED} brief story demoted": len(brief_demoted)
+        <= MAX_BRIEF_DEMOTED,
+        "no context story hidden": not context_hidden,
+    }
+    return {
+        "brief_hidden": brief_hidden,
+        "brief_demoted": brief_demoted,
+        "context_hidden": context_hidden,
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+
+
+def _print_floors(items: list[dict]) -> None:
+    f = floors(items)
+    print("\n  Recall floors (owner, pre-registered 2026-10-21)")
+    for name, ok in f["checks"].items():
+        print(f"      {'PASS' if ok else 'FAIL'}  {name}")
+    for key, head in (
+        ("brief_hidden", "brief stories hidden from the feed"),
+        ("brief_demoted", "brief stories demoted (judge: one-off or pattern?)"),
+        ("context_hidden", "context stories hidden from the feed"),
+    ):
+        if f[key]:
+            print(f"      {head}: {len(f[key])}")
+            for it in f[key]:
+                print(f"        - [{it['_tier']}] {it['title'][:70]}")
+    print(f"  Floors overall: {'PASS' if f['passed'] else 'FAIL'}")
 
 
 def _entities(it: dict) -> list[str]:

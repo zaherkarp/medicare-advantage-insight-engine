@@ -66,26 +66,40 @@ distinct groups so `UnitedHealthcare`+`UnitedHealth` is +0.20, not +0.40.
 | `build_holdout.py` | Deterministic builder of the held-out set from a copy of the production `state.db`. |
 | `holdout_2026-08.yaml` | The held-out set (n=122). **`proposed_label` is a heuristic; `label` is empty pending owner review.** |
 | `scorecard.py` | Labels-vs-archive precision/recall + FP-type breakdown, current vs candidate. |
+| `shadow_report.py` | Replays a window of the archive through the gate offline and lists which stories would leave the feed, the public drafts and the briefing. Changes nothing in production. |
 | `../../tests/test_relevance_eligibility.py` | Regression tests pinning the tier decisions on the Aug-14 cases. |
 
 ## Run it
 
 ```bash
-# 1. get a copy of the archive deploy-pages.yml maintains. It is no longer
-#    published to the site (deploy-pages.yml persists it via actions/cache
-#    now, to stop republishing an unauthenticated operational dump) -- add a
-#    temporary actions/upload-artifact step to a deploy-pages.yml run, pull
-#    the run artifact down (gh run download), then drop the step. Save it as
-#    /tmp/state.db.
+# 1. get a copy of the archive. It lives only in the Actions cache. Dispatch
+#    "Export archive for evaluation" (.github/workflows/export-archive.yml) on
+#    main, download its `state-db` artifact within a day, and save it as
+#    /tmp/state.db. That workflow reads the cache and never writes it.
 
 # 2. (re)build the held-out set — deterministic, no RNG
 python -m evals.relevance.build_holdout --db /tmp/state.db --out evals/relevance/holdout_2026-08.yaml
+#    a LATER window must exclude every earlier holdout's items:
+python -m evals.relevance.build_holdout --db /tmp/state.db \
+    --since 2026-08-15 --until 2026-10-15 \
+    --exclude evals/relevance/holdout_2026-08.yaml \
+    --out evals/relevance/holdout_2026-10.yaml
 
 # 3. OWNER STEP: fill `label` for each item (confirm/correct proposed_label)
 
 # 4. score current selection vs the candidate against the labels
 python -m evals.relevance.scorecard --holdout evals/relevance/holdout_2026-08.yaml
+
+# 5. before switching the gate on: read what it would change on live traffic
+python -m evals.relevance.shadow_report --db /tmp/state.db \
+    --since 2026-10-01 --until 2026-10-15 --out /tmp/shadow.md
 ```
+
+The shadow report is offline on purpose. The tier is a pure function of a
+story's stored title, summary and entities, so replaying the archive gives the
+answer a live shadow run would, for any past window, with no production change.
+A live shadow flag would also have leaked: the story page renders a stored tier
+as an "MA <tier>" badge.
 
 ## Evaluation discipline (non-negotiable)
 
@@ -101,6 +115,28 @@ python -m evals.relevance.scorecard --holdout evals/relevance/holdout_2026-08.ya
   proposed labels.
 - **Anti-contamination.** The held-out set is content-hashed (`_meta.content_sha256`)
   and excludes titles already present in `golden_set.yaml`.
+
+## Recall floors for the October holdout (pre-registered 2026-10-21)
+
+Set by the owner before any October label was scored, and checked by
+`scorecard.py` as PASS/FAIL lines:
+
+- **No `relevant_brief` story hidden.** Tier `exclude` takes a story off the
+  feed, where nothing can recover it.
+- **At most one `relevant_brief` story demoted**, meaning still on the feed but
+  below the briefing tier, and only if it is a one-off. Two misses with one
+  cause are a pattern and fail regardless of the count; the scorecard lists
+  demoted stories so that call can be made.
+- **No `relevant_context` story hidden.**
+- **Payer strategy news is `relevant_context`** (deals, joint ventures, plans
+  leaving insurance). The 1-15 October shadow report shows the current gate
+  hiding such stories as "no Medicare context", so the third floor is the one
+  most at risk.
+
+**Contamination note.** That shadow report covered the same window as
+`holdout_2026-10.yaml`, so its titles have been seen. A rule written in
+response to a failure here (for example, a payer-strategy rule) must be judged
+on a later window, not re-scored on this holdout.
 
 ## Acceptance / rollback / stop (for the follow-up production PR)
 
