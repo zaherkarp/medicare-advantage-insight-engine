@@ -20,7 +20,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from ma_signal_monitor.classify import classify_item
 from ma_signal_monitor.config import load_config
 from ma_signal_monitor.dedupe import filter_new_items, mark_items_seen
-from ma_signal_monitor.delivery import deliver_alerts
 from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.geo import detect_states
 from ma_signal_monitor.logging_setup import setup_logging
@@ -246,11 +245,6 @@ def main():
         type=str,
         default=str(Path(__file__).resolve().parent.parent),
     )
-    parser.add_argument(
-        "--deliver",
-        action="store_true",
-        help="Actually deliver alerts to webhook (default: skip delivery)",
-    )
     args = parser.parse_args()
 
     root = Path(args.project_root)
@@ -259,7 +253,7 @@ def main():
         config = load_config(root)
     except (FileNotFoundError, ValueError) as e:
         print(f"Config error: {e}", file=sys.stderr)
-        print("Tip: Copy .env.example to .env and set WEBHOOK_URL", file=sys.stderr)
+        print("Tip: Copy .env.example to .env", file=sys.stderr)
         sys.exit(1)
 
     setup_logging(config.log_level)
@@ -289,16 +283,6 @@ def main():
         print(f"  Confidence: {alert.internal.confidence}")
         print(f"  Entities: {alert.internal.entities}")
         print(f"  Why: {alert.internal.why_it_matters[:100]}")
-
-    # Optionally deliver
-    if args.deliver and alerts:
-        print(f"\nDelivering {len(alerts)} alerts to {config.webhook_url}...")
-        results = deliver_alerts(alerts, config)
-        for r in results:
-            status = "OK" if r.success else f"FAIL ({r.error})"
-            print(f"  {r.alert_title[:60]}: {status}")
-    elif alerts:
-        print(f"\nSkipping delivery (use --deliver to send to {config.webhook_url})")
 
     # Persist all scored items into the browsable story archive (mirrors
     # main._persist_stories) so the web frontend and the Angles page have data

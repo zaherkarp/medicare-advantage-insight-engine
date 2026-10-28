@@ -1,5 +1,8 @@
 # 00 — Repository Assessment
 
+> **Note (2026-10).** The renderers and delivery step described below were
+> removed in 2026-10; the engine is now web only.
+
 **Phase 0 of the retrieval-research workstream.** Written before any retrieval
 code exists, so that the corpus and architecture decisions that follow are on
 the record and falsifiable.

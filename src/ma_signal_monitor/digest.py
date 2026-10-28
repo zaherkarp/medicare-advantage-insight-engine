@@ -1,20 +1,15 @@
 """Daily Briefing digest — the marquee "help people" feature.
 
 Builds a curated digest of the day's top Medicare Advantage signals from the
-story archive, renders it to email-safe HTML and plain text, persists it (so the
-``/briefing`` web page can show it and email sends stay idempotent), and
-optionally delivers it over SMTP.
-
-It is useful even without SMTP configured: the digest is always saved and shown
-on the web. Email is a bonus when ``DIGEST_*``/``SMTP_*`` env vars are set.
+story archive, renders it to self-contained HTML, and persists it so the
+``/briefing`` page (live app and static site) can show it. Web only: the
+briefing is not emailed or pushed anywhere.
 """
 
 import logging
-import smtplib
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from email.message import EmailMessage
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -215,92 +210,10 @@ def _jinja_env() -> Environment:
 
 
 def render_html(digest: Digest, config: AppConfig) -> str:
-    """Render the digest to email-safe, self-contained HTML."""
+    """Render the digest to self-contained HTML (shown in an iframe on /briefing)."""
     env = _jinja_env()
     template = env.get_template("digest_email.html")
     return template.render(digest=digest, base_url=config.public_base_url)
-
-
-def render_text(digest: Digest) -> str:
-    """Render a plain-text fallback for email clients without HTML."""
-    lines = [
-        digest.subject,
-        "=" * len(digest.subject),
-        "",
-        f"Top {digest.story_count} Medicare Advantage signals from the last "
-        f"{digest.lookback_hours} hours.",
-        "",
-    ]
-    if digest.lede:
-        lines.append("WHAT'S HAPPENING")
-        lines.append(digest.lede.summary)
-        if digest.lede.season_note:
-            lines.append(digest.lede.season_note)
-        if digest.lede.offcycle_note:
-            lines.append(digest.lede.offcycle_note)
-        lines.append(digest.lede.breakdown)
-        lines.append("")
-    if not digest.story_count:
-        lines.append("No qualifying signals in this window.")
-    for label, stories in digest.sections:
-        lines.append(f"## {label}")
-        for s in stories:
-            tags = ""
-            if s.states:
-                tags = "  [" + ", ".join(state_name(c) for c in s.states) + "]"
-            lines.append(f"- {s.title}{tags}")
-            lines.append(f"  {s.source_name} · score {s.score:.2f}")
-            if s.summary:
-                lines.append(f"  {s.summary}")
-            lines.append(f"  {s.link}")
-        lines.append("")
-    if digest.candidates:
-        lines.append("## New candidate sources")
-        for c in digest.candidates:
-            flag = " (auto-promoted)" if c.auto_promoted else ""
-            lines.append(f"- {c.feed_title}{flag} — score {c.relevance_score:.2f}")
-            lines.append(f"  {c.feed_url}")
-        lines.append("")
-    lines.append(
-        "Curated for analytic relevance — not legal, compliance, or investment advice."
-    )
-    return "\n".join(lines)
-
-
-def send_digest(digest: Digest, html: str, config: AppConfig) -> bool:
-    """Email the digest over SMTP. Returns True on success.
-
-    Returns False (without raising) when SMTP is not configured, so callers can
-    treat email as best-effort.
-    """
-    recipients = [a.strip() for a in config.digest_to.split(",") if a.strip()]
-    sender = config.digest_from or config.smtp_user
-    if not (config.smtp_host and recipients and sender):
-        logger.info(
-            "SMTP not fully configured (host/recipients/sender); "
-            "skipping email delivery"
-        )
-        return False
-
-    msg = EmailMessage()
-    msg["Subject"] = digest.subject
-    msg["From"] = sender
-    msg["To"] = ", ".join(recipients)
-    msg.set_content(render_text(digest))
-    msg.add_alternative(html, subtype="html")
-
-    try:
-        with smtplib.SMTP(config.smtp_host, config.smtp_port, timeout=30) as smtp:
-            if config.smtp_use_tls:
-                smtp.starttls()
-            if config.smtp_user:
-                smtp.login(config.smtp_user, config.smtp_password)
-            smtp.send_message(msg)
-        logger.info("Digest emailed to %d recipient(s)", len(recipients))
-        return True
-    except Exception as e:
-        logger.error("Failed to send digest email: %s", e)
-        return False
 
 
 def generate_digest(
@@ -308,36 +221,27 @@ def generate_digest(
     store: StateStore,
     *,
     now: datetime | None = None,
-    send: bool = True,
 ) -> Digest:
-    """Build, persist, and (optionally) email the digest. Idempotent per day."""
+    """Build and persist the digest. Idempotent per day (replaces that day)."""
     digest = build_digest(store, config, now=now)
     html = render_html(digest, config)
-
-    sent_at = None
-    if send:
-        if send_digest(digest, html, config):
-            sent_at = datetime.utcnow().isoformat()
-
     store.save_digest(
         digest_date=digest.digest_date,
         generated_at=digest.generated_at.isoformat(),
         story_count=digest.story_count,
         subject=digest.subject,
         html=html,
-        sent_at=sent_at,
     )
     logger.info(
-        "Generated digest for %s with %d stories (emailed=%s)",
+        "Generated digest for %s with %d stories",
         digest.digest_date,
         digest.story_count,
-        bool(sent_at),
     )
     return digest
 
 
 def main() -> None:
-    """CLI entry point: build + save + send today's digest."""
+    """CLI entry point: build + save today's digest."""
     root = Path.cwd()
     if len(sys.argv) > 1:
         root = Path(sys.argv[1])
@@ -349,7 +253,7 @@ def main() -> None:
         root / config.db_path, eligibility_gate=config.ma_eligibility_gate
     )
     try:
-        digest = generate_digest(config, store, send=True)
+        digest = generate_digest(config, store)
         print(
             f"Digest {digest.digest_date}: {digest.story_count} stories. "
             f"View at /briefing."

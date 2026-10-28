@@ -113,21 +113,6 @@ class Alert:
 
 
 @dataclass
-class DeliveryResult:
-    """Result of attempting to deliver an alert."""
-
-    alert_title: str
-    success: bool
-    status_code: int | None = None
-    error: str | None = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
-    # The archived story this delivery attempt posted (or tried to post).
-    # Lets alert-outcome feedback confirm a story was actually delivered
-    # before a human labels it correct/false_positive/missed.
-    item_id: str | None = None
-
-
-@dataclass
 class SourceFetchOutcome:
     """One source's fetch result for a single run (see main._fetch_one_source).
 

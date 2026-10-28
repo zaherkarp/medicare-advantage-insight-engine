@@ -1,24 +1,32 @@
-"""Pull crowd feedback from giscus-backed GitHub Discussions.
+"""Pull feedback from giscus-backed GitHub Discussions.
 
 The public static site mounts a giscus thread on each story page with
 ``mapping: specific`` and the term set to the story's stable ``item_id`` — so
 giscus creates one Discussion per story whose **title is the item_id**. This
 module reads those Discussions' reactions back via the GitHub GraphQL API and
-records them as advisory (``channel="github"``) feedback rows.
+records them as feedback rows:
+
+- a reaction by ``config.feedback_owner_login`` (case-insensitive) is an owner
+  verdict: ``channel="giscus_owner"``, weight 1.0. This is how the owner votes
+  on the public static site, which has no server to take a POST;
+- every other reaction is advisory crowd signal: ``channel="github"``,
+  weight 0.2.
 
 Ingest is idempotent: each reaction is stored under a ``source_ref`` of
 ``reaction:<databaseId>``, and the unique index on ``(channel, source_ref)``
-makes re-runs no-ops. Owner verdicts (weight 1.0) are unaffected.
+makes re-runs no-ops.
+
+It runs in CI on every deploy (see deploy-pages.yml), against the production
+archive, so votes land without anyone running a command.
 """
 
-import json
 import logging
 import os
 
 import requests
 
 from ma_signal_monitor.config import AppConfig
-from ma_signal_monitor.storage import VALID_VERDICTS, StateStore
+from ma_signal_monitor.storage import StateStore
 
 logger = logging.getLogger("ma_signal_monitor.feedback_ingest")
 
@@ -77,6 +85,9 @@ def ingest_github_feedback(
 ) -> dict:
     """Ingest giscus reactions for the configured repo/category into ``feedback``.
 
+    Reactions by ``config.feedback_owner_login`` are recorded as owner
+    verdicts (``giscus_owner``); all others as crowd (``github``).
+
     Args:
         config: App config (giscus repo/category settings).
         store: Open StateStore to write feedback into.
@@ -84,7 +95,8 @@ def ingest_github_feedback(
 
     Returns:
         Summary counts: discussions scanned, reactions matched to stories,
-        and rows newly recorded (idempotent — re-runs report 0 recorded).
+        rows newly recorded (idempotent — re-runs report 0 recorded), and how
+        many of the newly recorded rows were owner verdicts.
 
     Raises:
         ValueError: If giscus isn't configured or no token is available.
@@ -100,8 +112,9 @@ def ingest_github_feedback(
         )
 
     owner, name = config.giscus_repo.split("/", 1)
+    owner_login = config.feedback_owner_login.strip().lower()
     timeout = config.request_timeout
-    scanned = matched = recorded = 0
+    scanned = matched = recorded = recorded_owner = 0
     cursor = None
 
     while True:
@@ -129,16 +142,25 @@ def ingest_github_feedback(
                 if verdict is None:
                     continue
                 matched += 1
+                login = (r.get("user") or {}).get("login")
+                is_owner = bool(owner_login) and (login or "").lower() == owner_login
+                source_ref = f"reaction:{r['databaseId']}"
+                # One reaction is one row, whatever channel it was first filed
+                # under; see StateStore.has_feedback_ref.
+                if store.has_feedback_ref(source_ref):
+                    continue
                 before = store.count_feedback()
                 store.add_feedback(
                     item_id,
                     verdict,
-                    channel="github",
-                    voter_key=(r.get("user") or {}).get("login"),
-                    source_ref=f"reaction:{r['databaseId']}",
+                    channel="giscus_owner" if is_owner else "github",
+                    voter_key=login,
+                    source_ref=source_ref,
                 )
                 if store.count_feedback() > before:
                     recorded += 1
+                    if is_owner:
+                        recorded_owner += 1
         page = conn["pageInfo"]
         if not page["hasNextPage"]:
             break
@@ -148,73 +170,7 @@ def ingest_github_feedback(
         "discussions": scanned,
         "reactions_matched": matched,
         "recorded": recorded,
+        "recorded_owner": recorded_owner,
     }
     logger.info("giscus feedback ingest: %s", summary)
-    return summary
-
-
-def ingest_ntfy_feedback(
-    config: AppConfig,
-    store: StateStore,
-    since: str = "all",
-) -> dict:
-    """Pull owner votes from the ntfy feedback topic into ``feedback``.
-
-    ntfy alerts carry 👍/👎 buttons that publish ``{item_id, verdict}`` to the
-    configured feedback topic. This polls that topic's JSON endpoint and records
-    each vote as an owner verdict (``channel="ntfy"``, weight 1.0).
-
-    Args:
-        config: App config (ntfy feedback settings).
-        store: Open StateStore to write feedback into.
-        since: ntfy ``since`` selector (timestamp, message id, duration, or
-            "all"). Idempotency is by message id, so re-polling is safe.
-
-    Returns:
-        Summary counts: messages scanned and rows newly recorded.
-
-    Raises:
-        ValueError: If the ntfy feedback topic isn't configured.
-    """
-    if not config.ntfy_feedback_enabled:
-        raise ValueError("ntfy feedback is not configured (set NTFY_FEEDBACK_TOPIC)")
-
-    url = f"{config.ntfy_server.rstrip('/')}/{config.ntfy_feedback_topic}/json"
-    resp = requests.get(
-        url, params={"poll": "1", "since": since}, timeout=config.request_timeout
-    )
-    resp.raise_for_status()
-
-    scanned = recorded = 0
-    # ntfy's JSON endpoint streams one JSON object per line (not an array).
-    for line in resp.text.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        msg = json.loads(line)
-        if msg.get("event") != "message":
-            continue
-        scanned += 1
-        try:
-            vote = json.loads(msg.get("message", ""))
-            item_id, verdict = vote["item_id"], vote["verdict"]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            logger.warning(
-                "Skipping unparseable ntfy feedback message %s", msg.get("id")
-            )
-            continue
-        if verdict not in VALID_VERDICTS or store.get_story(item_id) is None:
-            continue
-        before = store.count_feedback()
-        store.add_feedback(
-            item_id,
-            verdict,
-            channel="ntfy",
-            source_ref=f"ntfy:{msg.get('id')}",
-        )
-        if store.count_feedback() > before:
-            recorded += 1
-
-    summary = {"messages": scanned, "recorded": recorded}
-    logger.info("ntfy feedback ingest: %s", summary)
     return summary
