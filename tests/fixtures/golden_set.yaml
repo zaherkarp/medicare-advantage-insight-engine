@@ -19,6 +19,10 @@
 
 
 relevant:
+  # Synthetic SCAN organization-positive development control, not a new event.
+  - title: SCAN Health Plan challenges Medicare Advantage Star Ratings
+    summary: The insurer's lawsuit contests CMS ratings methodology.
+    source_priority: 3
   # -- original easy cases --
   - title: CMS finalizes 2025 Star Ratings methodology for Medicare Advantage
     summary: The final rule changes risk adjustment and cut points affecting plan bonuses.
@@ -159,6 +163,11 @@ relevant:
     source_priority: 4
 
 irrelevant:
+  # Reuse the approved ordinary-scans negative from owner_development_2026_11.yaml.
+  # This is development coverage, not a new owner verdict or unseen holdout.
+  - title: Indiana criminal case seeks delay for brain scans
+    summary: A prisoner seeks imaging evidence for clemency proceedings. A judge approved testing funds but did not order transportation.
+    source_priority: 2
   # -- original easy cases --
   - title: Local high school football team wins state championship
     summary: The Friday night game drew a record crowd to the stadium.
