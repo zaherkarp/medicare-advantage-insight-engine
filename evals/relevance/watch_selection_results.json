@@ -1472,7 +1472,7 @@
   ],
   "retrieved_at": "2026-10-20 22:05:00-05:00",
   "source_identity": {
-    "current_scorer_sha256": "f5fdd90c3d173125cedbb8171e1fdecf5184fcc39a39fa47d9725b7ed4e4f9df",
+    "current_scorer_sha256": "0bf771b4d29c3282550a1c8be65ac8aa1c77a6a0bf58e4b13e68d15c91169969",
     "fixture_sha256": "8bd83e4629037ec39e0f90a15eda9eb96526644b78cc3694b64512bd273dafc7",
     "retained_candidate_commit": "854b43c0253f8ab0bc64f9370c7c2c7f16fef90d",
     "taxonomy_sha256": "1f8334cd08ca7a5d6b11f00129dc2be026117e4573cbbdd4fa41b7623097cfff"

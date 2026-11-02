@@ -52,13 +52,14 @@ def _entity_in_text(entity: str, text: str) -> bool:
     for match in re.finditer(r"(?<!\w)scan(?!\w)", text, re.IGNORECASE):
         before, after = text[: match.start()], text[match.end() :]
         if re.search(
-            r"\b(?:CT|CAT|PET|MRI|brain|body|diagnostic|medical)"
-            r"(?:[ \t]+[\w-]+)?[ \t]+$",
+            r"\b(?:CT|CAT|PET|MRI|brain|body|diagnostic|medical)[ \t]+$",
             before,
             re.IGNORECASE,
         ):
             continue
         if re.match(r"[ \t]+health[ \t]+plan(?!\w)", after, re.IGNORECASE):
+            return True
+        if match.group() == "Scan" and re.match(r"[ \t]+Group(?!\w)", after):
             return True
         if match.group() != "SCAN":
             continue
