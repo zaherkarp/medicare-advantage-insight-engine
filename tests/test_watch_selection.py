@@ -11,7 +11,8 @@ def test_kff_and_scan_regressions_are_explicit():
     rows = {row["id"]: row for row in run_replay()["results"]}
     assert rows["kff-medigap-underwriting"]["current"]["score"] == 0.21
     assert rows["kff-medigap-underwriting"]["candidate_gate_off"]["score"] == 0.31
-    assert rows["ordinary-scan-verb"]["current"]["matched_entities"] == ["SCAN"]
+    assert rows["ordinary-scan-verb"]["current"]["matched_entities"] == []
+    assert rows["ordinary-scan-verb"]["current"]["drafted"] is False
     assert rows["ordinary-scan-verb"]["candidate_gate_off"]["matched_entities"] == []
     assert rows["healthfirst-stars-filing"]["candidate_gate_off"]["drafted"] is True
     assert (

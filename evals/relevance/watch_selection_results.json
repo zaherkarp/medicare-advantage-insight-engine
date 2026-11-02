@@ -13,7 +13,7 @@
     "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
     "Fixture expectations are frozen development recommendations, not owner verdicts, and do not authorize production configuration changes.",
     "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
-    "Both candidate modes are offline experiments, not post-merge production behavior. Production scoring and config are unchanged.",
+    "Both candidate modes remain offline experiments. The current scorer now has a separately tested SCAN identity repair; research boosting and the broader gate remain unpromoted.",
     "PR75 web-only production persistence is used; no retired outbound alert or delivery path is restored.",
     "PR77 owns the broader eligibility-gate evaluation; these 13 tuning fixtures do not supersede its October holdout, owner-label process, recall evidence, or gate decision.",
     "Tuning fixtures must not be reused as the fresh unseen evaluation window."
@@ -702,40 +702,19 @@
         "score": 0.06
       },
       "current": {
-        "angles": true,
+        "angles": false,
         "archived": true,
-        "briefing": true,
-        "displayed": true,
-        "draft_selected": true,
-        "drafted": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
         "duplicate_of": null,
         "eligibility_tier": null,
-        "facet_types": {
-          "categories": "list",
-          "entities": "list",
-          "states": "list"
-        },
+        "facet_types": null,
         "fetched": "unknown",
-        "matched_entities": [
-          "SCAN"
-        ],
-        "saved_draft": {
-          "analytic_angles": [
-            "Spans 3 signal categories: Membership Movement, Financial / Operating Pressure, Competitive / Operational Strategy.",
-            "Cross-check against CMS monthly enrollment snapshots.",
-            "Compare MLR and margin guidance against prior-quarter filings.",
-            "Watch for follow-on filings from the named payers."
-          ],
-          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Research Wire reports on membership movement involving SCAN: The scan compares enrollment tools and generic insurer directories.",
-          "opening_hook": "SCAN \u2014 membership movement. Via Research Wire.",
-          "suggested_hashtags": [
-            "#MedicareAdvantage",
-            "#Enrollment",
-            "#MarketShare"
-          ],
-          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
-        },
-        "score": 1.0
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
       },
       "dates": {
         "data_period": null,
@@ -752,12 +731,10 @@
           "score": 0.06
         },
         "current": {
-          "drafted": true,
+          "drafted": false,
           "eligibility_tier": null,
-          "matched_entities": [
-            "SCAN"
-          ],
-          "score": 1.0
+          "matched_entities": [],
+          "score": 0.06
         },
         "gate_experiment": {
           "drafted": false,
@@ -1495,8 +1472,8 @@
   ],
   "retrieved_at": "2026-10-20 22:05:00-05:00",
   "source_identity": {
-    "current_scorer_sha256": "442e0a4c8870c3a1cb56f4b25ee68939d29310e74108c1f457ecab577d3ef8b2",
-    "fixture_sha256": "6acbea5378e887e3c92fe86761da167181a58804990019ba7debfd1e95710551",
+    "current_scorer_sha256": "0bf771b4d29c3282550a1c8be65ac8aa1c77a6a0bf58e4b13e68d15c91169969",
+    "fixture_sha256": "8bd83e4629037ec39e0f90a15eda9eb96526644b78cc3694b64512bd273dafc7",
     "retained_candidate_commit": "854b43c0253f8ab0bc64f9370c7c2c7f16fef90d",
     "taxonomy_sha256": "1f8334cd08ca7a5d6b11f00129dc2be026117e4573cbbdd4fa41b7623097cfff"
   }
