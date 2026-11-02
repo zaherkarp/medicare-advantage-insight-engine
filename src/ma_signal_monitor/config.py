@@ -341,11 +341,15 @@ class AppConfig:
         return bool(self.causal_layers and self.causal_edges)
 
 
-def load_config(project_root: str | Path | None = None) -> AppConfig:
+def load_config(
+    project_root: str | Path | None = None, *, include_discovered_sources: bool = True
+) -> AppConfig:
     """Load configuration from .env and YAML files.
 
     Args:
         project_root: Root directory of the project. Defaults to cwd.
+        include_discovered_sources: Read promoted feeds from the archive. Disable
+            for maintenance planning that must not initialize a database.
 
     Returns:
         Populated AppConfig instance.
@@ -453,7 +457,7 @@ def load_config(project_root: str | Path | None = None) -> AppConfig:
         )
 
     # Merge any promoted/auto-promoted discovery feeds from the archive DB.
-    if config.discovery_enabled:
+    if config.discovery_enabled and include_discovered_sources:
         _merge_promoted_sources(config, root)
 
     _validate_config(config)
