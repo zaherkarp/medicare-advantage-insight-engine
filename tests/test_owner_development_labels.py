@@ -25,7 +25,9 @@ def test_approved_labels_are_three_separate_axes():
     data = yaml.safe_load(FIXTURE.read_text())
     assert data["designation"] == "development"
     assert data["label_provenance"] == "owner_approved"
+    assert len(data["cases"]) == 3
     rows = {row["id"]: row for row in data["cases"]}
+    assert len(rows) == len(data["cases"])
     assert set(rows) == {"ca7b8bc14feb207f", "86fe45ef857045ba", "7b068358ef756143"}
     assert rows["ca7b8bc14feb207f"]["expected"]["public_draft"] == "review_only"
     assert rows["86fe45ef857045ba"]["expected"]["entity_exclusions"] == ["SCAN"]
