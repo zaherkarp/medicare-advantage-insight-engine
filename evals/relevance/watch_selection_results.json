@@ -1,0 +1,1503 @@
+{
+  "config_identity": {
+    "candidate_gate_off": "OFFLINE ONLY; gate off; retained contextual matcher and research_context_boost=0.10",
+    "current": "current production scorer; gate off; unchanged taxonomy",
+    "gate_experiment": "hypothetical gate on; contextual alias matcher; research_context_boost=0.10",
+    "production_flags_changed": false,
+    "replay_overrides": "archive_min_score=0.1; min_relevance_score=digest_min_score=0.3; 14-day fixed October fixture window"
+  },
+  "coverage_limits": [
+    "Source-shaped fixtures do not prove acquisition, recall, or precision.",
+    "The 8d11/5ff2/942e controls preserve item identities and recorded failure shapes, but their minimized text is not a byte-for-byte copy of the unavailable private comparison bundle.",
+    "Fetched remains unknown because no live source adapter is exercised.",
+    "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
+    "Fixture expectations are frozen development recommendations, not owner verdicts, and do not authorize production configuration changes.",
+    "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
+    "Both candidate modes are offline experiments, not post-merge production behavior. Production scoring and config are unchanged.",
+    "PR75 web-only production persistence is used; no retired outbound alert or delivery path is restored.",
+    "PR77 owns the broader eligibility-gate evaluation; these 13 tuning fixtures do not supersede its October holdout, owner-label process, recall evidence, or gate decision.",
+    "Tuning fixtures must not be reused as the fresh unseen evaluation window."
+  ],
+  "fixture_version": "NEWS-WATCH-03A-D-v2",
+  "index_coverage": "source-shaped regression fixtures; acquisition coverage unknown",
+  "passed": true,
+  "production_paths": {
+    "decoded_angles_facets": "web.routes._facet_view",
+    "persistence_classification_and_duplicates": "main._persist_stories",
+    "saved_story_readback": "web.routes._story_view"
+  },
+  "results": [
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Single-source so far \u2014 corroborate against a second outlet.",
+            "Confirm the Medicare Advantage angle against a primary source."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] KFF Medicare reports on uncategorized: KFF analysis of 2023 diagnoses examines conditions that could trigger Medigap denial.",
+          "opening_hook": "uncategorized signal via KFF Medicare: \"Nearly three-quarters of Medicare Advantage enrollees could face Medigap underwr\u2026\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.31
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.21
+      },
+      "dates": {
+        "data_period": "2023",
+        "effective_date": null,
+        "event_date": "2026-10-13",
+        "first_seen": "2026-10-19 13:35:00",
+        "publication_date": "2026-10-13 12:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.31
+        },
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.31
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Single-source so far \u2014 corroborate against a second outlet.",
+            "Confirm the Medicare Advantage angle against a primary source."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] KFF Medicare reports on uncategorized: KFF analysis of 2023 diagnoses examines conditions that could trigger Medigap denial.",
+          "opening_hook": "uncategorized signal via KFF Medicare: \"Nearly three-quarters of Medicare Advantage enrollees could face Medigap underwr\u2026\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.31
+      },
+      "id": "kff-medigap-underwriting",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 4 signal categories: Membership Movement, Financial / Operating Pressure, Competitive / Operational Strategy, Brokerage / Distribution.",
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Compare MLR and margin guidance against prior-quarter filings.",
+            "Watch for follow-on filings from the named payers."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Policy Wire reports on membership movement: Insurance marketplace agents get new network and premium instructions for individual market commercial plans.",
+          "opening_hook": "Membership Movement signal via Policy Wire: \"Affordable Care Act broker enrollment and commission guidance expands\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 1.0
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 4 signal categories: Membership Movement, Financial / Operating Pressure, Competitive / Operational Strategy, Brokerage / Distribution.",
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Compare MLR and margin guidance against prior-quarter filings.",
+            "Watch for follow-on filings from the named payers."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Policy Wire reports on membership movement: Insurance marketplace agents get new network and premium instructions for individual market commercial plans.",
+          "opening_hook": "Membership Movement signal via Policy Wire: \"Affordable Care Act broker enrollment and commission guidance expands\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 09:05:00",
+        "publication_date": "2026-10-20 09:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 1.0
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 1.0
+      },
+      "id": "aca-broker-guidance",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/aca-broker-guidance"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Watch for follow-on filings from the named payers.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Directory Research reports on competitive / operational strategy: A commercial plan study compares employer plan directories and network accuracy.",
+          "opening_hook": "Competitive / Operational Strategy signal via Directory Research: \"Commercial plan provider directory network research\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#HealthcareStrategy",
+            "#ValueBasedCare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.302
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Watch for follow-on filings from the named payers.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Directory Research reports on competitive / operational strategy: A commercial plan study compares employer plan directories and network accuracy.",
+          "opening_hook": "Competitive / Operational Strategy signal via Directory Research: \"Commercial plan provider directory network research\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#HealthcareStrategy",
+            "#ValueBasedCare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.302
+      },
+      "dates": {
+        "data_period": "2025",
+        "effective_date": null,
+        "event_date": "2026-10-05",
+        "first_seen": "2026-10-20 10:10:00",
+        "publication_date": "2026-10-20 10:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.302
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.302
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.302
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.302
+      },
+      "id": "commercial-directory-research",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/commercial-directory"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 2 signal categories: Policy / Regulatory Changes, Competitive / Operational Strategy.",
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Watch for follow-on filings from the named payers."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] CMS Newsroom reports on policy / regulatory changes: The general CMS audit covers payment and provider network compliance under the No Surprises Act.",
+          "opening_hook": "Policy / Regulatory Changes signal via CMS Newsroom: \"CMS No Surprises Act audits examine insurer network practices\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.672
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 2 signal categories: Policy / Regulatory Changes, Competitive / Operational Strategy.",
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Watch for follow-on filings from the named payers."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] CMS Newsroom reports on policy / regulatory changes: The general CMS audit covers payment and provider network compliance under the No Surprises Act.",
+          "opening_hook": "Policy / Regulatory Changes signal via CMS Newsroom: \"CMS No Surprises Act audits examine insurer network practices\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.672
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-16",
+        "first_seen": "2026-10-20 11:05:00",
+        "publication_date": "2026-10-20 11:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.672
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.672
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.672
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.672
+      },
+      "id": "no-surprises-audit",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/no-surprises-audit"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": null,
+        "first_seen": "2026-10-20 12:05:00",
+        "publication_date": "2026-10-20 12:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.06
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": "8d11fb0f6f8e63bc",
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
+      },
+      "id": "evergreen-faq",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/evergreen-faq"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 3 signal categories: Membership Movement, Policy / Regulatory Changes, Financial / Operating Pressure.",
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Compare MLR and margin guidance against prior-quarter filings."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Medicare Policy reports on policy / regulatory changes: The notice applies only to standalone prescription drug plans.",
+          "opening_hook": "Policy / Regulatory Changes signal via Medicare Policy: \"Standalone Part D premium enrollment guidance changes\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 1.0
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 3 signal categories: Membership Movement, Policy / Regulatory Changes, Financial / Operating Pressure.",
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Compare MLR and margin guidance against prior-quarter filings."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Medicare Policy reports on policy / regulatory changes: The notice applies only to standalone prescription drug plans.",
+          "opening_hook": "Policy / Regulatory Changes signal via Medicare Policy: \"Standalone Part D premium enrollment guidance changes\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": "2027-01-01",
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 13:10:00",
+        "publication_date": "2026-10-20 13:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "display",
+          "matched_entities": [],
+          "score": 1.0
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "display",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 1.0
+      },
+      "id": "standalone-part-d",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "held",
+      "source_url": "https://example.invalid/standalone-part-d"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Spans 3 signal categories: Membership Movement, Financial / Operating Pressure, Competitive / Operational Strategy.",
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Compare MLR and margin guidance against prior-quarter filings.",
+            "Watch for follow-on filings from the named payers."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Research Wire reports on membership movement involving SCAN: The scan compares enrollment tools and generic insurer directories.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Research Wire.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 1.0
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-20",
+        "first_seen": "2026-10-20 14:05:00",
+        "publication_date": "2026-10-20 14:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.06
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [
+            "SCAN"
+          ],
+          "score": 1.0
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "exclude",
+          "matched_entities": [],
+          "score": 0.06
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.06
+      },
+      "id": "ordinary-scan-verb",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/ordinary-scan"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Litigation Tracker reports on policy / regulatory changes: The complaint challenges a 2027 Medicare Advantage star rating and related payment effects.",
+          "opening_hook": "Policy / Regulatory Changes signal via Litigation Tracker: \"Healthfirst files Medicare Advantage star ratings complaint\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.5
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Litigation Tracker reports on policy / regulatory changes: The complaint challenges a 2027 Medicare Advantage star rating and related payment effects.",
+          "opening_hook": "Policy / Regulatory Changes signal via Litigation Tracker: \"Healthfirst files Medicare Advantage star ratings complaint\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.5
+      },
+      "dates": {
+        "data_period": "2027 Star Ratings",
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-20 15:10:00",
+        "publication_date": "2026-10-20 15:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.5
+        },
+        "current": {
+          "drafted": true,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.5
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.5
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": {
+          "analytic_angles": [
+            "Compare against the current CMS rate/bid-cycle documents.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Litigation Tracker reports on policy / regulatory changes: The complaint challenges a 2027 Medicare Advantage star rating and related payment effects.",
+          "opening_hook": "Policy / Regulatory Changes signal via Litigation Tracker: \"Healthfirst files Medicare Advantage star ratings complaint\".",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#CMS",
+            "#HealthPolicy"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.5
+      },
+      "id": "healthfirst-stars-filing",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://example.invalid/healthfirst-stars-filing"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.21
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.21
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": null,
+        "first_seen": "2026-10-19 12:05:00",
+        "publication_date": "2026-10-19 12:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "current": {
+          "drafted": false,
+          "eligibility_tier": null,
+          "matched_entities": [],
+          "score": 0.21
+        },
+        "gate_experiment": {
+          "drafted": false,
+          "eligibility_tier": "brief",
+          "matched_entities": [],
+          "score": 0.21
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [],
+        "saved_draft": null,
+        "score": 0.21
+      },
+      "id": "8d11fb0f6f8e63bc",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "skipped",
+      "source_url": "https://example.invalid/source-record/8d11fb0f6f8e63bc"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.56
+      },
+      "current": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.56
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 13:05:00",
+        "publication_date": "2026-10-19 13:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "current": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": true,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.56
+      },
+      "id": "5ff220ff735bbf59",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://example.invalid/source-record/5ff220ff735bbf59"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reprint reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record reprint.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.54
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": null,
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reprint reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record reprint.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.54
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 13:15:00",
+        "publication_date": "2026-10-19 13:10:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "current": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "duplicate_of": "5ff220ff735bbf59",
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": "5ff220ff735bbf59",
+        "eligibility_tier": "brief",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Cross-check against CMS monthly enrollment snapshots.",
+            "Single-source so far \u2014 corroborate against a second outlet."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reprint reports on membership movement involving SCAN: SCAN Group and Costco partner on Medicare Advantage products and enrollment.",
+          "opening_hook": "SCAN \u2014 membership movement. Via Public source record reprint.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage",
+            "#Enrollment",
+            "#MarketShare"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.54
+      },
+      "id": "scan-costco-reprint",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "duplicate",
+      "source_url": "https://example.invalid/source-record/scan-costco-reprint"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": null,
+        "score": 0.26
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": true,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": null,
+        "score": 0.26
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 14:05:00",
+        "publication_date": "2026-10-19 14:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "current": {
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "eligibility_tier": "exclude",
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": false,
+        "displayed": false,
+        "draft_selected": false,
+        "drafted": false,
+        "duplicate_of": null,
+        "eligibility_tier": "exclude",
+        "facet_types": null,
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": null,
+        "score": 0.26
+      },
+      "id": "942eef5fa2f856e6",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://example.invalid/source-record/942eef5fa2f856e6"
+    },
+    {
+      "candidate_gate_off": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Single-source so far \u2014 corroborate against a second outlet.",
+            "Confirm the Medicare Advantage angle against a primary source."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on uncategorized involving SCAN: The payer partners with Walmart on a Medicare Advantage benefit.",
+          "opening_hook": "SCAN \u2014 uncategorized. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.41
+      },
+      "current": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": null,
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Single-source so far \u2014 corroborate against a second outlet.",
+            "Confirm the Medicare Advantage angle against a primary source."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on uncategorized involving SCAN: The payer partners with Walmart on a Medicare Advantage benefit.",
+          "opening_hook": "SCAN \u2014 uncategorized. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.41
+      },
+      "dates": {
+        "data_period": null,
+        "effective_date": null,
+        "event_date": "2026-10-19",
+        "first_seen": "2026-10-19 15:05:00",
+        "publication_date": "2026-10-19 15:00:00"
+      },
+      "expected": {
+        "candidate_gate_off": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "current": {
+          "drafted": true,
+          "matched_entities": [
+            "SCAN"
+          ]
+        },
+        "gate_experiment": {
+          "drafted": true,
+          "eligibility_tier": "brief",
+          "matched_entities": [
+            "SCAN"
+          ]
+        }
+      },
+      "gate_experiment": {
+        "angles": false,
+        "archived": true,
+        "briefing": true,
+        "displayed": true,
+        "draft_selected": true,
+        "drafted": true,
+        "duplicate_of": null,
+        "eligibility_tier": "brief",
+        "facet_types": {
+          "categories": "list",
+          "entities": "list",
+          "states": "list"
+        },
+        "fetched": "unknown",
+        "matched_entities": [
+          "SCAN"
+        ],
+        "saved_draft": {
+          "analytic_angles": [
+            "Single-source so far \u2014 corroborate against a second outlet.",
+            "Confirm the Medicare Advantage angle against a primary source."
+          ],
+          "draft_paragraph": "[DRAFT \u2014 verify before any external use] Public source record reports on uncategorized involving SCAN: The payer partners with Walmart on a Medicare Advantage benefit.",
+          "opening_hook": "SCAN \u2014 uncategorized. Via Public source record.",
+          "suggested_hashtags": [
+            "#MedicareAdvantage"
+          ],
+          "uncertainty_caution": "Note: This is an early signal based on public reporting. Confirm against primary sources before drawing conclusions. Market dynamics may shift as additional information emerges."
+        },
+        "score": 0.41
+      },
+      "id": "scan-walmart-control",
+      "label_provenance": "assistant_recommendation_not_owner_confirmed",
+      "passed": true,
+      "recommendation": "develop",
+      "source_url": "https://example.invalid/source-record/scan-walmart-control"
+    }
+  ],
+  "retrieved_at": "2026-10-20 22:05:00-05:00",
+  "source_identity": {
+    "current_scorer_sha256": "442e0a4c8870c3a1cb56f4b25ee68939d29310e74108c1f457ecab577d3ef8b2",
+    "fixture_sha256": "6acbea5378e887e3c92fe86761da167181a58804990019ba7debfd1e95710551",
+    "retained_candidate_commit": "854b43c0253f8ab0bc64f9370c7c2c7f16fef90d",
+    "taxonomy_sha256": "1f8334cd08ca7a5d6b11f00129dc2be026117e4573cbbdd4fa41b7623097cfff"
+  }
+}
