@@ -200,7 +200,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             "No production per-claim support gate exists; unsupported numerical claims remain a product gap.",
             "Fixture expectations are frozen development recommendations, not owner verdicts, and do not authorize production configuration changes.",
             "Healthfirst retention is topical; matched_entities remains empty, so payer identity support is not claimed.",
-            "Both candidate modes are offline experiments, not post-merge production behavior. Production scoring and config are unchanged.",
+            "Both candidate modes remain offline experiments. The current scorer now has a separately tested SCAN identity repair; research boosting and the broader gate remain unpromoted.",
             "PR75 web-only production persistence is used; no retired outbound alert or delivery path is restored.",
             "PR77 owns the broader eligibility-gate evaluation; these 13 tuning fixtures do not supersede its October holdout, owner-label process, recall evidence, or gate decision.",
             "Tuning fixtures must not be reused as the fresh unseen evaluation window.",

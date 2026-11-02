@@ -39,6 +39,44 @@ def _keyword_in_text(keyword: str, text: str) -> bool:
     return bool(_keyword_pattern(keyword).search(text))
 
 
+def _entity_in_text(entity: str, text: str) -> bool:
+    """Keep SCAN's ordinary-word ambiguity out of payer/context detection.
+
+    Other aliases retain their existing behavior. SCAN needs its full name or
+    local organization/legal context, with original case retained for shorthand.
+    Context must not jump sentence boundaries or treat medical-image files as
+    a payer filing. This is identity evidence, not a newsworthiness decision.
+    """
+    if entity != "SCAN":
+        return _keyword_in_text(entity, text)
+    for match in re.finditer(r"(?<!\w)scan(?!\w)", text, re.IGNORECASE):
+        before, after = text[: match.start()], text[match.end() :]
+        if re.search(
+            r"\b(?:CT|CAT|PET|MRI|brain|body|diagnostic|medical)"
+            r"(?:[ \t]+[\w-]+)?[ \t]+$",
+            before,
+            re.IGNORECASE,
+        ):
+            continue
+        if re.match(r"[ \t]+health[ \t]+plan(?!\w)", after, re.IGNORECASE):
+            return True
+        if match.group() != "SCAN":
+            continue
+        if re.search(r"\b(?:insurer|payer)[ \t]+$", before, re.IGNORECASE):
+            return True
+        if re.match(
+            r"(?:['’]s)?[ \t]+(?:[\w-]+[ \t]+){0,2}"
+            r"(?:group|payer|insurer|CEO|chief[ \t]+executive|lawsuit|"
+            r"sues|sued|challenges|appeals|expands|launches|partners|announces|"
+            r"files[ \t]+(?:a[ \t]+|an[ \t]+)?(?:lawsuit|appeal|complaint|motion))"
+            r"(?!\w)",
+            after,
+            re.IGNORECASE,
+        ):
+            return True
+    return False
+
+
 def _has_ma_context(text: str, config: AppConfig) -> bool:
     """True if the text actually establishes Medicare Advantage context.
 
@@ -48,7 +86,7 @@ def _has_ma_context(text: str, config: AppConfig) -> bool:
     a general-news firehose doesn't read as an MA signal (see :func:`score_item`).
     """
     for entity in config.watched_entities:
-        if _keyword_in_text(entity, text):
+        if _entity_in_text(entity, text):
             return True
     for term in config.ma_context_terms:
         if _keyword_in_text(term, text):
@@ -73,6 +111,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     matched_entities: list[str] = []
     raw_score = 0.0
 
+    text_original = f"{item.title}\n{item.summary}"
     text_combined = f"{item.title} {item.summary}".lower()
     title_lower = item.title.lower()
 
@@ -84,7 +123,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
     # they are never gated. Set scoring.ma_context_min_priority to 0 to disable.
     ma_context_gated = (
         item.source_priority < sc.ma_context_min_priority
-        and not _has_ma_context(text_combined, config)
+        and not _has_ma_context(text_original, config)
     )
 
     # 1. Keyword matches per category (suppressed for gated broad sources so the
@@ -146,7 +185,7 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
 
     # 3. Named entity detection
     for entity in config.watched_entities:
-        if _keyword_in_text(entity, text_combined):
+        if _entity_in_text(entity, text_original):
             raw_score += sc.entity_match_boost
             matched_entities.append(entity)
             reasons.append(

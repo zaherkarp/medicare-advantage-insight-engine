@@ -119,7 +119,9 @@ cases:
     summary: The scan compares enrollment tools and generic insurer directories.
     recommendation: skipped
     expected:
-      current: {score: 1.0, drafted: true, eligibility_tier: null, matched_entities: [SCAN]}
+      # Prior production observation was score 1.0/drafted/SCAN. Contextual
+      # identity now satisfies the unchanged skipped recommendation.
+      current: {score: 0.06, drafted: false, eligibility_tier: null, matched_entities: []}
       shipped_after_commit: {score: 0.06, drafted: false, eligibility_tier: null, matched_entities: []}
       gate_experiment: {score: 0.06, drafted: false, eligibility_tier: exclude, matched_entities: []}
   - id: healthfirst-stars-filing
