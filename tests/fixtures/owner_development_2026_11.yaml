@@ -1,0 +1,49 @@
+version: 1
+designation: development
+label_provenance: owner_approved
+approved_date: '2026-11-02'
+scope: Three specific behavior labels; not production scoring or publication approval.
+input_provenance: Short source-grounded paraphrases, not verbatim archive replay.
+cases:
+  - id: ca7b8bc14feb207f
+    source_url: https://www.kff.org/medicare/nearly-three-quarters-of-medicare-advantage-enrollees-could-be-denied-a-medigap-policy-due-to-a-pre-existing-condition/
+    source_name: KFF Medicare
+    source_priority: 3
+    source_tags: [research, policy]
+    title: KFF examines Medigap underwriting exposure among Medicare Advantage enrollees
+    summary: Analysis of existing diagnoses estimates potential denial of supplemental coverage when switching to traditional Medicare. These are potential restrictions, not observed denials.
+    expected:
+      relevance: relevant
+      newsworthiness: news
+      briefing: eligible
+      public_draft: review_only
+      entity_exclusions: []
+    qualifications: Potential underwriting denial, not observed denial or a new rule.
+  - id: 86fe45ef857045ba
+    source_url: https://indianacapitalchronicle.com/2026/10/13/indiana-death-row-inmate-seeks-execution-delay-for-brain-scans-ahead-of-clemency-hearings/
+    source_name: Indiana Capital Chronicle
+    source_priority: 2
+    source_tags: []
+    title: Indiana criminal case seeks delay for brain scans
+    summary: A prisoner seeks imaging evidence for clemency proceedings. A judge approved testing funds but did not order transportation.
+    expected:
+      relevance: irrelevant
+      newsworthiness: not_ma_news
+      briefing: ineligible
+      public_draft: ineligible
+      entity_exclusions: [SCAN]
+    qualifications: Ordinary scans must not identify the SCAN Health Plan entity.
+  - id: 7b068358ef756143
+    source_url: https://www.kff.org/faqs/medicare-open-enrollment-faqs/general-enrollment-information/what-is-the-medicare-plan-finder/
+    source_name: KFF Medicare
+    source_priority: 3
+    source_tags: [research]
+    title: KFF explains how to compare Medicare coverage options
+    summary: The Medicare Plan Finder helps compare Medicare Advantage, prescription drug and supplemental coverage options.
+    expected:
+      relevance: relevant_reference
+      newsworthiness: evergreen
+      briefing: ineligible_without_substantive_change
+      public_draft: ineligible_without_substantive_change
+      entity_exclusions: []
+    qualifications: Useful reference material remains relevant; substantive new information requires a new assessment.
