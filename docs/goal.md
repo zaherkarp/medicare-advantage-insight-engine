@@ -18,13 +18,18 @@ goal lives in [`docs/loop.md`](loop.md).
 | **Signal quality** | High precision *and* recall against a growing hand-labelled benchmark; noise never reaches the public feed; every scoring change is regression-gated. |
 | **Competitive intel depth** | Payer-level answers: what is Humana/UHC/Centene doing, what did they file, how is their enrollment trending — not just a chronological feed. |
 | **Coverage & freshness** | Broad sources (national + all 50 states + SEC + CMS), fast pipeline, ingest cadence limited by cron rather than run time, low-yield sources reviewed and pruned. |
-| **Product & delivery UX** | Feed, topics, states, payers, trends, briefing, angles, and search all work on the static Pages site; alerts are deduplicated and suppressible; docs stay accurate. |
+| **Product UX** | Feed, topics, states, payers, trends, briefing, angles, and search all work on the static Pages site; near-duplicate stories are grouped; docs stay accurate. |
 
 ## Scorecard
 
 Baselines measured 2026-07-03 against the live published archive
 (7,970 stories; 1,490 public-grade ≥ 0.1; 462 alert-grade ≥ 0.3).
 The current snapshot is maintained in [`docs/loop.md`](loop.md).
+
+Note (2026-10): the engine is now web only. Outbound alerts (ntfy, Teams,
+generic webhook) and briefing email were removed unused, so rows below that
+mention the alert cadence or alert dedup (F2, Q2) describe history; "alert-grade"
+still means score ≥ `MIN_RELEVANCE_SCORE`, the bar for a story's analysis draft.
 
 | # | Metric | How measured | Baseline (2026-07-03) | Target |
 |---|---|---|---|---|

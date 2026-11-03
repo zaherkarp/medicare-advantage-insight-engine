@@ -148,7 +148,6 @@ def _base_config() -> AppConfig:
     """A minimal AppConfig that passes non-causal validation and carries a sound
     causal model, so individual causal violations can be injected in isolation."""
     return AppConfig(
-        webhook_mode="test",
         sources=[
             SourceConfig(name="S", type="rss", url="https://example.com", enabled=True)
         ],

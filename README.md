@@ -1,6 +1,6 @@
 # MA Signal Monitor
 
-A free, local Medicare Advantage news insight monitor that fetches public sources, scores items for analytic relevance, and posts structured alerts to a webhook endpoint (ntfy.sh push notifications, Teams Adaptive Cards, or generic JSON).
+A free Medicare Advantage news insight monitor that fetches public sources, scores items for analytic relevance, and publishes the scored archive as a browsable website, live at [signal.zaherkarp.com](https://signal.zaherkarp.com/). It is web only: nothing is pushed, posted, or emailed.
 
 ## What It Does
 
@@ -11,11 +11,10 @@ On each run, the monitor:
 3. **Deduplicates** against previously seen items (SQLite-backed)
 4. **Scores** each item for Medicare Advantage relevance using keyword matching, entity detection, and source priority
 5. **Classifies** relevant items into a configurable trigger taxonomy (membership movement, policy changes, financial pressure, etc.)
-6. **Drafts** two-section alerts:
-   - **Section A**: Internal analytic alert with signal type, entities, relevance score, and suggested follow-up checks
+6. **Drafts** a two-section analysis for items above the relevance threshold:
+   - **Section A**: Internal analytic note with signal type, entities, relevance score, and suggested follow-up checks
    - **Section B**: Draft public insight angle with opening hook, analytic angles, and a clearly-marked draft paragraph
-7. **Delivers** alerts to a webhook endpoint (ntfy.sh push notifications, Teams Adaptive Card, generic JSON, or test mode)
-8. **Persists** every scored item into a browsable **story archive**, plus state, delivery logs, and run metadata locally
+7. **Persists** every scored item into a browsable **story archive**, plus state and run metadata
 
 A bundled **web frontend** then renders that archive as a browsable, paginated
 site with a streamlined navigation: the feed carries a tag-style **filter bar**
@@ -36,13 +35,13 @@ RSS Feeds ──→ Fetcher ──→ Normalizer ──→ Deduplicator ──�
                                               │                          │
                                               └──────── Drafter ─────────┘
                                                            │
-                                                      Renderer
-                                                  (ntfy/Generic/Teams)
+                                                     Story archive
                                                            │
-                                                    Webhook Delivery
+                                              Web frontend / static site
 ```
 
-All processing is local. No cloud services, paid APIs, or Google dependencies.
+No paid APIs or cloud services beyond GitHub Actions and GitHub Pages, which
+build and host the static site.
 
 ## How This Works
 
@@ -66,11 +65,10 @@ the run:
    of human-readable `reasons` (see below).
 5. **Classify** — the highest-weighted matched category becomes the item's
    primary topic vertical (or `uncategorized`).
-6. **Draft** — items above the alert threshold get a two-part alert: an
-   internal analytic note and a clearly-marked *draft* public insight angle.
-7. **Deliver** — those alerts are rendered for ntfy / Teams / generic JSON and
-   POSTed to your webhook.
-8. **Persist** — **every** scored item (not just alerted ones) is written to
+6. **Draft** — items above the relevance threshold get a two-part analysis:
+   an internal analytic note and a clearly-marked *draft* public insight angle,
+   stored on the story and shown on its page.
+7. **Persist** — **every** scored item (not just drafted ones) is written to
    the `stories` archive that backs the web frontend.
 
 ### The scoring model
@@ -132,13 +130,13 @@ every row stays in the archive and `/status` and `/health` count them all.
 
 ### Two thresholds, two audiences
 
-- **`MIN_RELEVANCE_SCORE`** (default `0.3`) — the bar to fire an **alert** to
-  your webhook. Higher = fewer, higher-confidence pushes.
+- **`MIN_RELEVANCE_SCORE`** (default `0.3`) — the bar for a story to get the
+  two-section **analysis draft** on its page.
 - **`ARCHIVE_MIN_SCORE`** (default `0.1`) — the bar to appear on the **public
-  browsable site**. Lower, because the archive is meant to be richer than the
-  alert stream.
+  browsable site** at all. Lower, because the archive is meant to be richer
+  than the drafted set.
 
-An item can be archived-and-browsable (`≥ 0.1`) without being alert-worthy
+An item can be archived-and-browsable (`≥ 0.1`) without getting a draft
 (`< 0.3`).
 
 ### Worked example
@@ -149,7 +147,7 @@ Fierce Healthcare (priority 3):
 - `medical loss ratio` in the title [Financial, weight 1.0] → `0.15 × 1.0 × 1.5` = **0.225**
 - `Humana` entity → **0.20**
 - source priority 3 → `(3 ÷ 5) × 0.10` = **0.06**
-- **score ≈ 0.49** → above both thresholds → alerted *and* browsable.
+- **score ≈ 0.49** → above both thresholds → drafted *and* browsable.
 
 Contrast *"County debates premium gas tax"* from a priority-2 state feed: it
 brushes `premium`, but names no payer and no Medicare term, so the **gate**
@@ -158,8 +156,9 @@ suppresses the keyword → the score falls to the **0.04** priority floor → th
 
 ### Closing the loop
 
-Readers tune the filter over time. Story pages carry a 👍/👎 widget (giscus on
-the static site), and ntfy alerts can carry feedback buttons. Those verdicts
+Readers tune the filter over time. Story pages carry a giscus reaction widget
+on the static site; the owner's own reactions are recorded as ground-truth
+verdicts and everyone else's as advisory crowd signal. Those verdicts
 feed three advisory tools — keyword mining, source-yield review, and a
 scorer-vs-reader disagreement digest — that *suggest* edits to `sources.yaml` /
 `taxonomy.yaml`. Owner verdicts are ground truth; crowd reactions are advisory
@@ -189,26 +188,17 @@ pip install -e ".[dev]"
 
 # Configure
 cp .env.example .env
-# Edit .env — at minimum set WEBHOOK_URL
+# Edit .env if needed (SEC_CONTACT_EMAIL is required while SEC sources are enabled)
 ```
 
-### 3. Test with ntfy.sh (Recommended)
+### 3. Try it with sample data
 
-[ntfy.sh](https://ntfy.sh) is a free push notification service — no signup, no API keys.
+```bash
+python scripts/seed_test_data.py
+```
 
-1. Open `https://ntfy.sh/ma-signal-monitor` in your browser (or subscribe in the ntfy mobile app)
-2. The default `.env` is already configured for ntfy.sh:
-   ```ini
-   WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
-   WEBHOOK_MODE=ntfy
-   ```
-3. Run the seed script:
-   ```bash
-   python scripts/seed_test_data.py --deliver
-   ```
-4. Check the ntfy.sh topic page — you should see formatted alerts with priority levels and click-through links
-
-> **Tip**: Use a unique, hard-to-guess topic name (e.g., `https://ntfy.sh/my-ma-monitor-abc123`) for privacy, since ntfy.sh topics are public by default.
+This scores a handful of sample items, prints each score and its reasons, and
+writes them to the local archive so the web frontend has something to show.
 
 ### 4. Run Against Live Feeds
 
@@ -320,27 +310,25 @@ same across-run persistence private to the repo instead. Full-text search
 runs **client-side** on Pages via a generated `search-index.json` (that file
 *is* meant to be public — it only contains what's already rendered on the
 site). To enable: in the repo's **Settings → Pages**, set the source to
-**GitHub Actions**. Email digests still send from the workflow if you add the
-`SMTP_*` / `DIGEST_*` secrets.
+**GitHub Actions**.
 
 ### Daily Briefing
 
-The **Daily Briefing** is a curated digest of the day's top signals — the
-fastest way to get insight in front of people. It's grouped into the six topic
-verticals, scored, and always viewable at `/briefing` (with a dated archive).
+The **Daily Briefing** is a curated digest of the day's top signals, grouped
+into the six topic verticals, scored, and viewable at `/briefing` (with a dated
+archive). It is web only; it is not emailed or pushed.
 
 Generate one on demand:
 
 ```bash
-ma-signal-digest                 # build + save today's briefing (+ email if configured)
+ma-signal-digest                 # build + save today's briefing
 # then open http://localhost:8000/briefing
 ```
 
-To **email** it daily, set `DIGEST_ENABLED=true`, `DIGEST_TO`, and the `SMTP_*`
-vars (see `.env.example`). The web container's scheduler then sends it at
-`DIGEST_HOUR` (UTC) each day; email is best-effort, so the briefing is never
-blocked by SMTP being unset. Set `PUBLIC_BASE_URL` so email links resolve back
-to your site.
+The web container's scheduler builds it at `DIGEST_HOUR` (UTC) each day, and the
+Pages workflow builds it on every deploy. The briefing renders inside an iframe,
+so set `PUBLIC_BASE_URL` (the workflow uses `https://signal.zaherkarp.com`) for
+its links to be absolute.
 
 ### Angles
 
@@ -410,13 +398,15 @@ mounts a [giscus](https://giscus.app) thread so visitors can react with their
 GitHub login — keyed on the story's stable `item_id`, so feedback stays bound
 to the right story even if titles or URLs change.
 
-If `WEBHOOK_MODE=ntfy`, alerts can also carry 👍/👎 buttons (set
-`NTFY_FEEDBACK_TOPIC`) so you can rate a signal the moment you read it.
+The Pages workflow pulls those reactions in on every deploy. Reactions by
+`FEEDBACK_OWNER_LOGIN` (the repository owner, in CI) are recorded as owner
+verdicts at weight 1.0; everyone else's are advisory crowd signal at 0.2. That
+is how the owner votes from the static site, which has no server to take a
+POST.
 
 ```bash
 ma-signal-feedback mark <item_id> relevant   # record an owner verdict (weight 1.0)
-ma-signal-feedback ingest-github             # pull giscus reactions into the DB
-ma-signal-feedback ingest-ntfy               # pull ntfy 👍/👎 votes into the DB
+ma-signal-feedback ingest-github             # pull giscus reactions into the DB (CI runs this)
 ma-signal-feedback mine-keywords             # suggest taxonomy keywords from labels
 ma-signal-feedback disagreements             # stories where your verdicts diverge from the scorer
 ma-signal-feedback summary <item_id>         # show verdicts for one story
@@ -461,12 +451,11 @@ Owner verdicts are ground truth (weight 1.0); crowd reactions are advisory
 
 | Variable | Default | Description |
 |---|---|---|
-| `WEBHOOK_URL` | *(required)* | Webhook endpoint URL (e.g., `https://ntfy.sh/your-topic`) |
-| `WEBHOOK_MODE` | `ntfy` | `ntfy`, `generic`, `teams`, or `test` |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
-| `MIN_RELEVANCE_SCORE` | `0.3` | Threshold for alert generation (0.0-1.0) |
+| `MIN_RELEVANCE_SCORE` | `0.3` | Threshold for a story's analysis draft (0.0-1.0) |
 | `ARCHIVE_MIN_SCORE` | `0.1` | Public display floor — hides sub-floor "noise" from the site (0.0-1.0; 0 disables) |
 | `FETCH_WORKERS` | `8` | Concurrent source fetches per run (1 = strictly sequential) |
+| `FEEDBACK_OWNER_LOGIN` | *(empty)* | GitHub login whose giscus reactions count as owner verdicts; CI sets the repo owner |
 
 ### `config/sources.yaml` — Feed sources
 
@@ -481,7 +470,7 @@ Configure the six trigger categories, their keywords, weights, and the list of w
 
 ### `config/app.yaml` — Application settings
 
-Delivery retry behavior, processing limits, and storage retention settings.
+Processing limits, near-duplicate grouping, timeline threads, and storage retention settings.
 
 ## Scheduler Setup
 
@@ -489,7 +478,7 @@ Delivery retry behavior, processing limits, and storage retention settings.
 
 ```bash
 crontab -e
-# Add (every 3 hours, matching the repo's scheduled-monitor workflow):
+# Add (e.g. every 3 hours):
 0 */3 * * * cd /path/to/project && /path/to/.venv/bin/python -m ma_signal_monitor.main >> logs/cron.log 2>&1
 ```
 
@@ -502,43 +491,10 @@ crontab -e
 
 See `src/ma_signal_monitor/scheduler_notes.py` for detailed examples.
 
-## Webhook Delivery Modes
-
-The delivery system supports four modes:
-
-- **`ntfy`** *(recommended)*: Push notifications via [ntfy.sh](https://ntfy.sh) — free, no signup, supports mobile push, markdown, priority levels, and click-through actions.
-- **`teams`**: Adaptive Card format for Microsoft Teams incoming webhooks.
-- **`generic`**: Clean JSON payload for any webhook consumer.
-- **`test`**: Generic JSON with extra debug logging. Use with webhook.site or RequestBin.
-
-**Recommendation**: Start with `ntfy` mode for the fastest setup. Use `test` mode with a webhook inspector if you need to debug payloads before switching to `teams`.
-
-### Near-duplicate alert suppression
-
-The same story is often carried by several sources (e.g. a payer's insulin
-settlement covered by Healthcare Dive *and* Becker's). Because each item's ID is
-`hash(source + link)`, those are distinct items that would each fire an alert.
-Before delivery, alerts are de-duplicated by headline similarity (title-token
-Jaccard): within a run, only the highest-scoring member of a near-duplicate
-cluster is kept; across runs, an alert whose headline matches one delivered in
-the last few days is suppressed. Only the **webhook stream** is trimmed — every
-scored item is still written to the archive. Tune under `delivery.dedup` in
-`config/app.yaml` (`enabled`, `similarity_threshold`, `lookback_days`).
-
-## Teams Compatibility Notes
-
-- Uses Adaptive Card schema v1.4 wrapped in the Teams message format
-- The payload targets the "Incoming Webhook" connector
-- Teams has a ~28KB payload size limit — alerts are designed to stay well under this
-- Teams rendering can be inconsistent across clients (desktop vs. web vs. mobile)
-- If cards don't render, check: webhook URL validity, payload size, and card schema version
-- **Workflow webhooks** (Power Automate) use a different format than Incoming Webhooks — this tool targets Incoming Webhooks
-
 ## Limitations
 
 - **No NLP/ML**: Scoring is keyword-based, not semantic. High-quality but not perfect.
 - **Feed-based only**: All ingestion (RSS/Atom, SEC EDGAR, CMS, and litigation-tracker feeds) consumes public feeds — no scraping, APIs, or document parsing.
-- **No live Teams validation**: Teams rendering is validated structurally, not against a live endpoint (unless you provide one).
 - **English only**: Keywords and content processing assume English-language sources.
 - **No authentication**: RSS fetching does not support authenticated feeds.
 - **Thread-pool fetching**: Sources are fetched concurrently (`FETCH_WORKERS`, default 8; set 1 for strictly sequential).
@@ -548,7 +504,7 @@ scored item is still written to the archive. Tune under `delivery.dedup` in
 Phase 1 (done): browsable story archive + web frontend (feed, topic verticals,
 Sources directory, State Intelligence), Docker self-host.
 
-Phase 2 (done): Daily Briefing digest — web page + archive + optional daily email.
+Phase 2 (done): Daily Briefing digest — web page + dated archive.
 
 Phase 3 (done): full-text search over the archive (SQLite FTS5, LIKE fallback).
 
@@ -562,7 +518,7 @@ Phase 6 (done): Payer Intelligence pages (`/payers`), concurrent source
 fetching, and a litigation-tracker fetcher (Georgetown Health Care Litigation
 Tracker).
 
-- Other ideas: semantic/NLP scoring, Slack renderer,
+- Other ideas: semantic/NLP scoring,
   historical trend analysis, CMS enrollment/market-share data on payer pages
 
 ## Project Structure
@@ -590,17 +546,12 @@ Tracker).
 │   ├── trends.py           # Weekly-volume bucketing + inline-SVG sparklines
 │   ├── payers.py           # Canonical payer grouping (Payer Intelligence pages)
 │   ├── angles.py           # "Angles" lens-intersection view-model
-│   ├── drafting.py         # Alert generation
-│   ├── delivery.py         # Webhook delivery
+│   ├── drafting.py         # Two-section analysis drafts
 │   ├── fetchers/
 │   │   ├── rss.py          # RSS feed fetcher
 │   │   ├── sec.py          # SEC EDGAR filings fetcher
 │   │   ├── cms.py          # CMS feeds fetcher
 │   │   └── litigation.py   # Litigation-tracker fetcher (context injection)
-│   └── renderers/
-│       ├── ntfy.py             # ntfy.sh push notification renderer
-│       ├── generic_webhook.py  # Generic JSON renderer
-│       └── teams.py            # Teams Adaptive Card renderer
 ├── tests/                  # pytest test suite
 ├── scripts/
 │   ├── run_once.py         # One-shot execution

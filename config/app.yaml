@@ -5,29 +5,9 @@ app:
   name: "MA Signal Monitor"
   version: "0.1.0"
 
-# Delivery settings
-delivery:
-  # Maximum retries for webhook delivery
-  max_retries: 3
-  # Backoff base in seconds (exponential: base * 2^attempt)
-  retry_backoff_base: 2
-  # Timeout per request in seconds
-  timeout: 30
-  # Batch size: how many alerts per webhook message (0 = all in one)
-  batch_size: 1
-  # Near-duplicate alert suppression. Stops the same story republished by
-  # several sources from firing multiple webhook alerts. Only the alert
-  # stream is trimmed — every scored item is still archived.
-  dedup:
-    enabled: true
-    # Title-token Jaccard at/above this is treated as the same story (0.0-1.0).
-    similarity_threshold: 0.6
-    # Also suppress vs. alerts delivered in the last N days (0 = within-run only).
-    lookback_days: 3
-
 # Processing settings
 processing:
-  # Minimum relevance score to generate an alert (0.0 - 1.0)
+  # Minimum relevance score for a story to get a public draft (0.0 - 1.0)
   min_relevance_score: 0.3
   # Public archive display floor (0.0 - 1.0). Sub-floor stories stay in the DB
   # but are hidden from the feed, topic/state pages, search, and static site.
@@ -38,7 +18,7 @@ processing:
   # per-story eligibility tier (BRIEF > ALERT > DISPLAY > EXCLUDE, see
   # src/ma_signal_monitor/eligibility.py and taxonomy.yaml `eligibility:`) and
   # applies the payer-alias score dedup; the briefing then requires tier=brief,
-  # the alert/webhook stream tier>=alert, and the public feed hides tier=exclude.
+  # a public draft tier>=alert, and the public feed hides tier=exclude.
   # Off => byte-identical to the pre-gate pipeline. Reversible (flip it back).
   # Left unset here so MA_ELIGIBILITY_GATE governs the default-off; uncomment to
   # force it on regardless of the environment.
@@ -49,10 +29,11 @@ processing:
   max_summary_length: 500
   # Feed near-duplicate grouping. Labels the same story carried by several
   # sources so the browsable feed shows one representative (the archive keeps
-  # every row; /status and /health report the full counts). Shares the
-  # similarity threshold with delivery.dedup.
+  # every row; /status and /health report the full counts).
   story_dedup:
     enabled: true
+    # Title-token Jaccard at/above this is treated as the same story (0.0-1.0).
+    similarity_threshold: 0.6
     lookback_days: 3
 
 # Layered-timeline emergent story threads (the /timeline/threads lane). Clusters
@@ -66,7 +47,7 @@ timeline:
     # thread, scored with IDF-weighted cosine + average-linkage (see
     # threads._cluster / similarity.weighted_cosine), not plain Jaccard +
     # single-linkage. The scale is unrelated to
-    # delivery.dedup.similarity_threshold (0.6, plain Jaccard) -- do not
+    # processing.story_dedup.similarity_threshold (0.6, plain Jaccard) -- do not
     # compare the two numbers directly.
     #
     # Recalibrated by scripts/calibrate_threads.py, which sweeps candidate
@@ -148,5 +129,6 @@ timeline:
 storage:
   # How long to keep seen items in days (for dedupe)
   seen_item_retention_days: 90
-  # How long to keep delivery logs in days
+  # How long to keep the historical delivery_log rows in days (nothing new is
+  # written since outbound delivery was removed in 2026-10)
   delivery_log_retention_days: 30

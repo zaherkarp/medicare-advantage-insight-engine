@@ -33,7 +33,7 @@ Per iteration:
 - **(e) Verify locally** — `ruff format` + `ruff check` + full `pytest`
   (golden set explicitly); exercise web features via the test client; build the
   static export for UI changes.
-- **(f) Ship** — push, open a PR against `main`, merge when CI is green.
+- **(f) Ship** — push and open a PR against `main`. The owner merges it; agents never merge their own PRs (`AGENTS.md`, rule 3, 2026-10-28).
 - **(g) On red CI** — read failing job logs, fix on the same PR, re-verify.
   After 3 failed fix rounds: close the PR, record the item under Blocked, move on.
 - **(h) Record** — update the iteration log and scorecard snapshot here (in the
@@ -100,7 +100,6 @@ See [`docs/goal.md`](goal.md) for metric definitions, baselines, and targets.
   monthly file, confirm the parent-org column + format) before the feature can
   be planned — and confirmation the file host is reachable from the deploy
   runners.
-- **Slack renderer** — needs a Slack workspace/webhook to target.
-- **Cadence cost** — the tighter crons shipped in iteration 4 (Pages 2h,
-  alerts 3h) increase GitHub Actions usage; free for public repos, but
-  flagging the change of pace.
+- **Cadence cost** — the tighter Pages cron shipped in iteration 4 (2h)
+  increases GitHub Actions usage; flagging the change of pace. (The 3h alert
+  cron was removed in 2026-10 with push delivery.)

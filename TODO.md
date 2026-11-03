@@ -53,9 +53,9 @@ up.
   proposal to move a semantic signal into the app is a separate owner decision
   and would still start as an advisory re-ranker gated by the golden set. See
   [`docs/research/00-repository-assessment.md`](docs/research/00-repository-assessment.md).
-- [ ] **Slack renderer.** Needs a target Slack workspace/webhook.
-- [ ] **Cron cadence cost.** Pages 2h / alerts 3h increases GitHub Actions usage
-  (free for public repos) — confirm the pace is acceptable.
+- [ ] **Cron cadence cost.** The Pages 2h cron drives GitHub Actions usage
+  (the 3h alert cron went with push delivery in 2026-10) — confirm the pace is
+  acceptable.
 
 ---
 

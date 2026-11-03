@@ -1,0 +1,79 @@
+name: Export archive for evaluation
+
+# Hands the owner a copy of the production story archive (data/state.db) for
+# offline evaluation: building a held-out label set (evals/relevance/
+# build_holdout.py) and measuring what the MA-eligibility gate would change
+# before it is switched on (evals/relevance/shadow_report.py).
+#
+# WHY A SEPARATE WORKFLOW: the archive lives only in the Actions cache under
+# the `state-db-` prefix (see deploy-pages.yml and docs/operations.md). The
+# documented way to get a copy used to be "add a temporary upload-artifact step
+# to deploy-pages.yml, run it, remove the step", which means editing the one
+# workflow that publishes the site and keeps the archive alive. This workflow
+# READS the cache and never writes it, so it cannot disturb the restore chain.
+#
+# EXPOSURE, STATED: this repo is public, so a run artifact is downloadable by
+# any signed-in GitHub user while it exists. The archive holds public news
+# items plus the feedback table (giscus reactions, which are public on the
+# Discussions anyway, and owner verdicts). Until 2026-09-07 the whole database
+# was published on the site itself. The artifact is kept for one day, the
+# minimum, and nothing runs this on a schedule.
+#
+# HOW TO USE IT:
+#   1. Actions -> "Export archive for evaluation" -> Run workflow (on main).
+#   2. Download the `state-db` artifact from the run page within a day, unzip,
+#      and save it as /tmp/state.db.
+#   3. See evals/relevance/README.md for what to run against it.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run alongside itself; it does not touch the `pages` group because it
+# writes nothing the deploy reads.
+concurrency:
+  group: export-archive
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore archive DB from cache (read only)
+        id: restore
+        uses: actions/cache/restore@v5
+        with:
+          path: data/state.db
+          # Never an exact hit by construction, so restore-keys resolves to the
+          # most recently created `state-db-` entry, exactly as deploy-pages.yml
+          # does. There is no save step: this workflow cannot move the chain.
+          key: state-db-export-${{ github.run_id }}
+          restore-keys: |
+            state-db-
+
+      - name: Validate the restored archive
+        env:
+          MATCHED_KEY: ${{ steps.restore.outputs.cache-matched-key }}
+        run: |
+          if [ -z "$MATCHED_KEY" ]; then
+            echo "::error::No state-db- cache entry found; nothing to export."
+            exit 1
+          fi
+          rows=$(python scripts/archive_guard.py validate data/state.db)
+          echo "Exporting archive from cache key $MATCHED_KEY: $rows rows, $(stat -c%s data/state.db) bytes."
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: state-db
+          path: data/state.db
+          retention-days: 1
+          if-no-files-found: error

@@ -111,8 +111,6 @@ def sample_normalized_items() -> list[NormalizedItem]:
 def sample_config() -> AppConfig:
     """A minimal but valid AppConfig for testing."""
     return AppConfig(
-        webhook_url="https://webhook.site/test-uuid",
-        webhook_mode="test",
         log_level="DEBUG",
         db_path="data/test_state.db",
         config_dir="config",
@@ -357,11 +355,7 @@ def project_root_with_config(tmp_path) -> Path:
         yaml.dump(taxonomy, f)
 
     # .env
-    env_content = (
-        "WEBHOOK_URL=https://webhook.site/test-uuid\n"
-        "WEBHOOK_MODE=test\n"
-        "LOG_LEVEL=DEBUG\n"
-    )
+    env_content = "LOG_LEVEL=DEBUG\n"
     with open(tmp_path / ".env", "w") as f:
         f.write(env_content)
 

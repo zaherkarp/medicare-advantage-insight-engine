@@ -1,5 +1,9 @@
 # QA Results
 
+> **Note (2026-10).** The ntfy, Teams and generic-webhook delivery paths these
+> results exercise were removed unused in 2026-10; the engine is now web only,
+> and Teams was never deployed against a real channel.
+
 > **Historical snapshot.** These are the QA results from the initial
 > implementation. The suite has since grown to 227 tests (see CI for current
 > results); the counts below are kept for reference.

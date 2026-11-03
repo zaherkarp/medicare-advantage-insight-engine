@@ -112,7 +112,7 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         from ma_signal_monitor.digest import generate_digest
 
         try:
-            generate_digest(config, app.state.store, send=True)
+            generate_digest(config, app.state.store)
         except Exception as e:
             logger.exception("Daily digest generation failed: %s", e)
 
@@ -131,14 +131,13 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
         hours=config.ingest_interval_hours,
         id="ingest",
     )
-    if config.digest_enabled:
-        scheduler.add_job(
-            _daily_digest,
-            "cron",
-            hour=config.digest_hour,
-            minute=0,
-            id="daily_digest",
-        )
+    scheduler.add_job(
+        _daily_digest,
+        "cron",
+        hour=config.digest_hour,
+        minute=0,
+        id="daily_digest",
+    )
     if config.discovery_enabled:
         scheduler.add_job(
             _discovery,
@@ -154,11 +153,9 @@ def _setup_scheduler(app: FastAPI, config: AppConfig, project_root: Path) -> Non
             threading.Thread(target=_ingest, daemon=True).start()
         scheduler.start()
         logger.info(
-            "Scheduler started (ingest every %dh%s)",
+            "Scheduler started (ingest every %dh, digest daily at %02d:00 UTC)",
             config.ingest_interval_hours,
-            f", digest daily at {config.digest_hour:02d}:00 UTC"
-            if config.digest_enabled
-            else "",
+            config.digest_hour,
         )
 
     @app.on_event("shutdown")

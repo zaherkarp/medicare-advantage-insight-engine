@@ -7,9 +7,7 @@
 
 ## Configuration
 
-- [ ] Config loads successfully with default `.env.example` values (after setting WEBHOOK_URL)
-- [ ] Missing `WEBHOOK_URL` produces a clear error message
-- [ ] Invalid `WEBHOOK_MODE` produces a clear error message
+- [ ] Config loads successfully with default `.env.example` values (after setting SEC_CONTACT_EMAIL)
 - [ ] Missing `sources.yaml` produces a clear error
 - [ ] Missing `taxonomy.yaml` produces a clear error
 - [ ] Disabling all sources produces a clear error
@@ -49,30 +47,16 @@
 - [ ] Items are assigned to the correct primary category
 - [ ] Multi-category items pick the highest-weight category
 
-## Alert Drafting
+## Analysis Drafting
 
-- [ ] Internal alert has all required fields populated
+- [ ] Internal analytic note has all required fields populated
 - [ ] Public insight draft has all required fields populated
 - [ ] Suggested checks are relevant to the category
 - [ ] Draft paragraph is clearly marked as draft
 
-## Webhook Delivery
+## Story Page Readability
 
-- [ ] ntfy.sh alerts arrive with markdown formatting and priority levels
-- [ ] ntfy.sh alerts have click-through links to source articles
-- [ ] Payload arrives at webhook.site in test mode
-- [ ] Payload is valid JSON
-- [ ] Generic payload contains both Section A and Section B
-- [ ] Teams payload has valid Adaptive Card structure
-- [ ] ntfy payload has required fields (title, message, priority, markdown)
-- [ ] Delivery logs are recorded in SQLite
-- [ ] Failed delivery records the error
-- [ ] Retry occurs on server errors (5xx)
-- [ ] No retry on client errors (4xx)
-
-## Payload Readability
-
-- [ ] Alert title is clear and informative
+- [ ] Story title is clear and informative
 - [ ] Summary is concise (not a wall of text)
 - [ ] Scoring reasons are human-readable
 - [ ] Suggested checks are actionable
@@ -82,21 +66,18 @@
 
 - [ ] `data/state.db` is created on first run
 - [ ] `seen_items` table grows with each run
-- [ ] `delivery_log` records success/failure
 - [ ] `run_metadata` tracks each run
 - [ ] Database survives process restart
 - [ ] Cleanup removes old records
 
 ## Error Handling
 
-- [ ] Missing webhook URL fails with clear message at startup
 - [ ] Network timeout on feed fetch is handled gracefully
 - [ ] Invalid RSS content doesn't crash the pipeline
-- [ ] Webhook delivery failure doesn't crash the pipeline
 
 ## Logs
 
 - [ ] Logs show run start and completion
-- [ ] Logs show item counts (fetched, new, relevant, sent)
+- [ ] Logs show item counts (fetched, new, relevant)
 - [ ] Error logs include enough context to diagnose issues
 - [ ] Debug mode provides detailed scoring info

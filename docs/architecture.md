@@ -24,21 +24,20 @@
                                                           └────┬────┘
                                                                │
                                                           ┌────▼─────┐
-                                                          │ Renderer │
-                                                          │(ntfy/gen/│
-                                                          │  teams)  │
-                                                          └────┬─────┘
-                                                               │
-                                                          ┌────▼─────┐
-                                                          │ Delivery │
-                                                          │(webhook) │
-                                                          └────┬─────┘
-                                                               │
-                                                          ┌────▼─────┐
                                                           │  Storage │
                                                           │ (SQLite) │
-                                                          └──────────┘
+                                                          └────┬─────┘
+                                                               │
+                                                     ┌─────────▼─────────┐
+                                                     │ Web app / static  │
+                                                     │ site (Pages)      │
+                                                     └───────────────────┘
 ```
+
+The pipeline is web only: it ends at the archive, which the web app and the
+static site render. Nothing is pushed, posted, or emailed. (An outbound
+webhook step with ntfy, Teams and generic-JSON renderers existed until 2026-10
+and was removed unused; Teams was never deployed.)
 
 ## Source Ingestion
 
@@ -98,36 +97,16 @@ Ranking is differential along a **declared causal model** (`config/causal_model.
 
 ## Daily Briefing and the synthesis lede
 
-`digest.py` assembles the Daily Briefing — the top windowed stories grouped into topic sections — for the `/briefing` page and the optional email. Above that per-story list sits a **synthesis lede** (`synthesis.py`): a deterministic, higher-altitude "what's happening" read of the same window. Like `angles.py` it is a pure function over two adjacent facet windows (`get_recent_story_facets`, the current window and the same-length prior one), reporting the window's volume and momentum, the leading topic, the most-named payers, and a topic breakdown.
+`digest.py` assembles the Daily Briefing — the top windowed stories grouped into topic sections — for the `/briefing` page (live app and static site). Above that per-story list sits a **synthesis lede** (`synthesis.py`): a deterministic, higher-altitude "what's happening" read of the same window. Like `angles.py` it is a pure function over two adjacent facet windows (`get_recent_story_facets`, the current window and the same-length prior one), reporting the window's volume and momentum, the leading topic, the most-named payers, and a topic breakdown.
 
 The lede is **calendar-aware**. `ma_calendar.py` models the approximate Medicare cycle windows (AEP, OEP, the Advance Notice / Final Rate / bid cycle, Star Ratings) and, for each, the taxonomy categories whose elevated volume is *seasonal*. When the window falls inside a cycle the lede frames those categories as seasonal ("AEP is underway … treat it as expected, not a step-change") and flags only genuinely off-cycle categories — so a routine enrollment-season flurry reads as routine, not as a step-change. Off-season it points at the next milestone instead. The dates are approximate framing aids, not compliance dates. The lede introduces no schema change and no scoring change, and is disabled with `DIGEST_LEDE_ENABLED=false`.
-
-## Rendering and Delivery
-
-Delivery is abstracted behind a mode selector:
-
-- `delivery.py` dispatches to the appropriate renderer based on `WEBHOOK_MODE`
-- `renderers/ntfy.py` produces ntfy.sh-compatible JSON with markdown formatting, priority levels, emoji tags, and click-through actions (recommended — free, no signup)
-- `renderers/generic_webhook.py` produces clean JSON (for webhook inspectors and generic consumers)
-- `renderers/teams.py` produces a Teams Adaptive Card (v1.4) wrapped in the Teams message format
-
-**Why the abstraction**: Endpoint compatibility varies (Teams is particularly fragile). By keeping rendering separate from delivery, we can swap formats without touching the delivery retry logic, and test with generic webhooks before switching to Teams.
-
-**ntfy.sh payload features**:
-- Markdown-formatted message body with both alert sections
-- Priority mapping: high confidence → priority 5 (urgent), medium → 3 (default), low → 2
-- Emoji tags for visual indicators (rotating_light, warning, chart_with_upwards_trend)
-- Click-through URL to original source article
-- "View Source" action button
-
-**Retry logic**: Exponential backoff for transient (5xx/connection) errors. 4xx errors fail immediately without retry.
 
 ## State Management
 
 SQLite (`storage.py`) provides eight tables plus a full-text index:
 
 - `seen_items`: Deduplication records (item_id, source, title, link, timestamp)
-- `delivery_log`: Record of every delivery attempt (success/failure, status code, error)
+- `delivery_log`: Historical record of outbound delivery attempts; nothing new is written since delivery was removed (2026-10)
 - `run_metadata`: Start/end times and counts for each pipeline run
 - `stories`: The browsable archive — every scored item, with score, reasons, category, entities, states, and `duplicate_of` (the representative it near-duplicates, for feed grouping)
 - `stories_fts`: FTS5 full-text index over the archive (powers `/search`)
@@ -144,12 +123,10 @@ SQLite (`storage.py`) provides eight tables plus a full-text index:
 | Choice | Rationale |
 |---|---|
 | SQLite for state | Zero-config, durable, portable, no server |
-| ntfy.sh as default delivery | Free, no signup, mobile push, markdown — lowest friction for setup |
+| Web only, no push | The owner reads the site; a push stream of ~a dozen items a day went unused |
 | Keyword scoring (not ML) | Transparent, explainable, no dependencies, effective for domain vocabulary |
 | feedparser + requests | Mature, well-tested, minimal footprint |
-| Adaptive Cards (not MessageCard) | Adaptive Cards are the current Teams standard; MessageCard is legacy |
 | Dataclasses (not Pydantic) | Sufficient for this use case; avoids extra dependency |
-| Delivery abstraction | Endpoint compatibility varies; abstraction allows easy format swaps |
 | Thread-pool fetching | Sources are fetched concurrently (`FETCH_WORKERS`, default 8) with per-source error isolation and config-order results; set `FETCH_WORKERS=1` for strictly sequential fetching |
 | Per-source error isolation | One bad feed shouldn't block the entire run |
 | Declared causal model (not inference) | Layers/edges with citable evidence in `config/causal_model.yaml`; transparent differential ranking, soundness validated at load, coverage test-enforced |

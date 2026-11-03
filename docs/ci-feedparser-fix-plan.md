@@ -1,5 +1,8 @@
 # Fix plan: scheduled workflows failing on `feedparser.sgmllib` import
 
+> **Note (2026-10).** `scheduled-monitor.yml`, named below, was removed in
+> 2026-10 with push delivery; `deploy-pages.yml` is the remaining scheduled run.
+
 Status: executed by this branch. Diagnosis authored 2026-07-29.
 
 ## What is failing

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ma-signal-monitor"
 version = "0.1.0"
-description = "Medicare Advantage news insight monitor with webhook-based alerting"
+description = "Medicare Advantage news insight monitor published as a static website"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}

@@ -21,10 +21,7 @@
 - **Category weights reflect relative analytic importance.** Policy/regulatory is weighted slightly higher (1.2) because regulatory signals tend to have outsized market impact. This is adjustable.
 
 ### Delivery
-- **ntfy.sh is the recommended default delivery mode.** It's free, requires no signup or API keys, supports mobile push notifications, markdown rendering, priority levels, and click-through actions. Topics are public by default — users should choose a unique topic name for privacy.
-- **Teams Incoming Webhook connector is supported as an alternative.** The Teams renderer produces Adaptive Card v1.4 payloads for the Incoming Webhook connector, not for Power Automate Workflow webhooks (which use a different format).
-- **Adaptive Card v1.4 is well-supported.** This is the current recommended version for Teams connectors as of 2024. If Microsoft deprecates this version, the renderer will need updates.
-- **Payload size stays under 28KB.** Teams has a payload size limit. The alert format is designed to be concise, but extremely long article summaries could approach the limit.
+- **Web only.** The archive is published as a static site and read there. There is no push, webhook, or email delivery: an ntfy/Teams/generic-webhook path and an SMTP briefing email existed until 2026-10 and were removed unused (Teams was never deployed, and no briefing was ever emailed). Whether any push is worth adding back is to be decided on evidence of missed signals, not built ahead of it.
 
 ### State
 - **SQLite is suitable for local single-user operation.** No concurrent access concerns. If the tool were to run in a multi-process or distributed setup, a different store would be needed.
@@ -38,14 +35,8 @@
 
 ## Open Questions
 
-1. **Which Teams webhook type is in use?** The tool targets "Incoming Webhook" connectors. Microsoft has been migrating to "Workflow" webhooks (Power Automate) which use a different payload format. If your tenant only supports Workflow webhooks, the Teams renderer will need modification.
+1. **Are there specific sources you want prioritized?** The defaults are general MA-relevant feeds. If there are specific payer investor relations pages, state DOI feeds, or niche sources you want included, they can be added.
 
-2. **Are there specific sources you want prioritized?** The defaults are general MA-relevant feeds. If there are specific payer investor relations pages, state DOI feeds, or niche sources you want included, they can be added.
+2. **Is there a preferred schedule frequency?** The Pages workflow ingests and rebuilds the site every 2 hours. More frequent runs are safe (dedup handles it) but increase network requests.
 
-3. **Is there a preferred schedule frequency?** The repo workflows run alerts every 3 hours and rebuild the Pages site every 2 hours. More frequent runs are safe (dedup handles it) but increase network requests.
-
-4. **Should alerts be batched or sent individually?** Currently each alert is sent as a separate webhook POST. Batching into a single message would reduce noise but make individual signals harder to track.
-
-5. **Is there a need for alert suppression rules?** *(Partly addressed.)* Near-duplicate suppression is now built in: the same story republished by multiple sources fires a single alert (headline-similarity dedup, within-run and against recently-delivered alerts — see `delivery.dedup` in `app.yaml`). Entity- or category-scoped rate limits ("don't alert on UnitedHealthcare more than once per day", "suppress membership movement during open enrollment") are still not implemented but could be added.
-
-6. **What is the expected volume?** With ~90 sources checking every few hours, expect a handful to a few dozen alerts per day depending on news volume and threshold settings. High-volume periods (CMS rulemaking, earnings season) will produce more.
+3. **What is the expected volume?** With ~90 sources checking every few hours, expect a handful to a few dozen stories per day above the drafting threshold, depending on news volume and threshold settings. High-volume periods (CMS rulemaking, earnings season) will produce more.

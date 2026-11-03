@@ -39,7 +39,6 @@
         <tr><th>Fetched</th><td>{{ last_run['items_fetched'] }}</td></tr>
         <tr><th>New</th><td>{{ last_run['items_new'] }}</td></tr>
         <tr><th>Relevant</th><td>{{ last_run['items_relevant'] }}</td></tr>
-        <tr><th>Alerts sent</th><td>{{ last_run['alerts_sent'] }}</td></tr>
         <tr><th>Errors</th><td>{{ last_run['errors'] }}</td></tr>
       </table>
       <p class="muted">Ingestion runs every {{ ingest_interval_hours }}h.</p>
@@ -125,12 +124,9 @@
     <h2>Daily Briefing</h2>
     {% if latest_digest %}
       <p>Latest: <a href="/briefing">{{ latest_digest['digest_date'] }}</a>
-        — {{ latest_digest['story_count'] }} signals
-        {% if latest_digest['sent_at'] %}· emailed{% endif %}.
-        Email delivery is {{ 'enabled' if digest_enabled else 'disabled' }}.</p>
+        — {{ latest_digest['story_count'] }} signals.</p>
     {% else %}
-      <p class="empty">No briefing generated yet. Email delivery is
-        {{ 'enabled' if digest_enabled else 'disabled' }}.</p>
+      <p class="empty">No briefing generated yet.</p>
     {% endif %}
   </section>
 {% endblock %}

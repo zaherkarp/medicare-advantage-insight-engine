@@ -67,7 +67,7 @@ def test_build_creates_expected_pages(tmp_path, sample_config, temp_db):
         category="membership_movement",
         states=["TX"],
     )
-    generate_digest(sample_config, temp_db, now=datetime(2024, 1, 1, 12, 0), send=False)
+    generate_digest(sample_config, temp_db, now=datetime(2024, 1, 1, 12, 0))
 
     out, counts = _build(tmp_path, sample_config, temp_db)
 

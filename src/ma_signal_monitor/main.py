@@ -1,7 +1,10 @@
 """Main orchestrator for MA Signal Monitor.
 
 This is the primary entry point. It coordinates the full pipeline:
-fetch → normalize → dedupe → score → classify → draft → deliver → persist.
+fetch → normalize → dedupe → score → classify → draft → persist.
+
+The pipeline is web-only: scored stories land in the archive that the static
+site (signal.zaherkarp.com) renders. Nothing is pushed anywhere.
 """
 
 import logging
@@ -17,9 +20,7 @@ from ma_signal_monitor.dedupe import (
     assign_story_duplicates,
     filter_new_items,
     mark_items_seen,
-    suppress_duplicate_alerts,
 )
-from ma_signal_monitor.delivery import deliver_alerts
 from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.fetchers.cms import fetch_cms
 from ma_signal_monitor.fetchers.litigation import fetch_litigation
@@ -201,7 +202,7 @@ def run(
         project_root: Root directory of the project. Defaults to cwd.
 
     Returns:
-        A summary dict with counts of items processed, alerts sent, etc.
+        A summary dict with counts of items fetched, new, relevant, and errors.
     """
     root = Path(project_root) if project_root else Path.cwd()
 
@@ -221,9 +222,6 @@ def run(
         "items_fetched": 0,
         "items_new": 0,
         "items_relevant": 0,
-        "alerts_suppressed": 0,
-        "alerts_sent": 0,
-        "alerts_failed": 0,
         "errors": 0,
     }
     fetch_outcomes: list[SourceFetchOutcome] = []
@@ -265,21 +263,15 @@ def run(
         ]
         summary["items_relevant"] = len(relevant)
 
-        # 5. Draft alerts
+        # 5. Draft the public insight drafts for above-threshold items. These
+        #    are stored on the story row (public_draft) and rendered by the
+        #    web/static site; they are not sent anywhere.
         alerts = draft_alerts(scored, config)
 
-        # 5b. Persist all scored items to the browsable story archive
-        #     (richer than the alert stream, which is threshold-gated).
-        #     Persist BEFORE dedup so the archive keeps every scored item —
-        #     dedup only trims the webhook stream, not the archive.
+        # 5b. Persist all scored items to the browsable story archive.
         persisted_by_source = _persist_stories(scored, alerts, config, store)
 
-        # 5c. Suppress near-duplicate alert firings (same story from multiple
-        #     sources, within this run and vs. recently-delivered alerts).
-        alerts, suppressed = suppress_duplicate_alerts(alerts, store, config)
-        summary["alerts_suppressed"] = suppressed
-
-        # 5d. Harvest outbound domains for source discovery (opt-in). Never let
+        # 5c. Harvest outbound domains for source discovery (opt-in). Never let
         #     a discovery failure break ingestion.
         if config.discovery_enabled:
             try:
@@ -287,22 +279,10 @@ def run(
             except Exception as e:
                 logger.warning("Candidate harvest failed: %s", e)
 
-        # 6. Deliver
-        if alerts:
-            results = deliver_alerts(alerts, config)
-            for result in results:
-                store.log_delivery(result)
-                if result.success:
-                    summary["alerts_sent"] += 1
-                else:
-                    summary["alerts_failed"] += 1
-        else:
-            logger.info("No alerts to deliver (none met relevance threshold)")
-
-        # 7. Mark items as seen (all new items, not just relevant ones)
+        # 6. Mark items as seen (all new items, not just relevant ones)
         mark_items_seen(new_items, store)
 
-        # 8. Cleanup old records
+        # 7. Cleanup old records
         store.cleanup_old_records(
             config.seen_item_retention_days,
             config.delivery_log_retention_days,
@@ -325,20 +305,15 @@ def run(
             items_fetched=summary["items_fetched"],
             items_new=summary["items_new"],
             items_relevant=summary["items_relevant"],
-            alerts_sent=summary["alerts_sent"],
-            errors=summary["errors"] + summary["alerts_failed"],
+            errors=summary["errors"],
         )
         store.close()
 
     logger.info(
-        "=== Run complete: fetched=%d, new=%d, relevant=%d, "
-        "suppressed=%d, sent=%d, failed=%d ===",
+        "=== Run complete: fetched=%d, new=%d, relevant=%d ===",
         summary["items_fetched"],
         summary["items_new"],
         summary["items_relevant"],
-        summary["alerts_suppressed"],
-        summary["alerts_sent"],
-        summary["alerts_failed"],
     )
     return summary
 

@@ -9,8 +9,7 @@ from ma_signal_monitor.config import load_config
 
 # Env vars that load_config may set via dotenv
 _ENV_KEYS = [
-    "WEBHOOK_URL",
-    "WEBHOOK_MODE",
+    "FEEDBACK_OWNER_LOGIN",
     "LOG_LEVEL",
     "DB_PATH",
     "CONFIG_DIR",
@@ -39,8 +38,7 @@ class TestConfigLoading:
     def test_loads_valid_config(self, project_root_with_config):
         """Config loads successfully from valid files."""
         config = load_config(project_root_with_config)
-        assert config.webhook_url == "https://webhook.site/test-uuid"
-        assert config.webhook_mode == "test"
+        assert config.log_level == "DEBUG"
         assert len(config.sources) == 1
         assert config.sources[0].name == "Test Feed"
         assert len(config.categories) >= 1
@@ -83,7 +81,7 @@ class TestConfigLoading:
     def test_archive_min_score_env_override(self, project_root_with_config):
         """ARCHIVE_MIN_SCORE overrides the default (0 disables filtering)."""
         (project_root_with_config / ".env").write_text(
-            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\nARCHIVE_MIN_SCORE=0\n"
+            "LOG_LEVEL=DEBUG\nARCHIVE_MIN_SCORE=0\n"
         )
         os.environ.pop("ARCHIVE_MIN_SCORE", None)
         config = load_config(project_root_with_config)
@@ -117,8 +115,7 @@ class TestConfigLoading:
 
     def test_sec_contact_email_env_override(self, project_root_with_config):
         (project_root_with_config / ".env").write_text(
-            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\n"
-            "SEC_CONTACT_EMAIL=ops@example.com\n"
+            "LOG_LEVEL=DEBUG\nSEC_CONTACT_EMAIL=ops@example.com\n"
         )
         config = load_config(project_root_with_config)
         assert config.sec_contact_email == "ops@example.com"
@@ -126,7 +123,7 @@ class TestConfigLoading:
     def test_missing_sources_file_raises(self, tmp_path):
         """FileNotFoundError when sources.yaml is missing."""
         (tmp_path / "config").mkdir()
-        (tmp_path / ".env").write_text("WEBHOOK_URL=https://test.example.com\n")
+        (tmp_path / ".env").write_text("LOG_LEVEL=DEBUG\n")
         with pytest.raises(FileNotFoundError, match="sources.yaml"):
             load_config(tmp_path)
 
@@ -141,7 +138,7 @@ class TestConfigLoading:
         }
         with open(config_dir / "sources.yaml", "w") as f:
             yaml.dump(sources, f)
-        (tmp_path / ".env").write_text("WEBHOOK_URL=https://test.example.com\n")
+        (tmp_path / ".env").write_text("LOG_LEVEL=DEBUG\n")
         with pytest.raises(FileNotFoundError, match="taxonomy.yaml"):
             load_config(tmp_path)
 
@@ -149,31 +146,25 @@ class TestConfigLoading:
 class TestConfigValidation:
     """Test configuration validation rules."""
 
-    def test_missing_webhook_url_falls_back_to_test(self, project_root_with_config):
-        """Falls back to test mode when WEBHOOK_URL is not set in non-test mode."""
+    def test_feedback_owner_login_from_env(self, project_root_with_config):
+        """FEEDBACK_OWNER_LOGIN is read from the environment, stripped."""
         env_path = project_root_with_config / ".env"
-        env_path.write_text("WEBHOOK_MODE=ntfy\n")
-        # Clear any cached env vars
-        os.environ.pop("WEBHOOK_URL", None)
+        env_path.write_text("FEEDBACK_OWNER_LOGIN= ZaherKarp \n")
         config = load_config(project_root_with_config)
-        assert config.webhook_mode == "test"
+        assert config.feedback_owner_login == "ZaherKarp"
 
-    def test_missing_webhook_url_ok_in_test_mode(self, project_root_with_config):
-        """No error when WEBHOOK_URL is missing in test mode."""
-        env_path = project_root_with_config / ".env"
-        env_path.write_text("WEBHOOK_MODE=test\n")
-        os.environ.pop("WEBHOOK_URL", None)
+    def test_feedback_owner_login_defaults_empty(self, project_root_with_config):
+        """No owner login configured => every giscus reaction is crowd signal."""
         config = load_config(project_root_with_config)
-        assert config.webhook_mode == "test"
-        assert config.webhook_url == ""
+        assert config.feedback_owner_login == ""
 
-    def test_invalid_webhook_mode_raises(self, project_root_with_config):
-        """ValueError for invalid WEBHOOK_MODE."""
-        env_path = project_root_with_config / ".env"
-        env_path.write_text("WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=invalid\n")
-        os.environ.pop("WEBHOOK_MODE", None)
-        with pytest.raises(ValueError, match="WEBHOOK_MODE"):
-            load_config(project_root_with_config)
+    def test_story_dedup_threshold_from_app_yaml(self, project_root_with_config):
+        """processing.story_dedup.similarity_threshold overrides the default."""
+        (project_root_with_config / "config" / "app.yaml").write_text(
+            "processing:\n  story_dedup:\n    similarity_threshold: 0.45\n"
+        )
+        config = load_config(project_root_with_config)
+        assert config.story_dedup_similarity_threshold == 0.45
 
     def test_no_enabled_sources_raises(self, project_root_with_config):
         """ValueError when all sources are disabled."""
@@ -191,9 +182,7 @@ class TestConfigValidation:
     def test_invalid_relevance_score_raises(self, project_root_with_config):
         """ValueError for out-of-range min_relevance_score."""
         env_path = project_root_with_config / ".env"
-        env_path.write_text(
-            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\nMIN_RELEVANCE_SCORE=2.0\n"
-        )
+        env_path.write_text("LOG_LEVEL=DEBUG\nMIN_RELEVANCE_SCORE=2.0\n")
         os.environ.pop("MIN_RELEVANCE_SCORE", None)
         with pytest.raises(ValueError, match="min_relevance_score"):
             load_config(project_root_with_config)
@@ -201,7 +190,7 @@ class TestConfigValidation:
     def test_invalid_archive_min_score_raises(self, project_root_with_config):
         """ValueError for out-of-range archive_min_score."""
         (project_root_with_config / ".env").write_text(
-            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\nARCHIVE_MIN_SCORE=1.5\n"
+            "LOG_LEVEL=DEBUG\nARCHIVE_MIN_SCORE=1.5\n"
         )
         os.environ.pop("ARCHIVE_MIN_SCORE", None)
         with pytest.raises(ValueError, match="archive_min_score"):
@@ -263,8 +252,7 @@ class TestConfigValidation:
     def test_sec_source_enabled_with_contact_email_ok(self, project_root_with_config):
         self._write_sec_source(project_root_with_config)
         (project_root_with_config / ".env").write_text(
-            "WEBHOOK_URL=https://test.com\nWEBHOOK_MODE=test\n"
-            "SEC_CONTACT_EMAIL=ops@example.com\n"
+            "LOG_LEVEL=DEBUG\nSEC_CONTACT_EMAIL=ops@example.com\n"
         )
         config = load_config(project_root_with_config)
         assert config.sec_contact_email == "ops@example.com"

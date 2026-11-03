@@ -3,7 +3,7 @@
 import logging
 
 from ma_signal_monitor.config import AppConfig
-from ma_signal_monitor.models import Alert, NormalizedItem, ScoredItem
+from ma_signal_monitor.models import NormalizedItem, ScoredItem
 from ma_signal_monitor.similarity import jaccard, title_terms
 from ma_signal_monitor.storage import StateStore
 
@@ -41,72 +41,12 @@ def filter_new_items(
     return new_items
 
 
-def suppress_duplicate_alerts(
-    alerts: list[Alert], store: StateStore, config: AppConfig
-) -> tuple[list[Alert], int]:
-    """Drop near-duplicate alerts so the same story fires only one webhook.
-
-    Two independent passes, both keyed on headline similarity (title-token
-    Jaccard, see ``similarity``):
-
-    1. **Within-run** — the same story republished by two sources in one run is
-       two distinct items (different ``item_id``) that both cleared the alert
-       threshold. Walking the alerts in their existing order (score-descending,
-       since ``score_items`` sorts and ``draft_alerts`` preserves order), keep
-       the first of each near-duplicate cluster and drop the rest — so the
-       kept representative is the highest-scoring one.
-    2. **Cross-run** — drop any survivor whose title near-matches an alert
-       already delivered in the last ``dedup_lookback_days``.
-
-    Only the webhook stream is trimmed; ``_persist_stories`` still archives
-    every scored item. Returns ``(kept_alerts, suppressed_count)``. A no-op
-    (returns the input unchanged) when ``dedup_enabled`` is false.
-    """
-    if not config.dedup_enabled or not alerts:
-        return alerts, 0
-
-    threshold = config.dedup_similarity_threshold
-
-    # Cross-run reference: term sets of recently-alerted titles.
-    recent_terms = [
-        terms
-        for title in store.recent_alert_titles(config.dedup_lookback_days)
-        if (terms := title_terms(title))
-    ]
-
-    kept: list[Alert] = []
-    kept_terms: list[set[str]] = []
-    suppressed = 0
-    for alert in alerts:
-        title = alert.internal.title
-        terms = title_terms(title)
-        # Within-run: near-duplicate of an already-kept alert?
-        if any(jaccard(terms, prev) >= threshold for prev in kept_terms):
-            suppressed += 1
-            logger.debug("Suppressed within-run duplicate alert: %s", title[:80])
-            continue
-        # Cross-run: near-duplicate of a recently-delivered alert?
-        if any(jaccard(terms, prev) >= threshold for prev in recent_terms):
-            suppressed += 1
-            logger.debug("Suppressed cross-run duplicate alert: %s", title[:80])
-            continue
-        kept.append(alert)
-        kept_terms.append(terms)
-
-    if suppressed:
-        logger.info(
-            "Alert dedup: %d kept, %d near-duplicates suppressed", len(kept), suppressed
-        )
-    return kept, suppressed
-
-
 def assign_story_duplicates(
     scored_items: list[ScoredItem], store: StateStore, config: AppConfig
 ) -> dict[str, str | None]:
     """Map each scored item to the representative story it near-duplicates.
 
-    Mirrors :func:`suppress_duplicate_alerts` but for the *archive*: it labels
-    (rather than drops) near-duplicates so the browsable feed can show one
+    Labels (rather than drops) near-duplicates so the browsable feed can show one
     representative per story while the archive keeps every row. Two passes on
     headline similarity:
 
@@ -124,7 +64,7 @@ def assign_story_duplicates(
     if not config.story_dedup_enabled or not scored_items:
         return result
 
-    threshold = config.dedup_similarity_threshold
+    threshold = config.story_dedup_similarity_threshold
     recent_reps = [
         (item_id, terms)
         for item_id, title in store.recent_story_reps(config.story_dedup_lookback_days)
@@ -158,7 +98,7 @@ def assign_story_duplicates(
 def mark_items_seen(items: list[NormalizedItem], store: StateStore) -> None:
     """Mark items as seen in the state store.
 
-    Call this after items have been processed (scored, delivered, etc.)
+    Call this after items have been processed (scored and persisted)
     so they won't be processed again on the next run.
 
     Args:

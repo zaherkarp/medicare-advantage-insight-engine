@@ -243,10 +243,10 @@ def draft_alerts(scored_items: list[ScoredItem], config: AppConfig) -> list[Aler
     for scored in scored_items:
         if scored.relevance_score < config.min_relevance_score:
             continue
-        # MA-eligibility gate (default off): the push/webhook alert stream
-        # additionally requires tier >= alert, so owner-designated noise
-        # (tier 'exclude') and display-only items never fire an alert. Additive
-        # to the score threshold — off => byte-identical.
+        # MA-eligibility gate (default off): a public draft additionally
+        # requires tier >= alert, so owner-designated noise (tier 'exclude')
+        # and display-only items never get one. Additive to the score
+        # threshold — off => byte-identical.
         if config.ma_eligibility_gate and not eligible_for(
             scored.eligibility_tier or "", "alert"
         ):

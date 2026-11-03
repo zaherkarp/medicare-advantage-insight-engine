@@ -4,7 +4,6 @@
 
 - Python 3.11 or later
 - pip (included with Python) or [uv](https://github.com/astral-sh/uv)
-- A webhook endpoint — [ntfy.sh](https://ntfy.sh) is recommended (free, no signup required)
 
 ## Step 1: Python Environment
 
@@ -37,12 +36,9 @@ cp .env.example .env
 Edit `.env`:
 
 ```ini
-# Required: your webhook endpoint
-# For ntfy.sh (recommended): use any topic name you like
-WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
-
-# Delivery mode: ntfy (recommended), generic, teams, or test
-WEBHOOK_MODE=ntfy
+# Required while any SEC EDGAR source is enabled (sec.gov rejects requests
+# without a real contact email)
+SEC_CONTACT_EMAIL=you@example.com
 
 # Optional tuning
 LOG_LEVEL=INFO
@@ -67,64 +63,28 @@ sources:
 
 Edit `config/taxonomy.yaml` to adjust keywords, weights, or watched entities.
 
-## Step 3: Test with ntfy.sh (Recommended)
-
-[ntfy.sh](https://ntfy.sh) provides free push notifications with no signup required.
-
-1. Open `https://ntfy.sh/ma-signal-monitor` in your browser, or install the ntfy app ([iOS](https://apps.apple.com/app/ntfy/id1625396347) / [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)) and subscribe to topic `ma-signal-monitor`
-2. Your `.env` should already have:
-   ```ini
-   WEBHOOK_URL=https://ntfy.sh/ma-signal-monitor
-   WEBHOOK_MODE=ntfy
-   ```
-3. Run the seed test:
+## Step 3: Try it with sample data
 
 ```bash
-python scripts/seed_test_data.py --deliver
+python scripts/seed_test_data.py
 ```
 
-4. Check the ntfy.sh topic — you should see formatted alerts with markdown, priority levels, and click-through links to source articles
-5. Review the alert structure: Section A (internal analytic alert) and Section B (draft public insight)
+This prints each sample item's score and reasons, shows the two-section
+analysis (Section A, internal analytic note; Section B, draft public insight)
+for items above the threshold, and writes everything to the local archive.
 
-> **Privacy tip**: ntfy.sh topics are public by default. Use a unique, hard-to-guess topic name (e.g., `https://ntfy.sh/my-ma-monitor-abc123`) for production use.
-
-### Alternative: Test with Webhook.site
-
-If you prefer to inspect raw JSON payloads:
-
-1. Go to [webhook.site](https://webhook.site) and copy your unique URL
-2. Set `WEBHOOK_URL=https://webhook.site/<your-uuid>` and `WEBHOOK_MODE=test` in `.env`
-3. Run: `python scripts/seed_test_data.py --deliver`
-4. Inspect the JSON payload structure on webhook.site
-
-## Step 4: Run Against Live Feeds
+## Step 4: Run against live feeds
 
 ```bash
 python scripts/run_once.py
 ```
 
-Check your webhook endpoint for any alerts. If no alerts appear, the feeds may not have had items matching the relevance threshold — try lowering `MIN_RELEVANCE_SCORE` in `.env` to `0.1` temporarily.
+Then browse the result in the web frontend (see the README, "Web Frontend & Self-Hosting") or
+build the static site. If few stories get an analysis draft, the feeds may not
+have had items above the relevance threshold; try lowering
+`MIN_RELEVANCE_SCORE` in `.env` to `0.1` temporarily.
 
-## Step 5: Switch to Teams (Optional)
-
-If you prefer Microsoft Teams over ntfy.sh:
-
-1. In your Teams channel, add an "Incoming Webhook" connector
-2. Copy the webhook URL
-3. Update `.env`:
-   ```ini
-   WEBHOOK_URL=https://your-org.webhook.office.com/webhookb2/...
-   WEBHOOK_MODE=teams
-   ```
-4. Test with the seed script first:
-   ```bash
-   python scripts/seed_test_data.py --deliver
-   ```
-5. If the card renders in Teams, switch to live feeds
-
-**Troubleshooting Teams**: If cards don't render, switch back to `WEBHOOK_MODE=test` and send to webhook.site to inspect the payload structure. See `docs/troubleshooting.md`.
-
-## Step 6: Schedule Recurring Runs
+## Step 5: Schedule Recurring Runs
 
 See the [operations guide](operations.md) for cron/Task Scheduler setup.
 

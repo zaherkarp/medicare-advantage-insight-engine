@@ -2,15 +2,15 @@
 
 ## Daily Operation Model
 
-The monitor is designed to run periodically (the repo workflows run alerts
-every 3 hours and the Pages rebuild every 2 hours; self-hosters can pick any
-cadence). Each run:
+The monitor is designed to run periodically (the repo's Pages workflow ingests
+and rebuilds the site every 2 hours; self-hosters can pick any cadence). It is
+web only: nothing is pushed, posted, or emailed. Each run:
 
 1. Fetches all enabled sources concurrently (`FETCH_WORKERS`, default 8)
 2. Normalizes and deduplicates items
 3. Scores and classifies new items
-4. Delivers alerts for items above the relevance threshold
-5. Records state and logs
+4. Drafts the two-section analysis for items above the relevance threshold
+5. Writes every scored item to the archive, and records state and logs
 
 A typical run takes 10-60 seconds depending on the number of sources and network speed.
 
@@ -37,7 +37,7 @@ The SQLite database contains:
 | Table | Purpose |
 |---|---|
 | `seen_items` | Deduplication records |
-| `delivery_log` | Webhook delivery attempts |
+| `delivery_log` | Historical outbound delivery attempts (nothing new written since 2026-10) |
 | `run_metadata` | Start/end times and counts per run |
 | `stories` | Browsable archive of every scored item |
 | `stories_fts` | FTS5 full-text index over `stories` |
@@ -46,29 +46,9 @@ The SQLite database contains:
 | `candidate_sources` | Ranked candidate feeds for review/promotion |
 | `feedback` | Reader/owner verdicts (append-only, weighted) |
 
-## Delivery Modes
-
-The monitor supports four delivery modes via `WEBHOOK_MODE` in `.env`:
-
-| Mode | Endpoint | Use Case |
-|---|---|---|
-| `ntfy` *(recommended)* | `https://ntfy.sh/your-topic` | Free push notifications — mobile + web, no signup |
-| `teams` | Teams incoming webhook URL | Microsoft Teams Adaptive Cards |
-| `generic` | Any HTTP endpoint | Raw JSON for custom integrations |
-| `test` | Any HTTP endpoint or webhook.site | Debug logging + payload inspection |
-
-## Retry Behavior
-
-Webhook delivery retries on transient failures:
-
-- **5xx errors**: Retried up to `max_retries` (default: 3) with exponential backoff
-- **Connection errors/timeouts**: Same retry behavior
-- **4xx errors**: Not retried (indicates a client-side problem)
-- **Backoff**: `base * 2^attempt` seconds (default base: 2, so waits are 2s, 4s, 8s)
-
 ## How Deduplication Works
 
-Each item gets a stable ID from `SHA-256(source_name + link)`. Before processing, items are checked against the `seen_items` table. Only items not previously seen proceed through scoring/delivery.
+Each item gets a stable ID from `SHA-256(source_name + link)`. Before processing, items are checked against the `seen_items` table. Only items not previously seen proceed through scoring and persistence.
 
 Items are marked seen **after** processing, so a failed run won't permanently skip items.
 
@@ -79,7 +59,6 @@ Seen records are retained for 90 days (configurable in `config/app.yaml`), then 
 Rerunning is safe:
 
 - Items already seen will be skipped (deduplication)
-- The same alert won't be delivered twice
 - State is only updated after successful processing
 
 To force reprocessing of previously seen items:
@@ -126,8 +105,8 @@ secret** (not a Variable, so it's masked in logs if ever echoed):
 1. Repo → **Settings → Secrets and variables → Actions → Secrets → New
    repository secret**
 2. Name: `SEC_CONTACT_EMAIL`, value: an email you control
-3. Both `deploy-pages.yml` and `scheduled-monitor.yml` already read
-   `secrets.SEC_CONTACT_EMAIL` into the environment for you
+3. `deploy-pages.yml` already reads `secrets.SEC_CONTACT_EMAIL` into the
+   environment for you
 
 Note: `*.github.com` noreply addresses (e.g.
 `123+you@users.noreply.github.com`) are themselves rejected by sec.gov — use
@@ -147,7 +126,7 @@ Set `enabled: false` in `config/sources.yaml`. The source will be skipped on the
 
 In `.env`:
 ```ini
-MIN_RELEVANCE_SCORE=0.2  # Lower = more alerts, higher = fewer alerts
+MIN_RELEVANCE_SCORE=0.2  # Lower = more stories drafted, higher = fewer
 ```
 
 ### Adjust keyword weights
@@ -225,12 +204,6 @@ Check the last few runs:
 
 ```bash
 sqlite3 data/state.db "SELECT * FROM run_metadata ORDER BY id DESC LIMIT 5"
-```
-
-Check delivery success rate:
-
-```bash
-sqlite3 data/state.db "SELECT success, COUNT(*) FROM delivery_log GROUP BY success"
 ```
 
 Check for silently broken sources — an enabled source with no archived item
