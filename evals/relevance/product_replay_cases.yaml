@@ -1,4 +1,4 @@
-version: NEWS-TRENDS-01-v2
+version: NEWS-TRENDS-01-v3
 as_of: 2026-10-17T12:00:00
 cases:
   - id: pp2-must-catch
@@ -9,7 +9,7 @@ cases:
     first_seen: 2026-10-17T08:20:00
     title: CMS releases 2027 Medicare Advantage Plan Preview 2
     summary: Primary CMS advance notice materials describe risk adjustment and operational changes for Medicare Advantage plans.
-    expected: {feed: true, briefing: true, angles: true, alert: true}
+    expected: {feed: true, briefing: true, angles: true, draft: true}
   - id: pp2-unchanged-repeat
     operational_usefulness: noise
     public_availability: public
@@ -18,7 +18,12 @@ cases:
     first_seen: 2026-10-17T09:10:00
     title: CMS releases 2027 Medicare Advantage Plan Preview 2 unchanged
     summary: The Second Plan Preview repeats the same CMS advance notice without a material change.
-    expected: {feed: false, briefing: false, angles: false, alert: false}
+    # draft: true is observed production behaviour, not a wish. Since #75
+    # removed push alerts and their duplicate suppression, draft_alerts runs
+    # on every scored item, so an archive duplicate still gets a public draft
+    # even though it never reaches the feed, briefing or angles. Reported as
+    # a product gap by the replay (duplicate_drafting); see the PR.
+    expected: {feed: false, briefing: false, angles: false, draft: true}
   - id: pp2-material-update
     operational_usefulness: material_update
     public_availability: public
@@ -27,7 +32,7 @@ cases:
     first_seen: 2026-10-17T10:15:00
     title: CMS final 2027 Medicare Advantage rate notice changes benchmarks
     summary: The final rate announcement materially changes a benchmark from Plan Preview 2.
-    expected: {feed: true, briefing: true, angles: true, alert: true}
+    expected: {feed: true, briefing: true, angles: true, draft: true}
   - id: dated-primary-analysis
     operational_usefulness: decision_support
     public_availability: public
@@ -36,7 +41,7 @@ cases:
     first_seen: 2026-10-17T11:00:00
     title: Primary filing details a dated Medicare Advantage network change
     summary: The dated primary document supports a Medicare Advantage contract and network change.
-    expected: {feed: true, briefing: true, angles: true, alert: true}
+    expected: {feed: true, briefing: true, angles: true, draft: true}
   - id: below-score-must-catch
     operational_usefulness: must_catch
     public_availability: public
@@ -45,7 +50,7 @@ cases:
     first_seen: 2026-10-17T11:20:00
     title: Medicare Advantage operational update
     summary: A source-shaped plan update carries little taxonomy evidence beyond its Medicare Advantage context.
-    expected: {feed: true, briefing: false, angles: false, alert: false}
+    expected: {feed: true, briefing: false, angles: false, draft: false}
   - id: conflicting-figures
     operational_usefulness: requires_adjudication
     public_availability: public
@@ -54,5 +59,5 @@ cases:
     first_seen: 2026-10-17T11:40:00
     title: Reports conflict on 2027 Medicare Advantage premium increase
     summary: One report says 92 percent and another says 93 percent; the Medicare Advantage figures are not adjudicated.
-    expected: {feed: true, briefing: true, angles: true, alert: true}
+    expected: {feed: true, briefing: true, angles: true, draft: true}
 

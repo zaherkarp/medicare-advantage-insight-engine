@@ -2,8 +2,10 @@
 
 The fixture is a compact regression pack, not a precision/recall sample. It
 starts with source-shaped items and delegates scoring, MA eligibility, archive
-duplicate assignment, Briefing selection, Angles card construction, alert
-selection, and alert deduplication to production code. The eligibility gate is
+duplicate assignment, Briefing selection, Angles card construction, and
+public-draft selection to production code. The push-alert surface and its
+duplicate suppression were retired with the engine's delivery code (#75);
+the public draft rendered on each story page is what replaced it. The eligibility gate is
 enabled only inside this isolated replay; shipped configuration remains off.
 """
 
@@ -21,7 +23,7 @@ import yaml
 
 from ma_signal_monitor.angles import build_angles
 from ma_signal_monitor.config import load_config
-from ma_signal_monitor.dedupe import assign_story_duplicates, suppress_duplicate_alerts
+from ma_signal_monitor.dedupe import assign_story_duplicates
 from ma_signal_monitor.digest import build_digest
 from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.models import NormalizedItem
@@ -49,7 +51,13 @@ def _source_item(case: dict) -> NormalizedItem:
 
 def _rating_year_from_item(item: NormalizedItem) -> int:
     prefix = "rating-year-"
-    return int(next(tag.removeprefix(prefix) for tag in item.source_tags if tag.startswith(prefix)))
+    return int(
+        next(
+            tag.removeprefix(prefix)
+            for tag in item.source_tags
+            if tag.startswith(prefix)
+        )
+    )
 
 
 def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
@@ -105,10 +113,11 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             for story in card["stories"]
         }
 
-        alerts, alert_duplicates_suppressed = suppress_duplicate_alerts(
-            draft_alerts(scored, config), store, config
-        )
-        alert_ids = {alert.scored_item.item.item_id for alert in alerts}
+        # Mirrors main.py step 5: every scored item above the threshold that
+        # passes the gate gets a public draft. No duplicate suppression runs
+        # here because production no longer has any.
+        drafts = draft_alerts(scored, config)
+        draft_ids = {draft.scored_item.item.item_id for draft in drafts}
 
         results = []
         for case in cases:
@@ -133,7 +142,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
                 "feed": case["id"] in feed_ids,
                 "briefing": case["id"] in briefing_ids,
                 "angles": case["id"] in angle_ids,
-                "alert": case["id"] in alert_ids,
+                "draft": case["id"] in draft_ids,
             }
             results.append(
                 {
@@ -166,22 +175,35 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             "shipped_gate_default": False,
             "archive_min_score": config.archive_min_score,
             "briefing_min_score": config.digest_min_score,
-            "alert_min_score": config.min_relevance_score,
-            "story_duplicate_similarity": config.dedup_similarity_threshold,
+            "draft_min_score": config.min_relevance_score,
+            "story_duplicate_similarity": config.story_dedup_similarity_threshold,
         },
         "production_paths": {
             "scoring_and_eligibility": "score_items",
             "archive_duplicate_assignment": "assign_story_duplicates",
             "angles_cards": "build_angles",
-            "alert_selection": "draft_alerts",
-            "alert_duplicate_suppression": "suppress_duplicate_alerts",
+            "public_draft_selection": "draft_alerts",
         },
         "drafting_guard": {
             "available": False,
             "status": "product_gap",
             "detail": (
-                "No production claim-support guard exists between alert selection "
+                "No production claim-support guard exists between draft selection "
                 "and public-draft construction; this replay does not simulate one."
+            ),
+        },
+        "duplicate_drafting": {
+            "status": "product_gap",
+            "detail": (
+                "draft_alerts runs on every scored item; archive duplicates are "
+                "hidden from the feed but still receive a public draft. The "
+                "push-alert duplicate suppression that used to stop this was "
+                "retired with delivery in #75."
+            ),
+            "duplicates_with_drafts": sorted(
+                story_id
+                for story_id, dup_of in duplicate_map.items()
+                if dup_of is not None and story_id in draft_ids
             ),
         },
         "coverage_limits": [
@@ -191,8 +213,9 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
         ],
         "angles_card_count": len(angles_view["angles"]),
         "angles_card_types": sorted({card["type"] for card in angles_view["angles"]}),
-        "archive_duplicates_assigned": sum(v is not None for v in duplicate_map.values()),
-        "alert_duplicates_suppressed": alert_duplicates_suppressed,
+        "archive_duplicates_assigned": sum(
+            v is not None for v in duplicate_map.values()
+        ),
         "results": results,
         "passed": all(row["passed"] for row in results),
     }
@@ -214,4 +237,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

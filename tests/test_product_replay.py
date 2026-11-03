@@ -6,7 +6,6 @@ def test_product_replay_matches_declared_surface_outcomes():
     assert report["passed"], report["results"]
     assert len(report["results"]) == 6
     assert report["archive_duplicates_assigned"] == 1
-    assert report["alert_duplicates_suppressed"] == 1
 
 
 def test_replay_exercises_production_paths_and_dates():
@@ -48,5 +47,18 @@ def test_missing_claim_support_guard_is_reported_as_product_gap():
     assert report["drafting_guard"]["available"] is False
     assert report["drafting_guard"]["status"] == "product_gap"
     conflict = next(r for r in report["results"] if r["id"] == "conflicting-figures")
-    assert conflict["observed"]["alert"] is True
+    assert conflict["observed"]["draft"] is True
     assert "draft_candidate" not in conflict["observed"]
+
+
+def test_duplicate_drafting_is_reported_as_product_gap():
+    # Since #75 retired push alerts and their duplicate suppression, an
+    # archive duplicate is kept out of every reader surface but still gets a
+    # public draft. The replay records that rather than asserting it away.
+    report = run_replay()
+    gap = report["duplicate_drafting"]
+    assert gap["status"] == "product_gap"
+    assert gap["duplicates_with_drafts"] == ["pp2-unchanged-repeat"]
+    repeat = next(r for r in report["results"] if r["id"] == "pp2-unchanged-repeat")
+    assert repeat["observed"]["feed"] is False
+    assert repeat["observed"]["briefing"] is False
