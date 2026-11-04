@@ -169,6 +169,13 @@ on the owner-labeled holdout:
       behind `ma_eligibility_gate` (default off): briefing requires tier=brief,
       alerts tier>=alert, the public feed hides tier=exclude, and the payer-alias
       score dedup is applied. Off => byte-identical.
+- [x] October holdout (`holdout_2026-10.yaml`, n=204, all owner labels) scored
+      once — see [`RESULTS_2026-10.md`](RESULTS_2026-10.md). **The gate fails all
+      three pre-registered recall floors** (15 Brief and 13 Context stories hidden
+      from the feed, 12 Brief demoted) and loses 27 of 58 Brief stories against 11
+      for the current threshold. Do not switch it on. The labels brief payer
+      business news, Medicaid/ACA payer news and CMS rulemaking that the gate's
+      MA-vocabulary premise excludes; which bar is intended is an owner decision.
 - [ ] **Next (separate PRs):** a source-tier trust rule for the curated FCA/MA
       litigation feeds (the text-only recall blind spot — e.g. *US v. Anthem*
       RADV scored 0.26 and was missed), and a borderline LLM/classifier
