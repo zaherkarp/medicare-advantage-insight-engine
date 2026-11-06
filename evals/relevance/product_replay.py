@@ -29,6 +29,7 @@ from ma_signal_monitor.drafting import draft_alerts
 from ma_signal_monitor.models import NormalizedItem
 from ma_signal_monitor.scoring import score_items
 from ma_signal_monitor.storage import StateStore
+from ma_signal_monitor.web.routes import _facet_view
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CASES = Path(__file__).with_name("product_replay_cases.yaml")
@@ -101,7 +102,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
 
         since = now.replace(hour=0, minute=0, second=0, microsecond=0)
         facet_rows = [
-            dict(row)
+            _facet_view(row)
             for row in store.get_recent_story_facets(
                 since=since, min_score=config.archive_min_score
             )
@@ -182,6 +183,7 @@ def run_replay(cases_path: Path = DEFAULT_CASES) -> dict:
             "scoring_and_eligibility": "score_items",
             "archive_duplicate_assignment": "assign_story_duplicates",
             "angles_cards": "build_angles",
+            "decoded_angles_facets": "web.routes._facet_view",
             "public_draft_selection": "draft_alerts",
         },
         "drafting_guard": {
