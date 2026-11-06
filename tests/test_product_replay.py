@@ -29,6 +29,34 @@ def test_replay_exercises_production_paths_and_dates():
     assert {row["rating_year"] for row in report["results"]} == {2027}
 
 
+
+
+def test_replay_decodes_saved_facets_before_angles(monkeypatch):
+    from evals.relevance import product_replay
+
+    real_build_angles = product_replay.build_angles
+    observed_rows = []
+
+    def checked_build_angles(current, previous, config):
+        assert current
+        assert all(
+            isinstance(row[field], list)
+            for row in current
+            for field in ("categories", "entities", "states")
+        )
+        observed_rows.extend(current)
+        return real_build_angles(current, previous, config)
+
+    monkeypatch.setattr(product_replay, "build_angles", checked_build_angles)
+    report = product_replay.run_replay()
+
+    assert report["passed"]
+    assert observed_rows
+    assert report["production_paths"]["decoded_angles_facets"] == (
+        "web.routes._facet_view"
+    )
+
+
 def test_replay_labels_usefulness_separately_from_public_availability():
     report = run_replay()
     assert {row["id"]: row["operational_usefulness"] for row in report["results"]} == {
