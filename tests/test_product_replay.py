@@ -29,8 +29,6 @@ def test_replay_exercises_production_paths_and_dates():
     assert {row["rating_year"] for row in report["results"]} == {2027}
 
 
-
-
 def test_replay_decodes_saved_facets_before_angles(monkeypatch):
     from evals.relevance import product_replay
 
