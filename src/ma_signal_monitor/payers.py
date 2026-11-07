@@ -62,6 +62,12 @@ PAYER_GROUPS: tuple[PayerGroup, ...] = (
     ),
     PayerGroup("caresource", "CareSource", "payer", ("CareSource",)),
     PayerGroup("bright-health", "Bright Health", "payer", ("Bright Health",)),
+    PayerGroup(
+        "medigold",
+        "Mount Carmel MediGold",
+        "payer",
+        ("Mount Carmel Health Plan",),
+    ),
     PayerGroup("gohealth", "GoHealth", "distribution", ("GoHealth",)),
     PayerGroup("ehealth", "eHealth", "distribution", ("eHealth", "eHealthInsurance")),
     PayerGroup("selectquote", "SelectQuote", "distribution", ("SelectQuote",)),
