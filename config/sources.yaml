@@ -186,6 +186,41 @@ sources:
     homepage: "https://www.courtlistener.com/"
     description: "Court opinions in False Claims Act cases involving MA plans, risk-adjustment fraud, and qui tam relators."
 
+  # Independent Stars discovery: do not require False Claims Act language.
+  # The insurer/HHS fallback is deliberately broader than MA. Keep it plain
+  # RSS: injecting Stars context would mislabel unrelated insurance cases.
+  # Search feeds only cover documents indexed by CourtListener/RECAP; they
+  # cannot establish complete PACER coverage or replace case reconciliation.
+  - name: "CourtListener - MA Stars Filings"
+    type: rss
+    url: "https://www.courtlistener.com/feed/search/?q=%28%22star+rating%22+OR+%22star+ratings%22+OR+%22quality+bonus%22%29+AND+%28Medicare+OR+CMS%29&type=r&order_by=dateFiled+desc"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement", "federal"]
+    state: "national"
+    homepage: "https://www.courtlistener.com/"
+    description: "Filings mentioning Medicare/CMS Star Ratings or quality bonuses, independent of Georgetown indexing."
+
+  - name: "CourtListener - MA Stars Opinions"
+    type: rss
+    url: "https://www.courtlistener.com/feed/search/?q=%28%22star+rating%22+OR+%22star+ratings%22+OR+%22quality+bonus%22%29+AND+%28Medicare+OR+CMS%29&type=o&order_by=dateFiled+desc"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement", "federal"]
+    state: "national"
+    homepage: "https://www.courtlistener.com/"
+    description: "Opinions mentioning Medicare/CMS Star Ratings or quality bonuses; includes remedies and recalculation disputes."
+
+  - name: "CourtListener - Insurer HHS Filings"
+    type: rss
+    url: "https://www.courtlistener.com/feed/search/?q=caseName%3A%28%22Health+and+Human+Services%22+OR+CMS%29+AND+caseName%3A%28%22Blue+Cross%22+OR+%22Blue+Shield%22+OR+%22Health+Plan%22+OR+Healthcare+OR+Insurance+OR+Humana+OR+Aetna+OR+Centene+OR+Clover+OR+Alignment+OR+SCAN+OR+MediGold+OR+%22Mount+Carmel%22+OR+Healthfirst+OR+Elevance+OR+UnitedHealth+OR+UnitedHealthcare+OR+Kaiser+OR+Molina+OR+Zing%29&type=r&order_by=dateFiled+desc"
+    priority: 4
+    enabled: true
+    tags: ["litigation", "enforcement", "federal"]
+    state: "national"
+    homepage: "https://www.courtlistener.com/"
+    description: "Broader insurer/HHS filing discovery when case titles omit Stars; results require Medicare and topic verification."
+
   # Georgetown Law (O'Neill Institute) Health Care Litigation Tracker — one RSS
   # feed per issue topic. Entries are case names with boilerplate summaries, so
   # each source declares the topic it guarantees via `context`; the litigation
