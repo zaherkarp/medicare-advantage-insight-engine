@@ -31,7 +31,9 @@ jobs:
     timeout-minutes: 30
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      # The retry step below only runs when the first deploy failed, so
+      # take whichever attempt produced a URL.
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy-retry.outputs.page_url }}
     env:
       # This site serves at its OWN domain (signal.zaherkarp.com) as of
       # 2026-09-06, not under /<repo>, so the base path is root. It used to
@@ -230,9 +232,35 @@ jobs:
           path: site
           name: github-pages-${{ github.run_attempt }}
 
+      # One in-job retry for the deploy call. Every scheduled failure of this
+      # workflow from 2026-10-03 to 2026-11-07 died HERE, after ingest, build
+      # and the archive save had all succeeded, on a GitHub-side transient:
+      # a Pages API 503 (10-03), a 502 creating the deployment (11-02), and
+      # "No artifacts named github-pages-1 were found" seconds after that
+      # artifact uploaded successfully (11-07), which is the artifact API
+      # being briefly inconsistent. Each self-healed on the next 2-hourly
+      # run; the only cost was a red run and a failure email. The retry
+      # turns those into a one-minute delay instead.
+      #
+      # continue-on-error keeps the job alive for the retry; the retry's own
+      # failure is NOT suppressed, so a real Pages outage still fails the run.
+      # Only this step retries: anything upstream (ingest, archive_guard,
+      # cache save) failing is a real signal and must stay red.
       - name: Deploy to GitHub Pages
         id: deploy
+        continue-on-error: true
         uses: actions/deploy-pages@v4
         with:
           # Must match the upload step's name above.
+          artifact_name: github-pages-${{ github.run_attempt }}
+
+      - name: Wait before retrying the deploy
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+
+      - name: Retry deploy to GitHub Pages
+        id: deploy-retry
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
           artifact_name: github-pages-${{ github.run_attempt }}
