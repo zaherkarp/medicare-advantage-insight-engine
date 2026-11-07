@@ -1,8 +1,10 @@
-# Held-out relevance evaluation set — proposed labels await owner confirmation.
-# Regenerate: python -m evals.relevance.build_holdout --db <state.db> --out <this file>
+# Held-out relevance evaluation set, 1-15 October 2026. All 204 labels are owner labels
+# (label_source: owner). Scored once; see RESULTS_2026-10.md.
+# Regenerate the unlabeled set: python -m evals.relevance.build_holdout --db <state.db> \
+#   --since 2026-10-01 --until 2026-10-15 --exclude evals/relevance/holdout_2026-08.yaml --out <this file>
 _meta:
-  purpose: Held-out relevance evaluation set. proposed_label is a rubric heuristic, NOT ground truth;
-    fill `label` by owner review before reporting any precision/recall.
+  purpose: Held-out relevance evaluation set. Labels are owner ground truth, entered 2026-11-03 on a labeling
+    page that hid the gate's guess. proposed_label is the gate-derived heuristic and is NOT ground truth.
   heldout_since: '2026-10-01'
   heldout_until: '2026-10-15'
   excluded_prior_items: 1
@@ -17,6 +19,15 @@ _meta:
   - relevant_context
   - borderline_display
   - irrelevant
+  labeled: '2026-11-03'
+  excluded_from_scoring:
+    reason: reused as development material after this holdout was built, so no longer held out
+    items:
+      7b068358ef756143: tests/fixtures/owner_development_2026_11.yaml (2026-11-02)
+      86fe45ef857045ba: tests/fixtures/owner_development_2026_11.yaml (2026-11-02); drove the SCAN identity
+        fix in scoring.py
+      ca7b8bc14feb207f: tests/fixtures/owner_development_2026_11.yaml (2026-11-02)
+      8d11fb0f6f8e63bc: evals/relevance/watch_selection_cases.yaml
 items:
 - item_id: 00528ded45f34128
   title: BCBS Association reabsorbs data analytics business
@@ -31,8 +42,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0090a9a3683d9a63
   title: State senator accuses Lincoln of improperly taxing non-city residents, demands refunds
   summary: LINCOLN — A Lincoln state senator accused city officials Wednesday of improperly taxing residents
@@ -45,8 +57,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 02857061e1db85eb
   title: Trump Administration Delivers Second Year of Savings by Stopping Taxpayer Payments for Duplicate
     and Deceased Enrollees in Obamacare
@@ -61,8 +74,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 0715b0cc8c476df7
   title: Independence Blue Cross launches $0-premium Medicare Advantage HMO
   summary: Philadelphia-based Independence Blue Cross is adding Keystone 65 Assured HMO, a Medicare Advantage
@@ -76,8 +90,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 0907fe1462ea371a
   title: Federal judge blocks Trump administration from moving Forest Service headquarters to Utah
   summary: A federal judge has issued a preliminary ruling blocking the Trump administration from moving
@@ -90,8 +105,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0be1982a8bc58cb8
   title: Trump Administration Announces More Than $17 Million for New Mental Health Clinics, Mobile Crisis
     Teams, and Expanded Addiction Treatment in North Carolina
@@ -105,8 +121,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 0d471ef4591a958e
   title: 'Better Information, Better Care: How Coding Supports Today’s Complex Patients'
   summary: Correctly assessing the clinical status of a patient is imperative to delivering high-quality
@@ -120,8 +137,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 10c56817cd0cd929
   title: Aetna, Horizon BCBS join New Jersey working group to tackle state health benefits affordability
   summary: New Jersey Democratic Gov. Mikie Sherrill launched the State Health Benefits Program Reform
@@ -136,8 +154,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 136657d0860ab2b1
   title: Idaho US Attorney Bart Davis announces retirement from Justice Department
   summary: Idaho’s top-ranking federal law enforcement official, U.S. Attorney Bart Davis, announced his
@@ -150,8 +169,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 14389a62cf870714
   title: UnitedHealthcare sued over copay accumulator policy
   summary: UnitedHealthcare is facing a class-action lawsuit, which alleges the insurer inappropriately
@@ -166,8 +186,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 14c62f8f2d2107e3
   title: Cigna unveils $3B productivity initiative, including use of AI
   summary: The company will focus on automating and modernizing processes, better managing suppliers,
@@ -179,8 +200,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1623cae8b581b612
   title: SCAN, Sutter Health expand service area for co-branded Medicare Advantage plans
   summary: SCAN Health Plan and Sacramento, Calif.-based Sutter Health are bringing their co-branded Medicare
@@ -194,8 +216,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 19b6a0b2816e84e1
   title: 'Fierce Healthcare Regulatory Recap: CMS releases 2027 MA star ratings; HHS awards $28M for falls
     prevention'
@@ -206,8 +229,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 1a7badfa7011e4aa
   title: Trump to send $90 payments to 20 million Medicare enrollees
   summary: The White House said the federal government will send more than 20 million Medicare enrollees
@@ -221,8 +245,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 1a9cdfe70a64c9bb
   title: ACHP Statement on Introduction of the MA STARS Act
   summary: ACHP applauds Rep. Mike Kelly's MA STARS Act, which centers Medicare Advantage Star Ratings
@@ -233,8 +258,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 1bb25b5ffd3f45c3
   title: Sens. King, Curtis Named ACHP’s 2026 Legislative Champions
   summary: Sens. Angus King and John Curtis named ACHP's 2026 Legislative Champions for protecting Medicare
@@ -245,8 +271,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 1bfca62281a799e2
   title: Texas AG Ken Paxton launches investigations into UnitedHealth Group, BCBSTX
   summary: Texas Attorney General Ken Paxton announced on Monday that he would launch an investigation
@@ -258,8 +285,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1d4af234f14dfb0e
   title: Devoted Health closes $1.2B financing deal amid expansion push
   summary: Medicare Advantage insurer Devoted Health has closed a $555 million Series G round as part
@@ -273,8 +301,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 1d9aacce7a78d2ff
   title: Vermont Digital Services Secretary Denise Reilly-Hughes to leave role for private sector
   summary: 'Scott’s office praised the outgoing secretary’s work improving the state’s cybersecurity systems
@@ -286,8 +315,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 1e94c9e86e314b6f
   title: Alignment Healthcare sues CMS over its 2027 Medicare Advantage star ratings
   summary: Alignment Healthcare sued federal regulators, alleging that its 2027 Medicare Advantage star
@@ -298,8 +328,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 1ea3d2bb4f9d6db7
   title: Trump Administration Announces $209 Million to Expand Advanced Medical Care, Maternal Telehealth,
     and Cancer Prevention Across Rural Iowa
@@ -313,8 +344,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 208a6e7579702b99
   title: '‘Somebody cares about this enough’: What the ICHRA-to-CHOICE rebrand means'
   summary: 'In September, CMS rebranded individual coverage health reimbursement arrangements as CHOICE
@@ -329,8 +361,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 23107ff4be9e8cbf
   title: UnitedHealthcare mistakenly tells members that 8 clinicians died
   summary: UnitedHealthcare recently sent letters to members across the country mistakenly informing them
@@ -345,8 +378,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 249b0f022d6bf7db
   title: Cigna unveils new customer experience platform, Health Sense
   summary: Cigna is rolling out a new patient experience platform that aims to harness the power of data
@@ -357,8 +391,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 276bd42f71e8fa89
   title: CMS finalizes updates to price transparency regulations that aim to improve usability
   summary: The Trump administration on Monday finalized a rule that aims to make the data files mandated
@@ -369,8 +404,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 28a72252883eec54
   title: Douglas County Board responds to state auditor criticism, sheriff says criminal probe still on
   summary: OMAHA — The Douglas County Board on Thursday announced that it sees no allegations of criminal
@@ -383,8 +419,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 2bf19e14a47a014d
   title: Trump Administration Announces More Than $177 Million to Recruit Rural Healthcare Workers, Expand
     Mobile Care, and Modernize Services Across Nebraska
@@ -398,8 +435,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 2d1a752dbc47056f
   title: Lawmakers press CMS to roll back proposed restrictions on remote patient monitoring
   summary: A bipartisan group of 32 House lawmakers is pressing CMS Administrator Mehmet Oz to reconsider
@@ -411,8 +449,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 303c5f7dcddc6ce9
   title: Former CEO for UnitedHealth’s Optum Serve steps back into role
   summary: Retired Lt. Gen. Patricia Horoho, MSN, is stepping back into her previous role as CEO of Optum
@@ -427,8 +466,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 30ad79d92199e95d
   title: 'CMS: About 71% of MAPD plan enrollees in coverage with four or more stars for 2027'
   summary: The Trump administration has released the 2027 Medicare Advantage star ratings, with many enrollees
@@ -439,8 +479,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 3284756779ddb2d0
   title: UnitedHealth eyes Medicare Advantage opportunities, bolstered by Q3 profit growth
   summary: UnitedHealth raised its 2026 earnings guidance and outperformed analyst expectations for the
@@ -451,8 +492,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 33a77d465421e0fd
   title: For Vermont cell users, breaking up is easy to do
   summary: 'It’s a familiar reality for many people in Lamoille County: The phone call dropped. The texts
@@ -463,8 +505,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 33abb7550aa916e8
   title: Can I be charged a higher premium for a Medigap policy if I have a pre-existing condition or
     if I smoke?
@@ -477,8 +520,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 3456df0b4334c13f
   title: I am covered by Medicare and my only income is $12,000 from Social Security. I have $1,000 in
     a savings account. Do I qualify for any financial assistance with my Medicare coverage?
@@ -492,8 +536,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 3803c60ac1e57d14
   title: I am age 60 and have been receiving Social Security disability insurance (SSDI) payments for
     two years. My Medicare coverage just started and I would like to get a Medicare supplement insurance
@@ -506,8 +551,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 393a0fadce988061
   title: 'Humana rebounds, Aetna slips: Winners and losers in the 2027 MA star ratings'
   summary: Federal regulators released the hotly anticipated star ratings for the 2027 Medicare Advantage
@@ -518,8 +564,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 3a03f7a23eb3cbc5
   title: Before Saying Yes to the Medical Test, Know the Risks and Benefits
   summary: Tests like full-body scans marketed directly to consumers are pitched as a way to detect diseases
@@ -531,8 +578,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 3a1364a3e9391d2e
   title: AHA pushes back on Blue Cross report tying AI to $942M in coding costs
   summary: The American Hospital Association is challenging a Blue Cross Blue Shield Association analysis
@@ -546,8 +594,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 3d91c9ae0b2bba26
   title: 'Quotable: Gandhi'
   summary: Guess the quote.
@@ -557,8 +606,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 3dfd409627b1d431
   title: New Regulations Make It Easier to Find, Compare, and Report Healthcare Pricing and Coverage Information
   summary: New Regulations Make It Easier to Find, Compare, and Report Healthcare Pricing and Coverage
@@ -569,8 +619,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 3fe20837891c6b55
   title: SCAN, Walmart are teaming up for co-branded MA plans. Here's why
   summary: Last month, SCAN Health Plan revealed that it would team up with Walmart to launch co-branded
@@ -582,8 +633,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 41948d08b9eab79d
   title: Centene joins insurers waiving prior authorizations for top providers
   summary: Centene is the latest insurer to adopt a gold card program as states and the Trump administration
@@ -594,8 +646,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 437c1b8ab8a3cb3b
   title: Cigna rolls out modernization effort, expects $3B in savings
   summary: Cigna is launching a modernization and productivity initiative, expected to bring in $3 billion
@@ -609,8 +662,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 43dd1c0f73aeac4f
   title: Health plan enrollment drops 2.8% as individual market, Medicaid shrink
   summary: Health insurers’ membership declined 2.8% year-over-year to about 312.5 million people in the
@@ -624,8 +678,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 44d0e0876936d316
   title: Molina assumes $6B Florida Medicaid, CHIP special contract
   summary: Molina Healthcare took over the contract for a specialized Florida Medicaid and CHIP plan,
@@ -639,8 +694,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 4588539c85a0855e
   title: CMS finalizes model that aims to bring most-favored nation pricing to Part B
   summary: The Trump administration has finalized a new model that aims to bring its most-favored nation
@@ -651,8 +707,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 459fa38ed733822b
   title: CMS flags payment delays, rising costs in No Surprises Act arbitration
   summary: CMS is raising concerns about growing costs and payment problems in the federal independent
@@ -667,8 +724,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 45d0000ab6f973ad
   title: I have Medigap and I’m finding it difficult to afford. What are my other options for supplemental
     coverage?
@@ -682,8 +740,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 4656eb5756f220cf
   title: Trump Administration Announces New Funding to Support Rural Healthcare Workers and Expand Maternal
     Care Across Missouri
@@ -696,8 +755,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 46d21eb75f876c1b
   title: 'STAT+: UnitedHealth investor lawsuit moves forward on allegations it ‘manufactured earnings’
     to hide declining profits'
@@ -709,8 +769,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 46f1aee51f918cfe
   title: Medicare 101
   summary: This Health Policy 101 chapter explores Medicare, a federal health insurance program covering
@@ -724,8 +785,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 4707395b58ea2e72
   title: CareSource names CFO
   summary: CareSource has named Stephanie Williams as its new chief financial officer. She succeeds Larry
@@ -739,8 +801,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 477400542d43509c
   title: Centene unveils national provider gold card program
   summary: Centene is aiming to simplify the prior authorization process with the launch of a new nationwide
@@ -751,8 +814,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 47a456c098e711b1
   title: New Mexico GOP gubernatorial nominee Hull takes debate stage solo as Haaland opts to see farmers
   summary: Gregg Hull, the Republican nominee running to be New Mexico’s next governor, appeared alone
@@ -766,8 +830,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 489e39555c8ef780
   title: A health insurance agency’s journey from pilot to full-time voice AI agent
   summary: After struggling with high call volume — especially during Medicare open enrollment — eHealth
@@ -778,8 +843,9 @@ items:
   stratum: alert
   predicted_tier: alert
   proposed_label: relevant_context
-  label: null
+  label: irrelevant
   note: payer + Medicare context; defensible MA implication
+  label_source: owner
 - item_id: 4a71ee6205d11c41
   title: 2027 Medicare Advantage and Part D Star Ratings
   summary: '2027 Medicare Advantage and Part D Star Ratings Note: The information included in this Fact
@@ -793,8 +859,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 4c30af5615899fcf
   title: Some mental health providers hoping to serve Lane County's Oregon Health Plan members say they’re
     facing barriers
@@ -809,8 +876,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 4cac2e7f2bb53515
   title: CMS Convenes Certified Independent Dispute Resolution Entity Leaders to Discuss Ways to Improve
     the Federal Program
@@ -822,8 +890,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 4d20a8269535548d
   title: Sentara wraps Anthem negotiations for MA, Medicaid, ACA plans without deal
   summary: Norfolk, Va.-based Sentara Health ended negotiations with Anthem Blue Cross and Blue Shield
@@ -837,8 +906,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 5013f550e6c3b1c6
   title: Top House Democrat unveils surprise medical billing overhaul
   summary: New legislation from Rep. Frank Pallone Jr. (N.J.), the top Democrat on the powerful House
@@ -851,8 +921,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 50b8fbf0cb32b859
   title: I’m having a hard time affording my Medicare Part D drug coverage. Are there any options for
     me?
@@ -864,8 +935,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 51f81f02f48e4990
   title: Insurers say their 2027 Medicare Advantage offerings preserve benefits. The data tells a different
     story
@@ -877,8 +949,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 529844ee711fb0e3
   title: Florida court orders expungement of grand jury report on $10M Centene donation
   summary: A Florida appellate court ruled Oct. 7 to expunge a grand jury report regarding a $10 million
@@ -892,8 +965,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 54fc3e9d81d516a7
   title: 'STAT+: Judges skewer HHS arguments in hearing over Medicare Advantage audits lawsuit'
   summary: Federal judges pushed back against the government's arguments in a Medicare Advantage case.
@@ -903,8 +977,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 5575d74c8a8a7cf2
   title: Global Benchmark for Efficient Drug Pricing (GLOBE) Model
   summary: This final rule implements the Global Benchmark for Efficient Drug Pricing Model (GLOBE Model),
@@ -918,8 +993,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 55b129c9dfc5d18c
   title: Cigna accused of underpaying ground ambulances to boost its own fees
   summary: Cigna is facing a lawsuit claiming it made a profit by underpaying out-of-network ground ambulances,
@@ -933,8 +1009,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 577e5f589f97fa3a
   title: UnitedHealth reports $4.1B in profit, launches AI recommendations for Medicare Advantage plans
   summary: UnitedHealth Group reported $4.1 billion in profit for the third quarter of 2026, up 75% year
@@ -949,8 +1026,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 5a29ec6515102c1a
   title: '“I’m an MA Voter”: Seniors Make Medicare Advantage a Midterm Issue'
   summary: 'Six-figure ad campaign launches days before open enrollment, with millions of beneficiaries
@@ -964,8 +1042,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 5a4cafdf45b4f070
   title: DeGette talks legacy as her party shifts left
   summary: DeGette and her dog Fiona sit for an interview in her office in the Rayburn House Office Building.
@@ -975,8 +1054,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 5d997e7a1ac9ec59
   title: The Trump Administration’s $90 Payment to Medicare Beneficiaries, Reminiscent of a Similar Proposal
     Six Years Ago, May Not Offset Rising Costs
@@ -989,8 +1069,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 5e713b888483c008
   title: ACHP Recommendations for an Inferred Risk Adjustment Model
   summary: ACHP urges CMS to preserve separate payment terms for state directed payments and coordinate
@@ -1001,8 +1082,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 60353750de6e7f57
   title: 'Humana’s star ratings turnaround: 5 notes'
   summary: 'Humana has pulled off a Medicare Advantage star ratings turnaround, with 95% of the insurer’s
@@ -1016,8 +1098,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 60491237289d1c0b
   title: 1.1 million Medicare beneficiaries signed up for GLP-1 Bridge model
   summary: Roughly 1.1 million Medicare beneficiaries have signed up to access discounted GLP-1s through
@@ -1032,8 +1115,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 60597e1c0fac2a53
   title: Trump Administration Announces $7.2 Million to Expand Ambulance-Based Telemedicine and Upgrade
     Emergency Communications Across South Dakota
@@ -1047,8 +1131,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 645aaad37b25d71d
   title: If my employer offers retiree health benefits, do I need to sign up for Medicare when I turn
     65?
@@ -1062,8 +1147,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 64a1687480879f44
   title: Independence Blue Cross to pay $22.5M in Medicare Advantage inaccurate diagnoses allegations
     settlement
@@ -1075,8 +1161,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 64e8df3e1a041cdb
   title: Texas attorney general investigates UnitedHealth over care denials
   summary: Ken Paxton is on the hunt for evidence that UnitedHealth is breaking the Deceptive Trade Practices
@@ -1087,8 +1174,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 650d382ffa09bc65
   title: Rubio calls on Russia to provide more information about plague lab death
   summary: Secretary of State Marco Rubio on Tuesday called on Russia to provide more information surrounding
@@ -1101,8 +1189,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 65c9d00703db09c9
   title: I’m receiving extra help with my Part D plan premium and cost sharing through the Low-income
     Subsidy Program. I received a notice that my current plan will no longer be offered next year. Now
@@ -1116,8 +1205,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 668a47a5cd6fb656
   title: 'CMS can now exclude providers from Medicare, Medicaid: 7 things to know'
   summary: 'CMS can now exclude individual providers and entities from participating in federal healthcare
@@ -1131,8 +1221,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 66c398cc68dd8666
   title: 'UnitedHealth Group in the headlines: 12 updates'
   summary: 'From a Texas attorney general investigation to a leadership shakeup that includes a new UnitedHealthcare
@@ -1146,8 +1237,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6842c3c2087bd700
   title: ACHP’s ‘MA for Tomorrow’ Receives 2026 ASAE Power of Associations Silver Award
   summary: ACHP's MA for Tomorrow initiative earned a 2026 ASAE Power of Associations Silver Award for
@@ -1158,8 +1250,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 69ea513923f5a81a
   title: Medicare Advantage plans with 5 stars in 2027
   summary: Fifteen Medicare Advantage plans earned five-star ratings for 2027, down from 22 last year.
@@ -1173,8 +1266,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 6abc9529ed4b56bc
   title: '‘We’re really trying to build something new’: Inside the Walmart-SCAN co-branded Medicare Advantage
     plans'
@@ -1190,8 +1284,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 6ba55694229cee09
   title: I am 66 years old, work for a large employer, and have health insurance coverage through my job.
     I am planning to keep working for a few more years and keep the coverage that my employer offers.
@@ -1205,8 +1300,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 6cffb1e8ee60dd32
   title: 'From policy to practice: How health plans can operationalize CMS payment integrity changes'
   summary: 'CMS is reshaping how health plans approach payment integrity. Faster regulatory cycles along
@@ -1220,8 +1316,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 6e27b12b5860d248
   title: Claims against Aetna dismissed in Zelis antitrust repricing case
   summary: A Massachusetts federal judge dismissed claims against Aetna on Sept. 30 in antitrust litigation
@@ -1235,8 +1332,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6e4d851f2298bdd0
   title: Humana reports nearly $20B economic impact in home state of Kentucky
   summary: Humana and the University of Louisville reported Oct. 6 that the company contributed nearly
@@ -1250,8 +1348,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6eb43e001785ec2e
   title: SCAN unveils 2027 MA slate, including launch of co-branded Costco plans
   summary: SCAN Health Plan has unveiled its product offerings for the 2027 plan year, and the slate includes
@@ -1262,8 +1361,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 6ec8fbee56d927a5
   title: Democrats target Macomb County with a first-ever joint town hall featuring El-Sayed, Slotkin
   summary: The importance of Macomb County to Michigan Democrats’ 2026 playbook was on full display Saturday
@@ -1276,8 +1376,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 74823607fb2f1fa0
   title: CMS finalizes price transparency overhaul for payers
   summary: The Trump administration is overhauling federal price transparency rules for payers and self-insured
@@ -1291,8 +1392,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 75e8e10d3469065d
   title: 'GLP-1 spending rose 84% in 1 year at BCBS Massachusetts: Study'
   summary: 'Higher use of medical services and prescription drugs, rather than rising inflation-adjusted
@@ -1306,8 +1408,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 75ea12f5e71121bd
   title: '77% of Medicaid improper payments tied to paperwork, not fraud: Report'
   summary: 'CMS estimates that 77% of fiscal year 2025 Medicaid improper payments resulted from insufficient
@@ -1322,8 +1425,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 7661b82645790ae4
   title: UnitedHealthcare to exit Georgia’s ACA marketplace in 2027
   summary: UnitedHealthcare is exiting Georgia’s ACA marketplace Jan. 1, 2027, the insurer and Georgia’s
@@ -1337,8 +1441,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 770857257069d03e
   title: Fairview sues UnitedHealthcare over alleged Medicare Advantage false advertising
   summary: Minneapolis-based Fairview Health Services filed a lawsuit Oct. 1 against UnitedHealthcare,
@@ -1353,8 +1458,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 78f76c10047d1d19
   title: H.R. 9613, Nuclear Advisory Committee Reform Act
   summary: As ordered reported by the House Committee on Energy and Commerce on September 2, 2026
@@ -1364,8 +1470,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 7b068358ef756143
   title: How can I compare my Medicare coverage options?
   summary: You can compare your Medicare coverage options using an online searchable tool on the Medicare.gov
@@ -1377,8 +1484,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 7b7270c3bf2a7b9c
   title: Alabama voters to consider Pledge of Allegiance, National Anthem, school prayer
   summary: Alabama voters will decide in November whether to amend the state constitution to require school
@@ -1391,8 +1499,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 7c6fd55d0fb2f1eb
   title: 'Medicare Part D: Payments and Contracts Between Pharmacies and Plan Sponsors That Are Vertically
     Integrated'
@@ -1407,8 +1516,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 805be6e4399e7d8e
   title: UnitedHealthcare’s AI assistant expands to 21 million members
   summary: UnitedHealthcare’s AI assistant Avery is now available to 21 million commercial, Medicare and
@@ -1422,8 +1532,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 818e2da32206cd2d
   title: BCBS Minnesota cuts most Medicare Advantage plans following $500M loss
   summary: Blue Cross and Blue Shield of Minnesota is discontinuing most of its Medicare Advantage plans
@@ -1437,8 +1548,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 82a95197e6c4bd1e
   title: Judge rejects Alignment’s bid to toss former exec’s whistleblower lawsuit
   summary: A federal judge has largely rejected Alignment Healthcare’s bid to throw out a former senior
@@ -1452,8 +1564,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 83a72c828dde3404
   title: 8 things to know about 2027 Medicare Advantage star ratings
   summary: CMS released 2027 Medicare Advantage star ratings on Oct. 8, giving more insight into the MA
@@ -1467,8 +1580,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 83c10ae64652a9ce
   title: Trans detainees allege abuse, medical neglect at Jena immigration detention center
   summary: Three transgender women who have been detained for months at a male-only central Louisiana
@@ -1481,8 +1595,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 84d691270b485e0a
   title: 'Focus on HMOs, C-SNPs: A look at the Medicare Advantage landscape for 2027'
   summary: With Medicare's annual enrollment period on the horizon, major insurers are offering a look
@@ -1493,8 +1608,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 85c484cccc0e58d8
   title: Humana enters $2.8B primary care joint venture with BlackRock
   summary: Investment firm BlackRock will acquire a majority stake in nearly 150 senior primary care clinics
@@ -1505,8 +1621,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 860f5f91a87cc79e
   title: '‘This is an agent doing this’: Health insurers deploy AI to make your next medical appointment'
   summary: 'Booking an appointment with a provider often means confirming they’re in network, working
@@ -1521,8 +1638,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 862f8805d7721773
   title: 'STAT+: Trump’s watered-down Medicare drug pricing rule saves 96% less than initial proposal'
   summary: WASHINGTON — The Trump administration published a final rule aimed at lowering Medicare prices
@@ -1534,8 +1652,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 86fe45ef857045ba
   title: Indiana death row inmate seeks execution delay for brain scans ahead of clemency hearings
   summary: Indiana death row inmate Jeffrey Weisheit is asking the state’s highest court to move his execution
@@ -1548,8 +1667,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 883422e8fa6b6848
   title: Many Medicare Part D Stand-Alone Drug Plan Enrollees Will See Modest Premium Increases for 2027,
     But Others Could Pay Much More If They Don’t Switch Plans
@@ -1563,8 +1683,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 8a17263c1d9dcb1d
   title: Texas investigates UnitedHealth over care denial concerns
   summary: Texas Attorney General and U.S. Senate candidate Ken Paxton has launched an investigation into
@@ -1578,8 +1699,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8a6559deb9d484fd
   title: Centene to roll out gold card program to more than 160,000 providers
   summary: Centene will launch its National Performance-Based Gold Card Program in November. Gold carding
@@ -1593,8 +1715,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8b3e3523bbaa07ca
   title: 'CVS to pay $315M over opioid prescriptions billed to Medicare, federal programs: Justice Department'
   summary: 'CVS Pharmacy has agreed to pay $315 million to resolve Justice Department allegations that
@@ -1608,8 +1731,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 8bd65f9899a16c8d
   title: 'The healthiest states for women, children in 2026: UnitedHealth'
   summary: 'Massachusetts is the healthiest state in the nation for women and children for the second
@@ -1623,8 +1747,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8d11fb0f6f8e63bc
   title: My husband and I are retired. He just turned 65 and is now covered by Medicare, but I am 62 and
     I don’t have health insurance. As the spouse of a Medicare beneficiary, can I enroll in Medicare during
@@ -1638,8 +1763,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 8dc87ad68d73f96b
   title: Milwaukee County covers Flock cameras, moves away from controversial tech
   summary: Milwaukee County is a step closer to getting rid of Flock automatic license plate reader cameras.
@@ -1652,8 +1778,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8ddbf057e32bf8cb
   title: ACHP Urges CMS to Protect Medicaid Provider Tax Flexibility
   summary: ACHP asks CMS to implement OBBBA without added limits on provider taxes — preserving prospective
@@ -1664,8 +1791,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 8f416e2c407dd95a
   title: Optum awarded $30B VA dental contract
   summary: The Department of Veterans Affairs has awarded Optum Serve a 10-year contract worth up to $30
@@ -1679,8 +1807,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 8fbeed63a17b03ab
   title: Humana taps CEO for Kentucky Medicaid
   summary: Mitchell Evans will serve as Humana’s next Kentucky Medicaid CEO, according to an Oct. 6 LinkedIn
@@ -1694,8 +1823,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 90ff90403265a020
   title: The Average Medicare Beneficiary has 28 Medicare Advantage Prescription Drug Plan Options for
     2027
@@ -1707,8 +1837,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 91cd25238817f1af
   title: I have a Medigap policy now, but I want to buy a different one. Can I switch Medigap policies
     during the Medicare Open Enrollment period?
@@ -1720,8 +1851,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 92c961f17d9bb5b7
   title: 7 HCA-affiliated hospitals sue Anthem BCBS over reimbursement
   summary: Seven hospitals affiliated with Nashville, Tenn.-based HCA Healthcare filed a lawsuit Oct.
@@ -1736,8 +1868,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9323b5407fc5cf45
   title: 'House Committee Report on Fraud Against Medicare and Medicaid: Oversight Done Wrong'
   summary: On September 29, exactly five weeks before the mid-term elections, Republicans on the House
@@ -1750,8 +1883,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 94a708988d75ecbb
   title: CVS to pay $315M settlement over allegations of illegally filling opioid prescriptions
   summary: The Justice Department (DOJ) announced Tuesday that CVS Health has agreed to pay $315 million
@@ -1764,8 +1898,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 958d29a491327f0c
   title: Independence Blue Cross to pay $22.5M to resolve MA fraud allegations
   summary: Independence Blue Cross will pay to settle allegations it defrauded Medicare by inflating diagnosis
@@ -1777,8 +1912,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 95a48ad4d5da56af
   title: Trump Administration Announces Nearly $55 Million to Expand Rural Maternal and Emergency Care,
     Cancer Screening, and Alabama’s Rural Healthcare Workforce
@@ -1791,8 +1927,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 95d2ee97e55baf16
   title: Legacy, UnitedHealthcare reach new contract, affecting tens of thousands of Oregonians
   summary: Legacy, UnitedHealthcare reach new contract, affecting tens of thousands of Oregonians The
@@ -1806,8 +1943,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9614be8d591562ed
   title: 'CMS ends ACA subsidies for 189,000 duplicate or deceased enrollees: 5 notes'
   summary: 'CMS ended subsidies in 2026 for 189,000 people with federally subsidized marketplace coverage
@@ -1821,8 +1959,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 974f74f73a5a45c6
   title: Healey wants Trump administration’s help on bringing more gas into Massachusetts
   summary: 'This article first appeared on CommonWealth Beacon and is republished here under a Creative
@@ -1836,8 +1975,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 978ba20e38d1440e
   title: CMS releases list of participants in CJR-X payment model for joint replacement procedures
   summary: The Centers for Medicare & Medicaid Services has published its list of participants for its
@@ -1851,8 +1991,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 98361d3819638365
   title: 'Keeping claims out of IDR: How payers are containing No Surprises Act costs'
   summary: 'The No Surprises Act has delivered on one of its central promises: fewer surprise medical
@@ -1866,8 +2007,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 98cbbaca60e6ceee
   title: Humana, BlackRock strike $2.8B deal to manage CenterWell clinics
   summary: Humana will enter into a joint venture with investment firm BlackRock to manage and operate
@@ -1879,8 +2021,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: 9b3aa4f608402ed4
   title: Medicare Improvement Fund Premium Rebate Frequently Asked Questions
   summary: 'Medicare Improvement Fund Premium Rebate Frequently Asked Questions Q: What will the Medicare
@@ -1894,8 +2037,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: 9cb19516d97816c2
   title: Better Medicare Alliance Responds to 2027 Medicare Advantage Star Ratings Announcement
   summary: WASHINGTON — Better Medicare Alliance (BMA) today released the following statement in response
@@ -1909,8 +2053,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: 9e3d952854ebc5ac
   title: Is the Medicare Open Enrollment period the same as the Marketplace Open Enrollment period? Can
     I buy Medicare and Medigap plans through the Marketplace?
@@ -1923,8 +2068,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: a07e1fac95c3073a
   title: Amid Wyoming’s mental health struggles, governor hopes successor prioritizes the issue
   summary: Gordon has made mental health a policy focus with initiatives to increase access and destigmatize.
@@ -1936,8 +2082,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a0afbc4cd61183e1
   title: CVS, DOJ reach $315M settlement in opioid prescription case
   summary: CVS Health has reached a $315 million settlement with the Department of Justice that resolves
@@ -1948,8 +2095,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a123d21f636b181e
   title: Insurers, AMA join forces on provider directory data standard
   summary: DataSpring, powered by CAQH, assembled a collective of insurers, along with the American Medical
@@ -1963,8 +2111,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a40da60be8b3ce21
   title: Blue Cross and Blue Shield of Louisiana names new CEO
   summary: Blue Cross and Blue Shield of Louisiana has named Brian Keller president and CEO, effective
@@ -1978,8 +2127,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a41fe33fdf5f4e92
   title: Kaiser Permanente to repay nurses 'potentially tens of millions' in mistakenly withheld wages
   summary: Following an arbitration agreement, more than 1,000 nurses will be compensated for a payment
@@ -1991,8 +2141,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: a8aff0a0e382d920
   title: 'Preclusion gaps tied to $72M in Medicare Advantage, Part D payments: Report'
   summary: 'Vulnerabilities in CMS’ preclusion process contributed to Medicare Advantage and Part D plans
@@ -2007,8 +2158,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: a9cb22b018948a7e
   title: I am 70 years old and covered by Medicare, but I’m wondering if I can purchase one of the health
     plans offered through the Marketplace and drop my Medicare coverage? Is that an option for me or should
@@ -2021,8 +2173,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: ab22094461ffa7af
   title: Michigan Supreme Court revives appeal of ‘factory farm’ discharge permit in light of Line 5 ruling
   summary: A ruling from the Michigan Supreme Court regarding a permit for Enbridge’s Line 5 tunnel project
@@ -2035,8 +2188,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ab7d04f1748b7a29
   title: SCAN, Costco roll out Medicare Advantage plans in California, Nevada
   summary: SCAN Health Plan and Costco shared Oct. 1 that their co-branded Medicare Advantage plans will
@@ -2050,8 +2204,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: adcbff87b17ef076
   title: Cigna board director to retire
   summary: Cigna board director Donna Zarcone will retire at the end of 2026. Ms. Zarcone informed the
@@ -2065,8 +2220,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ae7e2c58433a5fe9
   title: HCSC halved its Medicare Advantage footprint but says it’s still playing the long game
   summary: Health Care Service Corp. has cut its Medicare Advantage footprint in half less than two years
@@ -2080,8 +2236,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: ae9b2cff755e55d0
   title: CMS launches 340B claims data repository
   summary: The Centers for Medicare & Medicaid Services’ 340B Part D claims data repository became available
@@ -2095,8 +2252,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: af181bed5c7b1075
   title: 'STAT+: Medicare Advantage plans shift more costs onto seniors in 2027'
   summary: Premiums are stable, but Medicare Advantage plans are making big changes that could make care
@@ -2107,8 +2265,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: b227f1557903282d
   title: Little room for stakeholder consensus among potential Medicare Advantage reforms
   summary: A survey of 52 experts spanning researchers, the Medicare Advantage industry, patient advocates
@@ -2120,8 +2279,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: b2f7ffc1ef8edacd
   title: Trump Administration Announces New Funding to Support Early Career Physicians Who Choose to Work
     in Rural Delaware
@@ -2134,8 +2294,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: b498b1b1a01179d2
   title: 'Poll: 43 percent support ''Medicare for all'''
   summary: Nearly 43 percent of Americans support the idea of “Medicare for all,” according to an Axios/Ipsos
@@ -2148,8 +2309,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: b8073a23562f50c1
   title: H.R. 7362, Form 5500 Filing Simplification Act
   summary: As ordered reported by the House Committee on Education and Workforce on May 21, 2026
@@ -2159,8 +2321,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ba5489add047444b
   title: North Dakota insurance commissioner posts premium rate changes for next year
   summary: North Dakota Insurance Commissioner Jon Godfread on Monday released health insurance premium
@@ -2173,8 +2336,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: bc5368a0d94dc04f
   title: Trump announces $90 payments for seniors’ Medicare premium costs ahead of midterm elections
   summary: President Trump is promising more payments to voters just ahead of the Nov. 3 midterm elections
@@ -2185,8 +2349,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: c1b4909f471f5be7
   title: Clinical Laboratory Improvement Amendments of 1988 (CLIA); Virtual Access, Gynecologic Cytology
     Proficiency Testing (PT), Personnel Qualifications, and Other Changes
@@ -2201,8 +2366,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c28f018677428533
   title: President Donald Trump says he’s providing disaster aid to Wisconsin after speaking with Tom
     Tiffany
@@ -2216,8 +2382,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c49543bcf2e28e3f
   title: 'STAT+: BlackRock to buy majority stake in Humana’s CenterWell clinics for $2.8 billion'
   summary: Humana is swapping out private equity sponsors for its CenterWell Senior Primary Care clinics.
@@ -2228,8 +2395,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c5b815969d58f8c3
   title: FTC sends price transparency warning letters to 24 large hospital systems
   summary: Letters sent Monday warn that CMS guidances on price transparency are "a regulatory floor."
@@ -2241,8 +2409,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: c5d5549e2a60da54
   title: 'STAT+: Medicare Advantage star ratings trigger new bonuses, and uncertainty'
   summary: The federal government has released new quality ratings for Medicare Advantage insurers for
@@ -2254,8 +2423,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: c85b33a247f41576
   title: HCA hospitals escalate payment fight with insurers
   summary: Hospitals affiliated with Nashville, Tenn.-based HCA Healthcare have sued multiple insurers
@@ -2270,8 +2440,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: c8e54554f079d292
   title: CMS takes aim at duplicative ACA, Medicaid enrollments
   summary: The Trump administration has put a focus on rooting out fraud, waste and abuse, and on Wednesday,
@@ -2282,8 +2453,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: ca7b8bc14feb207f
   title: Nearly Three-Quarters of Medicare Advantage Enrollees Could be Denied a Medigap Policy Due to
     a Pre-Existing Condition
@@ -2298,8 +2470,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: cc38896d01601949
   title: 'No Surprises Act arbitration awards near 6% of commercial medical spend in some regions: UnitedHealthcare'
   summary: 'Arbitration awards under the No Surprises Act can reach nearly 6% of total commercial medical
@@ -2313,8 +2486,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ce0e3a1dd96368a2
   title: Food bank to open volunteer center in former Charleston grocery store
   summary: Mountaineer Food Bank plans to open a volunteer center in a former grocery store on Charleston,
@@ -2327,8 +2501,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ceb65037c55d0497
   title: Can I get information about Medigap policies on the Medicare coverage comparison website, or
     use the website to sign up for a Medigap policy?
@@ -2341,8 +2516,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: cfff4c98dca6b71c
   title: ACHP Members Lead 2027 Star Ratings and NCQA Ratings
   summary: ACHP member plans averaged 4.23 Stars in 2027 Medicare Advantage Star Ratings, vs. 3.96 for
@@ -2353,8 +2529,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: d19b4e14ed08921b
   title: 'Opinion: How CMS plans to fix a major flaw in the 340B drug discount program'
   summary: “A small, well-intended discount for safety net hospitals became a large institutional subsidy
@@ -2365,8 +2542,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: d3fd2af2243f85fa
   title: Humana soars, Alignment plummets in 2027 Medicare Advantage star ratings
   summary: A Healthcare Dive analysis of highly anticipated stars data shows a mixed bag of winners and
@@ -2378,8 +2556,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: d42c929a5390fc8d
   title: When Is the Open Enrollment period for Medicare? What changes can I make to my Medicare coverage
     during this time?
@@ -2392,8 +2571,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: irrelevant
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: d5387d1c74e2e07b
   title: Clover data breach affects more than 138,000
   summary: A Clover Health July data breach affected 138,677 people, according to a notice filed with
@@ -2407,8 +2587,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: d54406bd7538ac55
   title: Ascension pulls back from insurance to focus on care delivery
   summary: 'St. Louis-based Ascension is continuing to scale back its health insurance business, shedding
@@ -2422,8 +2603,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: d61d15bfb9a0cfa7
   title: How Optum, Owensboro Health teamed up to build a virtual nursing program
   summary: Owensboro Health is teaming up with Optum Insight to pair bedside nurses with virtual nurses
@@ -2434,8 +2616,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: d7a2a26569c69896
   title: How big a deal is the red-dyed diesel directive?
   summary: LINCOLN — Sixth-generation Nebraska farmer John Hansen leaned into baseball lingo to describe
@@ -2448,8 +2631,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: d7a763302ceeb8ea
   title: Alignment Healthcare Inc. et al. v. Department of Health and Human Services et al. (Alignment
     II)
@@ -2462,8 +2646,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_context
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: d9acdf6d9be611a9
   title: Nessel files federal antitrust lawsuit against Blue Cross Blue Shield of Michigan
   summary: Michigan Attorney General Dana Nessel filed an antitrust lawsuit against Blue Cross Blue Shield
@@ -2476,8 +2661,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: d9ec1bb0a83d7247
   title: Transparency in Coverage Final Rules (CMS 9882-F)
   summary: Transparency in Coverage Final Rules (CMS 9882-F) Introduction
@@ -2487,8 +2673,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: daf995ac7fd2cc44
   title: Aetna to acquire health plan from Ascension, CommonSpirit
   summary: San Francisco-based Dignity Health, part of Chicago-based CommonSpirit, reached an agreement
@@ -2502,8 +2689,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: dccd18edb829f9ec
   title: ACHP Urges CMS to Align State Directed Payment Policy With Plans’ Financial Risk
   summary: ACHP urges CMS to preserve separate payment terms for state directed payments and coordinate
@@ -2514,8 +2702,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: borderline_display
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: de3c7d868e1abed1
   title: Former UnitedHealth Group CEO named chairman of venture capital firm
   summary: Former UnitedHealth Group CEO Sir Andrew Witty has been named chairman of Hatteras Venture
@@ -2529,8 +2718,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e02bf40687cc4ada
   title: Medicare Advantage looks stable for 2027. Underneath, it’s shifting
   summary: 'The Medicare Advantage market remains a bit of a paradox: it may look unchanged from a national
@@ -2544,8 +2734,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: e0af98353bf91d7b
   title: Humana strikes $2.8B CenterWell senior clinic deal with BlackRock
   summary: Humana has agreed to form a new joint venture with investment management firm BlackRock to
@@ -2560,8 +2751,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e0dcd1963b220973
   title: Centene to launch CHOICE options in 4 more states
   summary: Centene is launching Custom Health Option and Individual Care Expense arrangements, recently
@@ -2575,8 +2767,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e14aef69c3b6aebb
   title: Large majority in NJ backs voter ID requirements, poll finds
   summary: Strong majorities trust New Jersey's election results will be accurate, but even larger majorities
@@ -2587,8 +2780,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e323ac2d2586f2fc
   title: HRSA names 10 drugmakers for revised 340B rebate pilot ahead of 2027 launch
   summary: The list of approved participants and drugs is larger than the controversial pilot's first
@@ -2600,8 +2794,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_context
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: e39c772cd522a3a1
   title: CMS delegated exclusion authorities for Medicare, Medicaid
   summary: The Department of Health and Human Services has delegated the Centers for Medicare & Medicaid
@@ -2616,8 +2811,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: e3af62ec02d4ecbb
   title: Cigna targets ‘inefficient’ spending with clinical support model rollout
   summary: Cigna Healthcare is launching Health Sense, a tailored customer and clinical support model
@@ -2631,8 +2827,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: e4ebd000e3afb774
   title: Washington health system launches an insurance plan
   summary: Tacoma, Wash.-based MultiCare Health System is launching a health insurance plan. MultiCare
@@ -2646,8 +2843,9 @@ items:
   stratum: display
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: e59c02663d96b706
   title: 'Payers face a choice on price transparency: Comply or adopt'
   summary: 'CMS shared its Transparency in Coverage rulemaking — formed in partnership with the Labor
@@ -2661,8 +2859,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: e968f6a422d9ed69
   title: Medicare penalizes more hospitals for readmissions
   summary: About 80% of hospitals are having their Medicare payments shaved down over high readmission
@@ -2674,8 +2873,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: ea4d1232ee61e6e6
   title: UnitedHealth, Elevance make Fortune’s list of AI pioneers
   summary: Fortune recognized five healthcare companies on its 2026 “AIQ 75” ranking. Fortune partnered
@@ -2690,8 +2890,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_context
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ec1f39e8adcfa714
   title: 'Strengthening Medicare Advantage in 2028: ACHP Recommendations to CMS'
   summary: ACHP urges CMS to simplify risk adjustment, modernize network adequacy and refine Star Ratings
@@ -2702,8 +2903,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: ec4b1718a7156728
   title: Michigan secretary of state candidates weigh in on election transparency, Trump administration
   summary: This article was originally published by Votebeat, a nonprofit news organization reporting
@@ -2716,8 +2918,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ed65704df9b605da
   title: 'Rural Health Transformation Program: Early Implementation Actions and Monitoring Plans'
   summary: What GAO Found The Rural Health Transformation program provides funding for states to conduct
@@ -2731,8 +2934,9 @@ items:
   stratum: display
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: ee726c35d166c1db
   title: Key Facts About Medigap Enrollment and Premiums for Medicare Beneficiaries
   summary: This brief presents facts about Medigap, including the characteristics of Medicare beneficiaries
@@ -2743,8 +2947,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: borderline_display
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: eee8f6195584dfd3
   title: Optum Health’s turnaround picks up speed
   summary: Optum Health’s earnings from operations climbed to $735 million in the third quarter, up from
@@ -2758,8 +2963,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: ef4a929b661783f5
   title: 'Medicare Advantage prescription drug plan options decline for 3rd year in a row: KFF'
   summary: 'Medicare Advantage plan choices are shrinking modestly, with the number of MA prescription
@@ -2773,8 +2979,9 @@ items:
   stratum: alert
   predicted_tier: brief
   proposed_label: relevant_brief
-  label: null
+  label: relevant_brief
   note: carries an MA-specific signal
+  label_source: owner
 - item_id: f189d14508aec5fb
   title: What is a Medicare Accountable Care Organization? Can I enroll in one when I sign up for Medicare
     or during the Medicare Open Enrollment period?
@@ -2788,8 +2995,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: irrelevant
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: f1b81dbb1df94260
   title: Why would a payer own ASCs? IBX explains
   summary: Independence Blue Cross has contracted with ASCs for years, but its new ownership stake in
@@ -2803,8 +3011,9 @@ items:
   stratum: display
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f3ef83c0b7182d41
   title: Michigan accuses BCBS of illegal insurance monopoly in new lawsuit
   summary: In a new lawsuit, Michigan Attorney General Dana Nessel is accusing Blue Cross Blue Shield
@@ -2818,8 +3027,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f49690f279f120f5
   title: AHA blog responds to BCBS report suggesting hospitals’ use of AI documentation tools drives increased
     healthcare costs
@@ -2834,8 +3044,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: relevant_brief
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f6418f782f896e88
   title: Abridge, University of Texas System enter enterprise-wide agreement for expanded AI-enabled care
   summary: The partnership establishes a systemwide framework for the eight UT health institutions to
@@ -2846,8 +3057,9 @@ items:
   stratum: subfloor
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f74b27b75008e4f9
   title: '''Blue Conspiracy''—Michigan attorney general hits BCBSM with antitrust suit'
   summary: Michigan Attorney General Dana Nessel has filed suit against Blue Cross Blue Shield of Michigan,
@@ -2858,8 +3070,9 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: borderline_display
   note: owner-designated noise class or no Medicare context
+  label_source: owner
 - item_id: f77a6fdb6d6afc64
   title: PhRMA launches new legal challenge as CMS brings 'most favored nation' pricing to Medicare Part
     B
@@ -2871,8 +3084,9 @@ items:
   stratum: alert
   predicted_tier: display
   proposed_label: borderline_display
-  label: null
+  label: relevant_brief
   note: Medicare-adjacent, no MA line — display-only?
+  label_source: owner
 - item_id: ff0ebfd369f931ca
   title: UnitedHealth Group beats the Street with $4.1B in profit for Q3
   summary: Another round of healthcare industry earnings reports kicked off Tuesday morning, with UnitedHealth
@@ -2883,5 +3097,6 @@ items:
   stratum: alert
   predicted_tier: exclude
   proposed_label: irrelevant
-  label: null
+  label: irrelevant
   note: owner-designated noise class or no Medicare context
+  label_source: owner
