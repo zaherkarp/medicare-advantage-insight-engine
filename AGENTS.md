@@ -21,7 +21,7 @@ with no pull request, where no CI run, reviewer or report could see it.
    This supersedes step (f) of the protocol in `docs/loop.md`, which used to
    say "merge when CI is green".
 4. **Never change the rules you work under in the same PR as other work.**
-   Changes to `AGENTS.md`, `docs/goal.md`, `docs/loop.md`, `.github/`, the
+   Changes to `AGENTS.md`, `CLAUDE.md`, `docs/goal.md`, `docs/loop.md`, `.github/`, the
    production golden set (`tests/fixtures/golden_set.yaml`) or its
    precision and recall floors (`tests/test_golden_set.py`) go in their own
    PR. The same applies to the owner-labelled holdouts under
