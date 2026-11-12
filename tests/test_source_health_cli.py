@@ -40,10 +40,10 @@ def _log_recent_success(root, source_name="Test Feed"):
         store.close()
 
 
-def test_exits_zero_with_no_data(project_root_with_config, capsys):
+def test_exits_two_with_no_data(project_root_with_config, capsys):
     code = source_health_cli.main(["--root", str(project_root_with_config)])
-    assert code == 0
-    assert "No silent sources" in capsys.readouterr().out
+    assert code == 2
+    assert "unavailable" in capsys.readouterr().err
 
 
 def test_exits_zero_when_source_recently_healthy(project_root_with_config, capsys):
