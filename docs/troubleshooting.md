@@ -144,14 +144,19 @@ Bills Presented to the President — see `docs/loop.md` for the full record.)
   `curl`). This is a legitimately bursty source (a bill only appears here
   between passing both chambers and being signed), not a bug. Left as-is.
 
-### `ma-signal-source-health` is not wired into the deploy/scheduled workflows
+### Source-health runtime verification
 
-Deliberate: a source silenced by an external, unfixable-from-here condition
-(like ACHP above) would fail the shared deploy job on every single run
-forever, training everyone to ignore red CI. The `/status` and `/sources`
-pages are the primary surface — everyone already looks at those. Run
-`ma-signal-source-health` by hand, or wire it into your own monitoring if
-you're self-hosting and want a hard gate.
+The deployment runs `scripts/verify_source_health.py` serially after ingest.
+It executes the actual diagnostic and compares the archive and nonempty WAL
+or rollback journal bytes before and after. Exit 0 means no silent sources
+among observed fetches; exit 1 warns but does not block deployment. Neither
+result proves complete source coverage. Exit 2, unexpected process exits,
+timeouts, or detected archive changes stop the deployment before cache save.
+No archive or diagnostic output is uploaded: public Actions logs receive
+only the exit classification and unchanged-archive receipt. Empty WAL and
+SQLite shared-memory coordination files are not treated as changed data.
+The `/status` and `/sources` pages remain the source-level review surfaces;
+external source failures still do not make every deployment fail.
 
 ## Missing Config
 
