@@ -10,13 +10,11 @@ Read-only: never disables anything, matching ``source_review.py``'s stance
 that a human confirms any change to ``sources.yaml``. Exits 1 when any
 source is flagged, so it can gate a CI/cron step if an operator wants that;
 run by hand otherwise. Exits 2 when the archive is unavailable or has no
-fetch observations; missing evidence is not a healthy result. Deliberately NOT wired into deploy-pages.yml /
-scheduled-monitor.yml by default — a source blocked by an external host
-(e.g. a WAF that only 403s cloud-provider IP ranges) can be a permanent,
-unfixable-from-here condition, and failing the shared deploy job on every
-run over something no code change can resolve would just train everyone to
-ignore red CI. The primary surface for this is the live/static `/sources`
-and `/status` pages, which everyone already looks at.
+fetch observations; missing evidence is not a healthy result. The deployment
+runs scripts/verify_source_health.py after ingest: it accepts silent-source
+warnings but fails unavailable evidence or archive mutation. It suppresses
+source details in public Actions logs. The live/static `/sources` and
+`/status` pages remain the primary surfaces for source-level findings.
 """
 
 import argparse

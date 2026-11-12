@@ -151,6 +151,12 @@ jobs:
       - name: Ingest latest signals
         run: ma-signal-monitor
 
+      # Run the actual read-only diagnostic on this runtime's archive. Suppress
+      # row/error output: public Actions logs receive only a bounded receipt.
+      # Silent sources warn; unavailable evidence or mutation fails the check.
+      - name: Verify read-only source-health diagnostic
+        run: python scripts/verify_source_health.py
+
       - name: Ingest giscus feedback (owner verdicts + crowd reactions)
         # Pulls reactions from the giscus Discussions on story pages into the
         # archive's feedback table. The repository owner's own reactions are
