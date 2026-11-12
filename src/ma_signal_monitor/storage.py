@@ -246,12 +246,17 @@ class StateStore:
         # static export, digest).
         self.eligibility_gate = eligibility_gate
         self.fts_enabled = False
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        if not read_only:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
         if not read_only:
             self._init_db()
         else:
-            self._init_fts()
+            try:
+                self._init_fts()
+            except sqlite3.Error:
+                self.close()
+                raise
 
     def _init_db(self) -> None:
         """Initialize the database schema."""
@@ -348,6 +353,15 @@ class StateStore:
         virtual table can't be created, search degrades to a LIKE scan.
         """
         conn = self._get_conn()
+        if self.read_only:
+            # Inspection must not create/backfill an index or change the archive.
+            self.fts_enabled = (
+                conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='stories_fts'"
+                ).fetchone()
+                is not None
+            )
+            return
         try:
             conn.execute(
                 "CREATE VIRTUAL TABLE IF NOT EXISTS stories_fts "
@@ -382,7 +396,14 @@ class StateStore:
         if self._conn is None:
             # check_same_thread=False so a single store can serve the web app
             # across request threads; SQLite serializes writes internally.
-            self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+            if self.read_only:
+                self._conn = sqlite3.connect(
+                    self.db_path.resolve().as_uri() + "?mode=ro",
+                    uri=True,
+                    check_same_thread=False,
+                )
+            else:
+                self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
         return self._conn
 

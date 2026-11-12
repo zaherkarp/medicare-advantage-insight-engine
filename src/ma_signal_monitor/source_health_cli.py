@@ -9,7 +9,8 @@ from, which is exactly how 16 sources went unnoticed for months).
 Read-only: never disables anything, matching ``source_review.py``'s stance
 that a human confirms any change to ``sources.yaml``. Exits 1 when any
 source is flagged, so it can gate a CI/cron step if an operator wants that;
-run by hand otherwise. Deliberately NOT wired into deploy-pages.yml /
+run by hand otherwise. Exits 2 when the archive is unavailable or has no
+fetch observations; missing evidence is not a healthy result. Deliberately NOT wired into deploy-pages.yml /
 scheduled-monitor.yml by default — a source blocked by an external host
 (e.g. a WAF that only 403s cloud-provider IP ranges) can be a permanent,
 unfixable-from-here condition, and failing the shared deploy job on every
@@ -19,6 +20,8 @@ and `/status` pages, which everyone already looks at.
 """
 
 import argparse
+import sqlite3
+import sys
 from pathlib import Path
 
 from ma_signal_monitor.config import load_config
@@ -43,16 +46,28 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config(args.root)
-    store = StateStore(args.root / config.db_path)
+    store = None
     try:
+        store = StateStore(args.root / config.db_path, read_only=True)
         # Look back over at least 2x the silent-days threshold so a source
         # that persisted right at the edge of the window still has that
         # attempt on record instead of appearing to have none at all.
         health = store.get_source_fetch_health(
             lookback_days=max(60, config.source_silent_days * 2)
         )
+    except (sqlite3.Error, OSError) as exc:
+        print(f"Source health unavailable: {exc}", file=sys.stderr)
+        return 2
     finally:
-        store.close()
+        if store is not None:
+            store.close()
+
+    if not health:
+        print(
+            "Source health unavailable: no fetch observations in the lookback window.",
+            file=sys.stderr,
+        )
+        return 2
 
     flagged = flag_silent_sources(health, config)
 

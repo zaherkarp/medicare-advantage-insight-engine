@@ -98,7 +98,13 @@ Check `/status` ("Silent sources") or `/sources` (each source's "silent"
 badge) — these read `source_fetch_log`, a per-run record of what actually
 happened on the fetch side, independent of whether anything reached the
 archive. Or run `ma-signal-source-health` for a plain-text report (exits 1 if
-anything is flagged). A source is flagged once `SOURCE_SILENT_DAYS` (default
+anything is flagged; exits 2 if the archive cannot be read or has no fetch
+observations in the lookback window). The command opens the existing archive
+read-only: it never creates or migrates the database, repairs an index, or
+disables a source. Exit 0 means no silent source was detected in the available
+observations, not that every configured source has been tested. If it returns
+2, check the configured archive path and normal ingestion results rather than
+using the diagnostic to initialize missing data. A source is flagged once `SOURCE_SILENT_DAYS` (default
 7) pass with no persisted item; the reported "last status"/"last error"
 tells you which of these it is:
 
