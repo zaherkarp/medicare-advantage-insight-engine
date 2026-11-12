@@ -60,3 +60,49 @@ def test_exits_one_and_reports_silent_source(project_root_with_config, capsys):
     assert "1 silent source" in out
     assert "Test Feed" in out
     assert "403 Forbidden" in out
+
+
+def test_removed_source_observations_are_unavailable(project_root_with_config, capsys):
+    _log_recent_success(project_root_with_config, source_name="Removed Feed")
+    assert source_health_cli.main(["--root", str(project_root_with_config)]) == 2
+    assert "no fetch observations for enabled sources" in capsys.readouterr().err
+
+
+def test_disabled_source_observations_are_unavailable(
+    project_root_with_config, monkeypatch, capsys
+):
+    _log_recent_success(project_root_with_config)
+    config = load_config(project_root_with_config)
+    config.sources[0].enabled = False
+    monkeypatch.setattr(source_health_cli, "load_config", lambda root: config)
+    assert source_health_cli.main(["--root", str(project_root_with_config)]) == 2
+    assert "no enabled sources" in capsys.readouterr().err
+
+
+def test_partial_coverage_is_explicit_not_silent(
+    project_root_with_config, monkeypatch, capsys
+):
+    from dataclasses import replace
+
+    _log_recent_success(project_root_with_config)
+    config = load_config(project_root_with_config)
+    config.sources.append(replace(config.sources[0], name="New Feed"))
+    monkeypatch.setattr(source_health_cli, "load_config", lambda root: config)
+    assert source_health_cli.main(["--root", str(project_root_with_config)]) == 0
+    out = capsys.readouterr().out
+    assert "1/2 enabled sources observed" in out
+    assert "1 unobserved" in out
+    assert "No silent sources among observed enabled sources" in out
+
+
+def test_disabled_rows_do_not_cover_enabled_source(
+    project_root_with_config, monkeypatch
+):
+    from dataclasses import replace
+
+    _log_recent_success(project_root_with_config)
+    config = load_config(project_root_with_config)
+    config.sources.append(replace(config.sources[0], name="Unobserved Feed"))
+    config.sources[0].enabled = False
+    monkeypatch.setattr(source_health_cli, "load_config", lambda root: config)
+    assert source_health_cli.main(["--root", str(project_root_with_config)]) == 2

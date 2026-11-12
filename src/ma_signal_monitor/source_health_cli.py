@@ -10,7 +10,8 @@ Read-only: never disables anything, matching ``source_review.py``'s stance
 that a human confirms any change to ``sources.yaml``. Exits 1 when any
 source is flagged, so it can gate a CI/cron step if an operator wants that;
 run by hand otherwise. Exits 2 when the archive is unavailable or has no
-fetch observations; missing evidence is not a healthy result. The deployment
+fetch observations for enabled sources; missing evidence is not a healthy result.
+Coverage is reported separately: unobserved sources are unknown, not silent. The deployment
 runs scripts/verify_source_health.py after ingest: it accepts silent-source
 warnings but fails unavailable evidence or archive mutation. It suppresses
 source details in public Actions logs. The live/static `/sources` and
@@ -67,10 +68,29 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    enabled = {source.name for source in config.sources if source.enabled}
+    if not enabled:
+        print("Source health unavailable: no enabled sources.", file=sys.stderr)
+        return 2
+    observed = enabled.intersection(health)
+    if not observed:
+        print(
+            "Source health unavailable: no fetch observations for enabled sources "
+            "in the lookback window.",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        f"Coverage: {len(observed)}/{len(enabled)} enabled sources observed; "
+        f"{len(enabled - observed)} unobserved (unknown, not silent)."
+    )
     flagged = flag_silent_sources(health, config)
 
     if not flagged:
-        print(f"No silent sources (threshold: {config.source_silent_days}d).")
+        print(
+            "No silent sources among observed enabled sources "
+            f"(threshold: {config.source_silent_days}d)."
+        )
         return 0
 
     print(

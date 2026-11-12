@@ -123,3 +123,21 @@ def test_baseline_config_does_not_access_discovered_archive(
     monkeypatch.setattr(verify_source_health, "load_config", config)
     assert verify_source_health.main(["--root", str(project_root_with_config)]) == 0
     assert observed == [{"include_discovered_sources": False}]
+
+
+def test_actual_diagnostic_rejects_unrelated_observations(
+    project_root_with_config, capsys
+):
+    path = seed(project_root_with_config)
+    store = StateStore(path)
+    store._get_conn().execute(
+        "UPDATE source_fetch_log SET source_name = 'Removed Feed'"
+    )
+    store._get_conn().commit()
+    store.close()
+    before = path.read_bytes()
+    assert verify_source_health.main(["--root", str(project_root_with_config)]) == 2
+    assert path.read_bytes() == before
+    output = capsys.readouterr().out
+    assert "did not return usable evidence" in output
+    assert "Removed Feed" not in output

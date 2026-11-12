@@ -150,7 +150,10 @@ The deployment runs `scripts/verify_source_health.py` serially after ingest.
 It executes the actual diagnostic and compares the archive and nonempty WAL
 or rollback journal bytes before and after. Exit 0 means no silent sources
 among observed fetches; exit 1 warns but does not block deployment. Neither
-result proves complete source coverage. Exit 2, unexpected process exits,
+result proves complete source coverage. The CLI reports observed/unobserved
+enabled-source counts; rows belonging only to disabled or removed sources
+cannot establish a usable result. With zero enabled-source observations it
+returns unavailable (exit 2). Unobserved sources are unknown, not silent. Exit 2, unexpected process exits,
 timeouts, or detected archive changes stop the deployment before cache save.
 No archive or diagnostic output is uploaded: public Actions logs receive
 only the exit classification and unchanged-archive receipt. Empty WAL and
