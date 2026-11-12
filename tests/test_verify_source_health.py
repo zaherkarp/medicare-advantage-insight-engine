@@ -107,3 +107,19 @@ def test_wal_changes_are_detected(project_root_with_config, monkeypatch):
 
     monkeypatch.setattr(verify_source_health.subprocess, "run", mutate)
     assert verify_source_health.main(["--root", str(project_root_with_config)]) == 2
+
+
+def test_baseline_config_does_not_access_discovered_archive(
+    project_root_with_config, monkeypatch
+):
+    seed(project_root_with_config)
+    real = verify_source_health.load_config
+    observed = []
+
+    def config(root, **kwargs):
+        observed.append(kwargs)
+        return real(root, **kwargs)
+
+    monkeypatch.setattr(verify_source_health, "load_config", config)
+    assert verify_source_health.main(["--root", str(project_root_with_config)]) == 0
+    assert observed == [{"include_discovered_sources": False}]

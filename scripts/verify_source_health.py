@@ -31,7 +31,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     try:
-        db_path = args.root / load_config(args.root).db_path
+        db_path = (
+            args.root / load_config(args.root, include_discovered_sources=False).db_path
+        )
         before = snapshot(db_path)
         if before[0] is None:
             print("Source-health verification unavailable: archive missing.")
