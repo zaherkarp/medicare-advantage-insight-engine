@@ -64,8 +64,9 @@ what to build next; the gate cannot meet this one by tuning its vocabulary.
 ## What the current threshold misses
 
 The score threshold loses 11 Brief stories, all from the band sampled just
-below it (score 0.1 to 0.3). Nothing below 0.1 was labeled Brief or Context
-(0 of 25), so the display floor itself is sound.
+below it (score 0.1 to 0.3). None of the 25 sampled stories below 0.1 was
+labeled Brief or Context. This sample does not establish that the display
+floor is safe for the broader population; that remains unverified.
 
 ## Caveats
 
