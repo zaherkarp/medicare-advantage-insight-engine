@@ -252,3 +252,30 @@ def test_scorecard_floors_pass_and_fail():
     context_hidden = scorecard.floors(ok + [_it("relevant_context", "exclude")])
     assert not context_hidden["passed"]
     assert len(context_hidden["context_hidden"]) == 1
+
+
+def test_scorecard_skips_items_excluded_from_scoring(tmp_path):
+    # A story reused as development material is no longer held out: it is
+    # dropped by default and only scored when explicitly asked for.
+    from evals.relevance import scorecard
+
+    holdout = tmp_path / "h.yaml"
+    items = [
+        {"item_id": "keep", "label": "irrelevant", "proposed_label": "irrelevant"},
+        {"item_id": "reused", "label": "relevant_brief", "proposed_label": "x"},
+    ]
+    holdout.write_text(
+        yaml.safe_dump(
+            {
+                "_meta": {
+                    "n": 2,
+                    "excluded_from_scoring": {"items": {"reused": "dev fixture"}},
+                },
+                "items": items,
+            }
+        )
+    )
+    kept, _, _ = scorecard.load(str(holdout))
+    assert [it["item_id"] for it in kept] == ["keep"]
+    both, _, _ = scorecard.load(str(holdout), include_excluded=True)
+    assert [it["item_id"] for it in both] == ["keep", "reused"]

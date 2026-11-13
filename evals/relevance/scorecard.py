@@ -49,19 +49,27 @@ def _pct(n: int, d: int) -> str:
     return f"{n}/{d} = {100 * n / d:.0f}%" if d else "n/a (0)"
 
 
-def load(path: str) -> list[dict]:
+def load(path: str, include_excluded: bool = False) -> list[dict]:
+    """Read a holdout. Items listed under ``_meta.excluded_from_scoring`` are
+    dropped unless ``include_excluded``: a story reused as development material
+    after the holdout was built is no longer held out."""
     import yaml
 
     data = yaml.safe_load(open(path))
     items = data["items"]
+    excluded = set(
+        ((data["_meta"].get("excluded_from_scoring") or {}).get("items") or {})
+    )
+    if excluded and not include_excluded:
+        items = [it for it in items if it["item_id"] not in excluded]
     using_proposed = all(it.get("label") is None for it in items)
     for it in items:
         it["_label"] = it.get("label") or it.get("proposed_label")
     return items, using_proposed, data["_meta"]
 
 
-def report(path: str) -> None:
-    items, using_proposed, meta = load(path)
+def report(path: str, include_excluded: bool = False) -> None:
+    items, using_proposed, meta = load(path, include_excluded)
     if using_proposed:
         print("!" * 76)
         print("!!  USING PROPOSED (heuristic) LABELS — NOT OWNER-CONFIRMED.")
@@ -110,7 +118,8 @@ def report(path: str) -> None:
     cand_alert_ok = [it for it in cand_alert if it["_label"] in relevant_any]
 
     print(
-        f"\nHeld-out set: n={meta['n']} (heldout since {meta['heldout_since']}); "
+        f"\nHeld-out set: n={len(items)} of {meta['n']} (heldout since "
+        f"{meta['heldout_since']}; {meta['n'] - len(items)} excluded from scoring); "
         f"relevant_brief labels: {len(rb)}\n"
     )
     print(
@@ -228,7 +237,13 @@ def _entities(it: dict) -> list[str]:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--holdout", required=True)
-    report(ap.parse_args().holdout)
+    ap.add_argument(
+        "--include-excluded",
+        action="store_true",
+        help="also score items listed under _meta.excluded_from_scoring",
+    )
+    args = ap.parse_args()
+    report(args.holdout, args.include_excluded)
 
 
 if __name__ == "__main__":
