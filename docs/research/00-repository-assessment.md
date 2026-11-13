@@ -105,7 +105,15 @@ The static index is capped at `_MAX_STORY_PAGES = 2000` rows
 | Declared causal model | `causal.py`, `config/causal_model.yaml` | Hand-built category graph. A candidate knowledge-structure condition, not a retriever |
 | `score_item` | `scoring.py` | Query-independent topical prior (see §6a) |
 | Eligibility gate | `eligibility.py` | Query-independent MA-relevance tier; a second prior |
-| `StateStore(read_only=True)` | `storage.py` | Safe read path for an archive adapter |
+| `StateStore(read_only=True)` | `storage.py` | Candidate archive adapter; read-only safety was not enforced at the assessed revision (see below) |
+
+**Safety correction (2026-11-13).** At the assessed revision `900fc7a`,
+`read_only=True` still created directories, opened an ordinary writable SQLite
+connection and initialized FTS tables. It was not a safe read-only boundary.
+PR #93 subsequently repaired that production path; an archive adapter must use
+the repaired version and verify non-mutation against a disposable exported
+copy. This correction does not change the November 3 measurements or authorize
+an archive export.
 
 ### 2.3 An evaluation programme already exists, for a different question
 
@@ -272,15 +280,20 @@ AND-of-prefix query; (B) BM25 with OR semantics. The A1 versus B contrast
 isolates the conjunction, which on 15-word research questions drives recall
 toward zero by construction.
 
-**(c) Thirty questions cannot support comparative claims.** With paired binary
-outcomes, an exact McNemar test needs at least 6 discordant questions all
-favouring one system to reach p < 0.05 (2 x 0.5^6 = 0.031). A 10-point
-Recall@10 gap at n=30 is a net 3 questions. Fourteen question types over 30
-questions is about two per type, so per-type breakdowns would be anecdotes. My
-recommendation: treat the first 30 as a **development and failure-analysis
-set**, make no ranking claims from it, and plan the held-out test split at
-roughly 100 or more questions, with the type taxonomy narrowed to the
-categories the corpus can actually exercise.
+**(c) Thirty questions offer limited power for modest effects.** With paired
+binary outcomes, an exact two-sided McNemar test needs at least 6 discordant
+questions all favouring one system to reach p < 0.05 (2 x 0.5^6 = 0.031).
+That pattern can occur within n=30, so comparative evidence is not impossible.
+A 10-percentage-point hit@10 gap at n=30 is a net 3 questions; that arithmetic
+also describes Recall@10 only when each query has one gold passage. Fractional
+recall with multiple gold passages needs its own paired analysis. Fourteen
+question types over 30 questions is about two per type, so per-type breakdowns
+would be anecdotes. My recommendation remains to treat the first 30 as a
+**development and failure-analysis set**, make no ranking claims from that
+development set, and plan the held-out test split at roughly 100 or more
+questions. Choose its size from a power analysis for the intended effect and
+metric, not a universal minimum, and narrow the type taxonomy to categories
+the corpus can actually exercise.
 
 **(d) Phase 10 stays gated** at 300 or more questions with recorded successful
 trajectories (owner decision, 2026-08-08).
@@ -355,7 +368,8 @@ tests/research/
   `data/research_corpus.db`, which `.gitignore` already covers. It never
   depends on the Actions cache.
 - `archive_adapter.py` reads the news tier through
-  `StateStore(path, read_only=True)` from an exported copy.
+  `StateStore(path, read_only=True)` from an exported copy, using the repaired
+  implementation described in §2.2 and verifying non-mutation.
 - Research dependencies sit behind a `[research]` extra. `pip install .` and
   `pip install ".[web]"`, which the deploy uses, stay unchanged.
 - Dependencies: stdlib for lexical work (BM25 is about 40 lines; FTS5 provides
@@ -369,12 +383,16 @@ tests/research/
 
 - **Guardrail 4, lifted for research only.** Paid embedding and LLM APIs are
   allowed inside `src/ma_signal_monitor/research/` and the `[research]` extra,
-  nowhere else. CI holds no keys; LLM-touching tests are fixture-mocked.
+  nowhere else. CI holds no API keys and uses no network; LLM-touching tests
+  are fixture-mocked, and pytest stays offline and deterministic. Cache
+  embeddings by `(content_hash, model_id)` so unchanged documents are not
+  re-embedded. Every run records model IDs, token counts and estimated cost.
 - **Sequencing: corpus, then protocol, then eval set.** Gold passages cannot be
   annotated before the documents exist. Anti-contamination holds because the
   corpus is built from a manifest while no retriever and no question exists,
   and the eval set is frozen and hashed before the first retriever is written.
-- **Phase 10 gated** at 300 or more questions with recorded trajectories.
+- **Phase 10 gated** at 300 or more questions with recorded successful search
+  trajectories.
 
 ---
 
