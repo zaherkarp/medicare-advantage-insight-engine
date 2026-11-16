@@ -443,6 +443,12 @@ Each belongs in its own issue or PR, per `AGENTS.md` rule 2.
 
 ## 12. Owner decisions needed before Phase 1
 
+> **Status (2026-11-16).** The owner chose a separate news retrieval track,
+> run first, with this regulatory track paused and questions drafted by
+> Claude and vetted by the owner. Recorded in
+> [`01-news-track-protocol.md`](01-news-track-protocol.md) §1. The items
+> below remain open for the regulatory track.
+
 1. **Proceed, given competing priorities?** The workstream has been dormant for
    87 days while the relevance loop advanced. Recommended: proceed only if it
    gets dedicated time, since a half-built research layer has no value.
