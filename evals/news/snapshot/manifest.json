@@ -1,0 +1,17 @@
+{
+  "bytes": 837088,
+  "cleaning": {
+    "empty_date": 300,
+    "rule": "strip_syndication(); applied on load, raw file unchanged",
+    "syndication_full": 522,
+    "syndication_truncated": 42
+  },
+  "deploy_commit": "f230ec13eff79219ce4872e98295b2ab04c2dcd7",
+  "deploy_note": "Supplied by the operator: the last Deploy Static Site run that completed before fetched_at. Not readable from the index itself.",
+  "deploy_run": "https://github.com/zaherkarp/medicare-advantage-insight-engine/actions/runs/43929157947",
+  "fetched_at": "2026-11-16T19:46:15Z",
+  "file": "search-index-2026-11-16.json",
+  "rows": 1445,
+  "sha256": "fc5139d1c33524818b3da31208aabc049977c93824eee30280d1f451e3b85fad",
+  "url": "https://signal.zaherkarp.com/search-index.json"
+}
