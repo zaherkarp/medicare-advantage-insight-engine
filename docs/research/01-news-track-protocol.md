@@ -65,9 +65,9 @@ reproducible form.
 | `sha256`, `bytes`, `rows` | Identity; every run records the snapshot hash it used |
 | `deploy_commit` (if knowable) | Which scorer and floor produced the index |
 
-**Storage: an owner decision (§9, Q1).** Because the live file changes every
-two hours, the snapshot bytes cannot be re-fetched later; they must be kept
-somewhere. Recommended: commit the snapshot (about 750 KB) under
+**Storage: committed (owner decision, §9).** Because the live file changes
+every two hours, the snapshot bytes cannot be re-fetched later; they must be
+kept somewhere. The snapshot (about 750 KB) is committed under
 `evals/news/`. The relevance holdouts already commit several hundred story
 titles and summaries, so this is not a new kind of content in the repository,
 and it is the only option that keeps a run reproducible from a clone alone.
@@ -196,7 +196,8 @@ so.
 
 - **Cluster-level** Recall@1, @5, @10, @20 and MRR: a cluster counts once,
   however many of its rows are returned, so returning one wire story four
-  times earns nothing extra.
+  times earns nothing extra. Each is reported strict (grade 2 only) and
+  lenient (grade 1 or 2), per §9.
 - nDCG@10 over the graded judgments.
 - Abstention accuracy on unanswerable items, per §4.
 - Per-question results always published, alongside aggregates and the
@@ -232,14 +233,14 @@ construction, the same discipline `evals/relevance/` uses for its holdouts.
 
 ---
 
-## 9. Open questions for the owner
+## 9. Decisions on the protocol's open questions (owner, 2026-11-16)
 
-1. **Commit the snapshot?** Recommended yes (§3). The alternative is keeping
-   it outside the repository and recording only its hash, which makes every
-   result unreproducible from a clone.
-2. **Grading.** Two grades (directly answers / related) are proposed. A plain
-   relevant/not-relevant scheme is simpler to vet and loses nDCG. Recommended:
-   two grades.
+1. **The snapshot is committed** to the repository under `evals/news/` (§3),
+   so every result is reproducible from a clone.
+2. **Two relevance grades:** 2 directly answers the query, 1 is related and
+   partially answers it. nDCG@10 uses both grades. Recall@k and MRR are
+   reported at two thresholds, strict (grade 2 only) and lenient (grade 1 or
+   2), so a method cannot look good by surfacing only related stories.
 
 ---
 
