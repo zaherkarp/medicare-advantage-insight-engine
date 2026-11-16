@@ -97,23 +97,36 @@ judgments refer to stable cluster ids.
 
 ## 4. Conditions
 
-All three are deterministic, stdlib-only, and need no new dependency.
+All four are deterministic, stdlib-only, and need no new dependency. Every
+condition after A0 runs through the same SQLite FTS5 index over
+`title, summary` with the same tokenizer, so each step changes one thing.
 
-| Id | Condition | What it isolates |
+| Id | Condition | What changes from the row above |
 |---|---|---|
-| **A0** | The deployed filter, reproduced exactly in Python: every term a substring of `title + summary + source + category`, lowercased; results in index order | The production baseline |
-| **A1** | SQLite FTS5 over `title, summary` with the current `_fts_query` (quoted prefix terms joined by AND), ordered by `bm25()` | Ranking, holding the all-terms-required rule fixed |
-| **B** | BM25 over `title + summary` with OR semantics (any term matches) | Relaxing the conjunction, holding BM25 fixed |
+| **A0** | The deployed filter, reproduced exactly in Python: every term a substring of `title + summary + source + category`, lowercased; results in index order (newest first) | The production baseline |
+| **A1u** | FTS5 with the current `_fts_query` (quoted prefix terms joined by AND); results in the same newest-first order as A0, no ranking | Matching only: fields and match rule change, order does not |
+| **A1** | The same FTS5 match as A1u, ordered by `bm25()` | Ranking only: identical candidate set to A1u |
+| **B** | FTS5 with the same quoted prefix terms joined by OR, ordered by `bm25()` | The conjunction only: same ranker and tokenizer as A1 |
 
-A0 to A1 measures what ranking buys. A1 to B measures what the conjunction
-costs. The first assessment predicted the conjunction drives recall toward
-zero on long queries; this is where that prediction is tested.
+A1u to A1 measures what ranking buys, on an identical candidate set. A1 to B
+measures what requiring every term costs. The first assessment predicted the
+conjunction drives recall toward zero on long queries; this is where that
+prediction is tested.
+
+**A0 to A1u is a combined matching change, not one factor.** It changes the
+searched fields (A0 also matches `source` and `category`) and the match rule
+(A0 matches substrings anywhere, so `health` hits `UnitedHealthcare`; FTS5
+matches token prefixes, so it does not) at the same time. That step is
+reported as such, with the queries whose candidate sets differ listed and each
+difference attributed by hand to fields or to match rule. Splitting it into
+two more conditions was considered and not done: neither intermediate form is
+something the site would ship.
 
 A0 is reproduced from the JavaScript, not imported from it. A unit test pins
 it against a handful of hand-checked queries so the reproduction cannot drift
 from the deployed behaviour unnoticed.
 
-**Abstention.** A0 and A1 abstain by returning nothing. B always returns
+**Abstention.** A0, A1u and A1 abstain by returning nothing. B always returns
 something whenever any term matches, so for unanswerable questions B is scored
 on whether its top score falls below a threshold chosen on development data
 and reported with the threshold. This asymmetry is part of the result, not
@@ -199,7 +212,7 @@ so.
 
 ## 7. When embeddings enter
 
-Only after A0, A1 and B are scored and their failures read. If the failures
+Only after A0, A1u, A1 and B are scored and their failures read. If the failures
 concentrate in terminology drift or paraphrased distractors, a semantic
 condition has a stated hypothesis and is added under the 2026-08-08 rules
 (paid API only in the research package, cached by `(content_hash, model_id)`,
@@ -238,7 +251,7 @@ Each is its own PR, per `AGENTS.md` rule 2.
 2. Snapshot, manifest, cleaning and cluster file, with tests. No retrievers.
 3. Drafted questions, opened as a draft PR for item-by-item owner vetting.
 4. Freeze: content hash recorded once vetting is complete.
-5. Conditions A0, A1, B and the scoring harness, then the first results.
+5. Conditions A0, A1u, A1, B and the scoring harness, then the first results.
 
 Code follows the boundary in `00-repository-assessment.md` §8: library code
 under `src/ma_signal_monitor/research/`, data and questions under
