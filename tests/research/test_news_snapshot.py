@@ -135,6 +135,22 @@ def test_fetch_refuses_duplicate_ids(tmp_path):
         _fetch(tmp_path, [_row(), _row()])
 
 
+def test_fetch_refuses_to_overwrite_a_pinned_snapshot(tmp_path):
+    _fetch(tmp_path, [_row()])
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    with pytest.raises(snap.SnapshotError, match="never overwritten"):
+        _fetch(tmp_path, [_row(item_id="fedcba9876543210")])
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
+
+
+def test_fetch_refuses_before_downloading(tmp_path):
+    (tmp_path / "anything").write_text("x")
+    calls = []
+    with pytest.raises(snap.SnapshotError):
+        snap.fetch(tmp_path, opener=lambda url: calls.append(url) or b"[]")
+    assert calls == []
+
+
 def test_load_detects_tampered_bytes(tmp_path):
     _fetch(tmp_path, [_row()])
     raw = tmp_path / "search-index-2026-11-16.json"

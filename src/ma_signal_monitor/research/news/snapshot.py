@@ -24,7 +24,7 @@ instead handled per question at judgment time (protocol §3, §5).
 
 Usage::
 
-    python -m ma_signal_monitor.research.news.snapshot fetch --dir evals/news/snapshot \\
+    python -m ma_signal_monitor.research.news.snapshot fetch --dir evals/news/<new-dir> \\
         --deploy-commit <sha> --deploy-run <url>
     python -m ma_signal_monitor.research.news.snapshot verify --dir evals/news/snapshot
 
@@ -206,7 +206,17 @@ def fetch(
     ``deploy_commit`` / ``deploy_run`` cannot be read from the index itself;
     the operator supplies them from the Deploy Static Site run that last
     completed before the fetch, and the manifest says so.
+
+    Refuses a directory that already holds anything. A pinned snapshot is
+    never replaced: overwriting both the raw file and the manifest would still
+    verify cleanly while silently changing the corpus that judgments refer to.
+    A new snapshot goes in a new directory.
     """
+    if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
+        raise SnapshotError(
+            f"{snapshot_dir} is not empty; a pinned snapshot is never "
+            "overwritten. Fetch into a new directory."
+        )
     now = (now or datetime.now(timezone.utc)).replace(microsecond=0)
     opener = opener or _http_get
     data = opener(url)
