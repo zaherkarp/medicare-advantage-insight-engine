@@ -83,15 +83,28 @@ pipeline is not changed.
 - Keep `date` as given, empty where empty (21% on 2026-11-03), and never
   substitute a fetch time for it.
 
-**Duplicate clusters.** One wire story carried by several outlets is several
-rows. The snapshot does not carry `duplicate_of`, so clusters are recomputed
-over the snapshot with the production primitives (`similarity.title_terms`,
-`similarity.jaccard`, threshold 0.6 from `config/app.yaml`
-`processing.story_dedup`). Two differences from production are deliberate and
-recorded: there is no lookback window (the whole snapshot is one pass), and
-the walk order is fixed (date, then id) because the index carries no score to
-sort by. The cluster file is committed beside the manifest so relevance
-judgments refer to stable cluster ids.
+**Duplicates: already removed by production, so no clusters (revised
+2026-11-16, during the snapshot PR).** The plan above was to recompute
+near-duplicate clusters over the snapshot. Two measurements on the first
+snapshot (1,445 stories) replaced it:
+
+- The index is already one story per production duplicate group:
+  `static_export._search_index` reads `StateStore.get_stories` with its
+  default `include_duplicates=False`, which hides every row with a
+  `duplicate_of`.
+- Re-clustering by title anyway did harm. With no time window it formed 46
+  groups, the largest of 17, by merging distinct stories that share a title
+  template: different payers' "sets quarterly dividend" items, different
+  plaintiffs' suits against HHS, unrelated Federal Register notices titled
+  "Agency Information Collection Activities". With production's 3-day window
+  it formed 5 pairs, of which 2 were still wrong (CVS and Centene suits filed
+  the same week). Those are exactly the entity confusions the questions are
+  meant to test.
+
+So judgments name **story ids**. Where two stories genuinely say the same
+thing (a residual duplicate production missed), the question item groups
+them into one unit (§5), decided per question during vetting rather than by a
+global rule.
 
 ---
 
@@ -148,7 +161,7 @@ supersession or exact-numeric questions; the snippets cannot support them.
 | Acronym | Acronyms that collide with words or with each other |
 | Terminology drift | The same concept under different wording |
 | Distractor-rich | Several lexically similar wrong stories, one right one in other words |
-| Multi-story | A question answered only by two or more distinct clusters together |
+| Multi-story | A question answered only by two or more distinct units together |
 | Natural-language length | A long question of the kind a person actually types, where the conjunction bites |
 | Unanswerable | Nothing in the snapshot answers it |
 
@@ -159,9 +172,10 @@ supersession or exact-numeric questions; the snippets cannot support them.
   query: "..."                 # what the user would type
   question_type: entity_ambiguity
   answerable: true
-  relevant:                    # cluster ids, graded
-    - {cluster: c0412, grade: 2}   # directly answers
-    - {cluster: c0587, grade: 1}   # related, partially answers
+  relevant:                    # units of story ids, graded
+    - {stories: [3f2a...], grade: 2}            # directly answers
+    - {stories: [9c1e..., 47b0...], grade: 2}   # two copies of one story: one unit
+    - {stories: [b812...], grade: 1}            # related, partially answers
   failure_mode_targeted: "..."
   query_source: drafted        # drafted | owner
   vetting: accepted            # accepted | edited | rejected (rejected items are kept, not deleted)
@@ -170,7 +184,7 @@ supersession or exact-numeric questions; the snippets cannot support them.
 
 **Drafting and vetting protocol.**
 
-1. Claude drafts each query and its relevant clusters by reading the cleaned
+1. Claude drafts each query and its relevant units by reading the cleaned
    snapshot, **before any retriever code exists in the repository**. No
    retriever is run, informally or otherwise, while drafting.
 2. The owner vets every item against the stories themselves: accept, edit, or
@@ -194,9 +208,9 @@ so.
 
 ## 6. Metrics and statistics
 
-- **Cluster-level** Recall@1, @5, @10, @20 and MRR: a cluster counts once,
-  however many of its rows are returned, so returning one wire story four
-  times earns nothing extra. Each is reported strict (grade 2 only) and
+- **Unit-level** Recall@1, @5, @10, @20 and MRR: a unit counts once,
+  however many of its stories are returned, so returning two copies of one
+  story earns nothing extra. Each is reported strict (grade 2 only) and
   lenient (grade 1 or 2), per §9.
 - nDCG@10 over the graded judgments.
 - Abstention accuracy on unanswerable items, per §4.
@@ -249,7 +263,8 @@ construction, the same discipline `evals/relevance/` uses for its holdouts.
 Each is its own PR, per `AGENTS.md` rule 2.
 
 1. This protocol and the decision record. Docs only.
-2. Snapshot, manifest, cleaning and cluster file, with tests. No retrievers.
+2. Snapshot, manifest and cleaning, with tests. No retrievers. (No cluster
+   file: see §3.)
 3. Drafted questions, opened as a draft PR for item-by-item owner vetting.
 4. Freeze: content hash recorded once vetting is complete.
 5. Conditions A0, A1u, A1, B and the scoring harness, then the first results.
