@@ -127,3 +127,22 @@ def test_render_has_every_section(tmp_path):
         None,
     )
     assert "## Volume" in md and "## Accuracy" in md and "C adds 1 stories" in md
+
+
+def test_accuracy_scores_only_owner_labels(tmp_path):
+    # Unlabeled items must not be graded on proposed_label, which comes from
+    # the gate and would favour the policies that use it.
+    h = _holdout(tmp_path, ["irrelevant", None, None])
+    data = yaml.safe_load(open(h))
+    for it in data["items"]:
+        it["proposed_label"] = "relevant_brief"
+    open(h, "w").write(yaml.safe_dump(data))
+    a = backtest.accuracy(h)
+    assert (a["n"], a["total"], a["brief"]) == (1, 3, 0)
+    md = backtest.render(None, {h: a}, "2026-10-01", None)
+    assert "Partly labeled: scored on the 1 owner-labeled stories of 3" in md
+
+
+def test_accuracy_with_no_labels_is_skipped(tmp_path):
+    a = backtest.accuracy(_holdout(tmp_path, [None, None, None]))
+    assert a["unlabeled"] and a["n"] == 0

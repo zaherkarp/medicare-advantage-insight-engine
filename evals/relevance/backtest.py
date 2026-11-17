@@ -116,13 +116,18 @@ def accuracy(holdout_path: str) -> dict:
     from evals.relevance.scorecard import _entities as holdout_entities
     from evals.relevance.scorecard import load
 
-    items, using_proposed, meta = load(holdout_path)
+    items, _, meta = load(holdout_path)
+    # Score only stories the owner labeled. scorecard.load fills a missing
+    # label from proposed_label, which is derived from the gate itself, so a
+    # partly labeled set would grade the policies partly on their own guesses.
+    total = len(items)
+    items = [it for it in items if it.get("label")]
     brief = [it for it in items if it["_label"] == "relevant_brief"]
     wanted = [
         it for it in items if it["_label"] in ("relevant_brief", "relevant_context")
     ]
-    out = {"n": len(items), "brief": len(brief), "wanted": len(wanted)}
-    out["unlabeled"] = using_proposed
+    out = {"n": len(items), "total": total, "brief": len(brief), "wanted": len(wanted)}
+    out["unlabeled"] = not items
     scored = [
         (
             it,
@@ -187,8 +192,14 @@ def render(
             "",
         ]
         if a["unlabeled"]:
-            out += ["Not owner-labeled: proposed labels are circular. Skip.", ""]
+            out += ["No owner labels yet: proposed labels are circular. Skip.", ""]
             continue
+        if a["n"] < a["total"]:
+            out += [
+                f"Partly labeled: scored on the {a['n']} owner-labeled stories of "
+                f"{a['total']}; the rest are left out, not filled with guesses.",
+                "",
+            ]
         out += [
             "| Policy | Surfaced | Brief caught | Brief or Context caught | Noise |",
             "|---|---|---|---|---|",
