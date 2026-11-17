@@ -1,0 +1,21 @@
+# Diagnostic evidence for the previously inspected holdout. These six article
+# records describe two events and are excluded from fresh acceptance review.
+'85c484cccc0e58d8': &centerwell
+  event_id: humana-centerwell-blackrock-2026-10
+  checked_at: '2026-10-13T11:00:00-05:00'
+  status: confirmed_context
+  url: https://www.sec.gov/Archives/edgar/data/49071/000004907126000060/hum-20261013.htm
+  rationale: Humana disclosed a financing and operating partnership affecting nearly 150 CenterWell senior primary-care clinics.
+'98cbbaca60e6ceee': *centerwell
+'c49543bcf2e28e3f': *centerwell
+'e0af98353bf91d7b': *centerwell
+'daf995ac7fd2cc44': &mercy
+  event_id: aetna-mercy-care-ownership-2026
+  checked_at: '2026-10-02T18:00:00-05:00'
+  status: confirmed_context
+  url: https://www.beckerspayer.com/financial/aetna-to-acquire-health-plan-from-ascension-commonspirit/
+  rationale: The full reporting identifies Mercy Care's Medicare D-SNPs and distinguishes ownership from Aetna's existing administration role.
+'d54406bd7538ac55':
+  <<: *mercy
+  checked_at: '2026-10-09T18:00:00-05:00'
+  rationale: Ascension's decision to redirect capital into care delivery gives context to the same Mercy Care transaction.

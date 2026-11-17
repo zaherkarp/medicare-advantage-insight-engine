@@ -67,6 +67,7 @@ distinct groups so `UnitedHealthcare`+`UnitedHealth` is +0.20, not +0.40.
 | `holdout_2026-08.yaml` | The held-out set (n=122). **`proposed_label` is a heuristic; `label` is empty pending owner review.** |
 | `scorecard.py` | Labels-vs-archive precision/recall + FP-type breakdown, current vs candidate. |
 | `shadow_report.py` | Replays a window of the archive through the gate offline and lists which stories would leave the feed, the public drafts and the briefing. Changes nothing in production. |
+| [`GATE_REPLAY.md`](GATE_REPLAY.md) | October diagnostic findings, the four-way replay, and the fresh acceptance run. |
 | `../../tests/test_relevance_eligibility.py` | Regression tests pinning the tier decisions on the Aug-14 cases. |
 
 ## Run it
