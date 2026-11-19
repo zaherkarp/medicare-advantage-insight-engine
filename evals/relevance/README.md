@@ -67,6 +67,7 @@ distinct groups so `UnitedHealthcare`+`UnitedHealth` is +0.20, not +0.40.
 | `holdout_2026-08.yaml` | The held-out set (n=122). **`proposed_label` is a heuristic; `label` is empty pending owner review.** |
 | `scorecard.py` | Labels-vs-archive precision/recall + FP-type breakdown, current vs candidate. |
 | `shadow_report.py` | Replays a window of the archive through the gate offline and lists which stories would leave the feed, the public drafts and the briefing. Changes nothing in production. |
+| `backtest.py` | Compares four selection policies side by side (A threshold, B gate only, C threshold plus gate-brief, D threshold minus gate noise): per-day volume over any archive window, accuracy on every labeled holdout, and the stories where A and C disagree as an unlabeled set. |
 | `../../tests/test_relevance_eligibility.py` | Regression tests pinning the tier decisions on the Aug-14 cases. |
 
 ## Run it
@@ -93,6 +94,14 @@ python -m evals.relevance.scorecard --holdout evals/relevance/holdout_2026-08.ya
 # 5. before switching the gate on: read what it would change on live traffic
 python -m evals.relevance.shadow_report --db /tmp/state.db \
     --since 2026-10-01 --until 2026-10-15 --out /tmp/shadow.md
+
+# 6. compare selection policies: volume over a window, accuracy on each holdout,
+#    and the stories only policy C would add (the ones whose labels decide it)
+python -m evals.relevance.backtest --db /tmp/state.db \
+    --since 2026-08-18 --until 2026-11-17 \
+    --holdout evals/relevance/holdout_2026-08.yaml \
+    --holdout evals/relevance/holdout_2026-10.yaml \
+    --out /tmp/backtest.md --disagreements-out /tmp/c_adds.yaml
 ```
 
 The shadow report is offline on purpose. The tier is a pure function of a
