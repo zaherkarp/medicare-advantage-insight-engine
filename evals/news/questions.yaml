@@ -773,16 +773,17 @@ questions:
     - f8a2a08eba327ed1
     - 6b42a55f6c88533c
     - 8c5394ba763af410
-    grade: 2
+    grade: 1
   - stories:
     - 781c654b2aa7f14f
-    grade: 2
+    grade: 1
   distractors: []
   failure_mode_targeted: Only one story takes the Medicare Advantage angle; the rest report the end of
     the program in general.
   query_source: drafted
   vetting: pending
-  note: The announcement coverage is one unit.
+  note: The announcement coverage is one unit. It and the KFF analysis get 1 because neither addresses
+    Medicare Advantage, which is what the query asks.
 - id: news-dev-030
   query: 2028 Medicare Advantage advance notice payment increase
   question_type: unanswerable
