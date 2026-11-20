@@ -23,6 +23,13 @@ processing:
   # Left unset here so MA_ELIGIBILITY_GATE governs the default-off; uncomment to
   # force it on regardless of the environment.
   # ma_eligibility_gate: true
+  # MA-eligibility RESCUE (default OFF), independent of the gate. When on, a
+  # story under min_relevance_score still gets a public draft and a briefing
+  # candidacy if its eligibility tier is 'brief'. It only adds stories: nothing
+  # over the threshold is hidden, no score changes, the feed is untouched.
+  # Evidence: evals/relevance/holdout_c_adds_2026-11.yaml (policy C). Left
+  # unset so MA_ELIGIBILITY_RESCUE governs the default-off.
+  # ma_eligibility_rescue: true
   # Maximum age of items to process (in days, 0 = no limit)
   max_item_age_days: 7
   # Maximum summary length in characters

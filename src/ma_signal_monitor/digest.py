@@ -250,7 +250,9 @@ def main() -> None:
     # the store carries the eligibility gate; mirror the flag here so the CLI
     # digest matches the web-scheduler digest (which uses the gated app store).
     store = StateStore(
-        root / config.db_path, eligibility_gate=config.ma_eligibility_gate
+        root / config.db_path,
+        eligibility_gate=config.ma_eligibility_gate,
+        eligibility_rescue=config.ma_eligibility_rescue,
     )
     try:
         digest = generate_digest(config, store)

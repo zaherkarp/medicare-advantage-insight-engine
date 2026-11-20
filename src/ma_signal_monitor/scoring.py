@@ -284,12 +284,14 @@ def score_item(item: NormalizedItem, config: AppConfig) -> ScoredItem:
         # Clamp to [0.0, 1.0]
         final_score = min(1.0, max(0.0, raw_score))
 
-    # 6. MA-eligibility tier (gate only). Deterministic, separate from the
+    # 6. MA-eligibility tier (gate or rescue). Deterministic, separate from the
     #    additive score above; persisted for audit and consulted by the
-    #    briefing/alert/display gates. Off by default -> tier stays None and no
-    #    gate acts on it. Lazy import keeps scoring <-> eligibility acyclic.
+    #    briefing/alert/display gates and by the rescue path. Off by default ->
+    #    tier stays None and nothing acts on it. The score itself is never
+    #    changed by the rescue flag. Lazy import keeps scoring <-> eligibility
+    #    acyclic.
     eligibility_tier = eligibility_reason = None
-    if config.ma_eligibility_gate:
+    if config.ma_eligibility_gate or config.ma_eligibility_rescue:
         from ma_signal_monitor.eligibility import (
             classify_eligibility,
             vocab_from_config,
