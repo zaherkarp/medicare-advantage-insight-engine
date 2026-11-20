@@ -525,6 +525,30 @@ def test_story_detail_renders_draft(client):
     assert "Angle one" in resp.text
 
 
+def test_story_detail_renders_correction(sample_config, temp_db):
+    """A config/corrections.yaml note renders under the untouched summary."""
+    from ma_signal_monitor.config import StoryCorrection
+
+    _seed_story(
+        temp_db, "fix-me", "CMS issues 2027 premiums", category="policy_regulatory"
+    )
+    _seed_story(temp_db, "fine", "Another story", category="policy_regulatory")
+    sample_config.corrections = {
+        "fix-me": StoryCorrection(date="2026-11-20", note="That is the 2027 amount.")
+    }
+    client = TestClient(create_app(sample_config, temp_db))
+
+    text = client.get("/story/fix-me").text
+    assert 'class="correction"' in text
+    assert "Correction (2026-11-20):" in text
+    assert "That is the 2027 amount." in text
+    # The note follows the summary, so a reader meets the quote, then the fix.
+    assert text.index('class="lead"') < text.index('class="correction"')
+
+    # Other stories carry no note.
+    assert 'class="correction"' not in client.get("/story/fine").text
+
+
 def test_unknown_story_404(client):
     assert client.get("/story/does-not-exist").status_code == 404
 

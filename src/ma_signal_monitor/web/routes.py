@@ -1557,6 +1557,10 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         # every new story; without this the story page would publish it.
         if not config.ma_eligibility_gate:
             view = {**view, "eligibility_tier": None, "eligibility_reason": None}
+        # An editor's note from config/corrections.yaml, if this story has one.
+        # The summary above it stays the source's own words (see
+        # config.StoryCorrection for why the quote is never edited).
+        correction = config.corrections.get(item_id)
         # Link into the scoped timeline the same way the card captions do:
         # exactly one payer group → its payer timeline; else a real topic →
         # its topic timeline; else no link.
@@ -1581,6 +1585,7 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
                 "feedback": store.get_feedback_summary(item_id),
                 "also_covered": also_covered,
                 "timeline_href": timeline_href,
+                "correction": correction,
             },
         )
 
