@@ -18,6 +18,14 @@
 
     {% if story.summary %}<p class="lead">{{ story.summary }}</p>{% endif %}
 
+    {% if correction %}
+      {# Editor's note from config/corrections.yaml. The summary above stays
+         the source's own words; this says what is actually true. #}
+      <aside class="correction" role="note">
+        <strong>Correction ({{ correction.date }}):</strong> {{ correction.note }}
+      </aside>
+    {% endif %}
+
     <p><a class="source-link" href="{{ story.link }}" target="_blank" rel="noopener">
       Read the original source →</a></p>
 

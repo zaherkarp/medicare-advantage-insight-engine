@@ -1,0 +1,24 @@
+# Editor's notes on published stories.
+#
+# Story pages republish the source's own headline and summary, and the stored
+# copy is frozen at ingest (a source that later fixes its feed does not reach
+# the archive). When that copy is wrong, add a note here instead of editing
+# the quote. The note renders on the story page directly under the summary.
+#
+# Fields (all required):
+#   item_id  the ID in the story's URL: /story/<item_id>.html
+#   date     the day the note was written, YYYY-MM-DD
+#   note     one or two sentences saying what is true; plain text
+#
+# Loaded by config._load_corrections; a malformed entry fails CI.
+
+corrections:
+  # AHA News, "CMS issues details on Medicare premiums, deductibles for 2027"
+  # (published 2026-11-18). Its feed summary says the deductible rises "in
+  # calendar year 2026 to $1,776"; $1,776 is the 2027 figure.
+  - item_id: d9f98edec4a20014
+    date: "2026-11-20"
+    note: >-
+      The source's summary labels $1,776 as the 2026 Part A deductible. That is
+      the 2027 deductible, up $40 from 2026. The daily coinsurance amounts
+      quoted ($444, $888 and $222) are also 2027 amounts.

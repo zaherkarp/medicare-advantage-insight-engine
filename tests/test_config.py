@@ -353,3 +353,65 @@ def test_source_context_round_trips(tmp_path):
     sources = _load_sources(path)
     assert sources[0].context == "Medicare Advantage Star Ratings litigation."
     assert sources[1].context == ""  # default when omitted
+
+
+class TestCorrections:
+    """config/corrections.yaml: editor's notes keyed by story item_id."""
+
+    def _write(self, root, entries):
+        with open(root / "config" / "corrections.yaml", "w") as f:
+            yaml.dump({"corrections": entries}, f)
+
+    def test_missing_file_means_no_corrections(self, project_root_with_config):
+        assert load_config(project_root_with_config).corrections == {}
+
+    def test_loads_entry_and_folds_whitespace(self, project_root_with_config):
+        self._write(
+            project_root_with_config,
+            [{"item_id": "abc123", "date": "2026-11-20", "note": "Line one\n  two."}],
+        )
+        c = load_config(project_root_with_config).corrections["abc123"]
+        assert c.date == "2026-11-20"
+        assert c.note == "Line one two."
+
+    def test_unquoted_yaml_date_is_accepted(self, project_root_with_config):
+        # An unquoted date parses to datetime.date; the loader normalizes it.
+        (project_root_with_config / "config" / "corrections.yaml").write_text(
+            "corrections:\n  - item_id: abc\n    date: 2026-11-20\n    note: Fixed.\n"
+        )
+        c = load_config(project_root_with_config).corrections["abc"]
+        assert c.date == "2026-11-20"
+
+    @pytest.mark.parametrize(
+        "entry, message",
+        [
+            ({"date": "2026-11-20", "note": "x"}, "item_id"),
+            ({"item_id": "a/b", "date": "2026-11-20", "note": "x"}, "item_id"),
+            ({"item_id": "a", "date": "Nov 20", "note": "x"}, "date"),
+            ({"item_id": "a", "date": "2026-11-20", "note": "  "}, "note"),
+            ({"item_id": "a", "date": "2026-11-20", "note": "x" * 601}, "longer"),
+        ],
+    )
+    def test_malformed_entry_raises(self, project_root_with_config, entry, message):
+        self._write(project_root_with_config, [entry])
+        with pytest.raises(ValueError, match=message):
+            load_config(project_root_with_config)
+
+    def test_duplicate_item_id_raises(self, project_root_with_config):
+        e = {"item_id": "a", "date": "2026-11-20", "note": "x"}
+        self._write(project_root_with_config, [e, e])
+        with pytest.raises(ValueError, match="duplicate"):
+            load_config(project_root_with_config)
+
+    def test_shipped_corrections_file_loads(self, tmp_path):
+        # The real config/corrections.yaml must parse; a typo there would
+        # otherwise only surface on the next deploy.
+        from pathlib import Path
+
+        from ma_signal_monitor.config import AppConfig, _load_corrections
+
+        shipped = Path(__file__).resolve().parents[1] / "config" / "corrections.yaml"
+        config = AppConfig()
+        _load_corrections(shipped, config)
+        assert "d9f98edec4a20014" in config.corrections
+        assert "2027" in config.corrections["d9f98edec4a20014"].note

@@ -441,6 +441,10 @@ a.strip-bubble:hover { opacity: 1; box-shadow: 0 0 0 3px rgba(20, 30, 50, 0.08);
 .story-detail h1 { margin: 8px 0 12px; }
 .lead { font-size: 1.05rem; color: #2c3548; }
 .source-link { font-weight: 600; }
+/* Editor's note on a story whose source text is wrong (config/corrections.yaml) */
+.correction { margin: 4px 0 16px; padding: 10px 14px; font-size: 0.92rem;
+  background: #fff8e6; border-left: 3px solid #c98a00; border-radius: 6px;
+  color: #3a3220; }
 .draft {
   margin-top: 26px; padding: 18px 20px; background: #fbfbfd;
   border: 1px dashed var(--border); border-radius: 10px;

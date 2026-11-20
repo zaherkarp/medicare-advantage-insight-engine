@@ -118,6 +118,22 @@ class ScoringConfig:
     ma_context_min_priority: int = 5
 
 
+@dataclass(frozen=True)
+class StoryCorrection:
+    """An editor's note shown on one published story (config/corrections.yaml).
+
+    Stories republish a source's own headline and summary verbatim, and the
+    stored copy never changes once ingested (``dedupe`` skips seen item IDs,
+    so a source that later fixes its feed does not reach the archive). When
+    that copy states something wrong, the honest fix is a dated note beside
+    the quote, not an edit to the quote: the summary stays what the source
+    published, and the note says what is actually true.
+    """
+
+    date: str
+    note: str
+
+
 @dataclass
 class AppConfig:
     """Full application configuration."""
@@ -202,6 +218,10 @@ class AppConfig:
     # enforced by _validate_config; taxonomy coverage by tests/test_causal_model.
     causal_layers: list[CausalLayerConfig] = field(default_factory=list)
     causal_edges: list[CausalEdgeConfig] = field(default_factory=list)
+
+    # Editor's notes keyed by story item_id (config/corrections.yaml). Empty
+    # unless that file is present; only the story page reads it.
+    corrections: dict[str, StoryCorrection] = field(default_factory=dict)
 
     # Feed near-duplicate grouping (processing.story_dedup in app.yaml). Labels
     # the same story carried by several sources so the browsable feed shows one
@@ -468,6 +488,12 @@ def load_config(
             "config/causal_model.yaml not found; Angles causal features disabled"
         )
 
+    # Load corrections.yaml (optional). A missing file means no notes; a
+    # malformed one is a hard error so a typo never silently drops a note.
+    corrections_path = config_dir / "corrections.yaml"
+    if corrections_path.exists():
+        _load_corrections(corrections_path, config)
+
     # Merge any promoted/auto-promoted discovery feeds from the archive DB.
     if config.discovery_enabled and include_discovered_sources:
         _merge_promoted_sources(config, root)
@@ -692,6 +718,53 @@ def _load_causal_model(path: Path, config: AppConfig) -> None:
             )
         )
     config.causal_edges = edges
+
+
+# A note is a sentence or two; the cap keeps it from turning into an article.
+_CORRECTION_NOTE_MAX = 600
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _load_corrections(path: Path, config: AppConfig) -> None:
+    """Parse corrections.yaml into ``config.corrections``.
+
+    Shape: ``corrections:`` is a list of ``{item_id, date, note}`` mappings.
+    Every field is required, ``date`` is ``YYYY-MM-DD`` (the day the note was
+    written), and an item_id may appear once. Any violation raises
+    ``ValueError`` naming the entry, so a bad edit fails CI instead of
+    publishing a page without its note.
+    """
+    with open(path) as f:
+        data = yaml.safe_load(f) or {}
+    entries = data.get("corrections") or []
+    if not isinstance(entries, list):
+        raise ValueError("corrections.yaml: `corrections` must be a list")
+    out: dict[str, StoryCorrection] = {}
+    for i, entry in enumerate(entries):
+        where = f"corrections.yaml entry {i + 1}"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{where}: must be a mapping")
+        item_id = entry.get("item_id")
+        date = entry.get("date")
+        note = entry.get("note")
+        # YAML reads an unquoted 2026-11-20 as a date object; accept it.
+        if hasattr(date, "isoformat"):
+            date = date.isoformat()
+        if not isinstance(item_id, str) or not item_id.strip() or "/" in item_id:
+            raise ValueError(f"{where}: item_id must be a nonempty story ID")
+        if not isinstance(date, str) or not _ISO_DATE.match(date):
+            raise ValueError(f"{where}: date must be YYYY-MM-DD")
+        if not isinstance(note, str) or not note.strip():
+            raise ValueError(f"{where}: note must be nonempty text")
+        note = " ".join(note.split())  # fold YAML line wrapping into one line
+        if len(note) > _CORRECTION_NOTE_MAX:
+            raise ValueError(
+                f"{where}: note is longer than {_CORRECTION_NOTE_MAX} characters"
+            )
+        if item_id in out:
+            raise ValueError(f"{where}: duplicate item_id {item_id!r}")
+        out[item_id] = StoryCorrection(date=date, note=note)
+    config.corrections = out
 
 
 def _validate_config(config: AppConfig) -> None:
