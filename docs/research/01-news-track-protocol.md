@@ -172,15 +172,24 @@ supersession or exact-numeric questions; the snippets cannot support them.
   query: "..."                 # what the user would type
   question_type: entity_ambiguity
   answerable: true
+  expected_answer: "..."       # null when answerable is false
   relevant:                    # units of story ids, graded
     - {stories: [3f2a...], grade: 2}            # directly answers
     - {stories: [9c1e..., 47b0...], grade: 2}   # two copies of one story: one unit
     - {stories: [b812...], grade: 1}            # related, partially answers
+  distractors: [5e1d...]       # look-alike stories known NOT to answer; never scored as relevant
   failure_mode_targeted: "..."
   query_source: drafted        # drafted | owner
-  vetting: accepted            # accepted | edited | rejected (rejected items are kept, not deleted)
+  vetting: pending             # pending | accepted | edited | rejected (rejected items are kept, not deleted)
   note: "..."
 ```
+
+`expected_answer` and `distractors` were added when the first draft was
+written (2026-11-19): the answer lets a vetter check the grades against what
+the stories actually say, and the distractor list records the look-alike
+stories each question was built around, for the failure analysis later.
+Distractors are documentation only; scoring ignores them. Every item starts
+`pending` and the set is frozen only when none is.
 
 **Drafting and vetting protocol.**
 
