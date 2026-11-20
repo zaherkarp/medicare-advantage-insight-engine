@@ -188,3 +188,30 @@ def test_story_page_hides_tier_badge_unless_gate_on(real_config, tmp_path):
 
 def test_rescue_defaults_off(real_config):
     assert real_config.ma_eligibility_rescue is False
+
+
+# -- archive repair -----------------------------------------------------------
+
+
+def test_archive_repair_rebuild_matches_ingestion(real_config):
+    # Repairing a rescued story must reproduce its draft, not clear it.
+    from ma_signal_monitor.archive_repair import _rebuild
+
+    row = dict(
+        item_id="p",
+        source_name="Test Feed",
+        source_priority=3,
+        title=MA_TITLE,
+        link="https://example.com/p",
+        summary=MA_SUMMARY,
+        published_date="2026-11-03T12:00:00",
+        fetched_at="2026-11-03T12:00:00",
+    )
+    off = _rebuild(row, real_config)
+    assert off["relevance_score"] < real_config.min_relevance_score
+    assert off["public_draft"] is None
+    real_config.ma_eligibility_rescue = True
+    on = _rebuild(row, real_config)
+    assert on["eligibility_tier"] == "brief"
+    assert on["public_draft"] is not None
+    assert on["relevance_score"] == off["relevance_score"]

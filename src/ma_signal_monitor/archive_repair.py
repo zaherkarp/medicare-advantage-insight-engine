@@ -16,7 +16,7 @@ from pathlib import Path
 
 from ma_signal_monitor.classify import classify_item
 from ma_signal_monitor.config import AppConfig, load_config
-from ma_signal_monitor.drafting import draft_alert
+from ma_signal_monitor.drafting import clears_score_bar, draft_alert
 from ma_signal_monitor.eligibility import eligible_for
 from ma_signal_monitor.geo import detect_states
 from ma_signal_monitor.models import NormalizedItem
@@ -160,7 +160,9 @@ def _rebuild(row, config):
         fetched_at=datetime.fromisoformat(row["fetched_at"]),
     )
     scored = score_item(item, config)
-    selected = scored.relevance_score >= config.min_relevance_score and (
+    # Same bar as ingestion (drafting.draft_alerts): the score threshold, or a
+    # rescued brief-tier story when ma_eligibility_rescue is on; then the gate.
+    selected = clears_score_bar(scored, config) and (
         not config.ma_eligibility_gate
         or eligible_for(scored.eligibility_tier or "", "alert")
     )
