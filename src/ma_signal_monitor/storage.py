@@ -232,9 +232,13 @@ class StateStore:
         db_path: str | Path,
         read_only: bool = False,
         eligibility_gate: bool = False,
+        eligibility_rescue: bool = False,
     ):
         self.db_path = Path(db_path)
         self.read_only = read_only
+        # When True, the digest fetch also admits stories under its score floor
+        # whose tier is 'brief' (config.ma_eligibility_rescue). Additive only.
+        self.eligibility_rescue = eligibility_rescue
         # When True, the public-facing read methods hide stories the
         # MA-eligibility gate marked ``eligibility_tier = 'exclude'`` (the
         # display floor), and the digest fetch (get_recent_top_stories) requires
@@ -974,10 +978,17 @@ class StateStore:
         # tier on top of the score floor. Additive/strict — it only removes rows,
         # so the digest can never surface something the score floor already hid.
         brief_clause = f" AND {_BRIEF_FLOOR_CLAUSE}" if self.eligibility_gate else ""
+        # Rescue (additive): a 'brief'-tier story under the score floor still
+        # competes for a briefing slot. It never removes a row.
+        score_clause = (
+            f"(relevance_score >= ? OR {_BRIEF_FLOOR_CLAUSE})"
+            if self.eligibility_rescue
+            else "relevance_score >= ?"
+        )
         rows = conn.execute(
             f"""SELECT * FROM stories
                WHERE COALESCE(published_date, fetched_at) >= ?{until_clause}
-                 AND relevance_score >= ?
+                 AND {score_clause}
                  AND duplicate_of IS NULL{brief_clause}
                ORDER BY relevance_score DESC,
                         COALESCE(published_date, fetched_at) DESC

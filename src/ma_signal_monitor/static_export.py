@@ -269,6 +269,7 @@ def build_site(
     # published site mirrors the live feed. create_app sets the same flag for
     # the rendered routes. Default-off => byte-identical export.
     store.eligibility_gate = config.ma_eligibility_gate
+    store.eligibility_rescue = config.ma_eligibility_rescue
 
     page_size = max(1, config.web_page_size)
     # Public archive floor: sub-floor stories (pure source-priority noise) are

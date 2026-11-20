@@ -50,6 +50,7 @@ def create_app(
     # public read this store serves, when the flag is on. Default-off leaves the
     # store byte-identical. See StateStore.eligibility_gate.
     store.eligibility_gate = config.ma_eligibility_gate
+    store.eligibility_rescue = config.ma_eligibility_rescue
     app.state.store = store
 
     templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))

@@ -21,7 +21,7 @@ from ma_signal_monitor.dedupe import (
     filter_new_items,
     mark_items_seen,
 )
-from ma_signal_monitor.drafting import draft_alerts
+from ma_signal_monitor.drafting import clears_score_bar, draft_alerts
 from ma_signal_monitor.fetchers.cms import fetch_cms
 from ma_signal_monitor.fetchers.litigation import fetch_litigation
 from ma_signal_monitor.fetchers.rss import fetch_rss
@@ -258,9 +258,7 @@ def run(
 
         # 4. Score
         scored = score_items(new_items, config)
-        relevant = [
-            s for s in scored if s.relevance_score >= config.min_relevance_score
-        ]
+        relevant = [s for s in scored if clears_score_bar(s, config)]
         summary["items_relevant"] = len(relevant)
 
         # 5. Draft the public insight drafts for above-threshold items. These

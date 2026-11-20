@@ -185,6 +185,16 @@ class AppConfig:
     # _gate: true to enable. Reversible: flip it back off or revert the PR.
     ma_eligibility_gate: bool = False
 
+    # MA-eligibility RESCUE (default OFF), independent of the gate above. When
+    # enabled, a story under the score threshold still gets a public draft and
+    # a place in the briefing's candidate pool if the eligibility tier is
+    # 'brief' (MA-specific vocabulary). It only ADDS stories: nothing the score
+    # threshold surfaces is hidden, no score changes, and the public feed is
+    # untouched. This is policy C in evals/relevance/backtest.py; see
+    # evals/relevance/holdout_c_adds_2026-11.yaml for the labeled evidence.
+    # Set MA_ELIGIBILITY_RESCUE=true or processing.ma_eligibility_rescue: true.
+    ma_eligibility_rescue: bool = False
+
     # Declared causal-layer model (config/causal_model.yaml). Both stay empty
     # unless that file is present; the Angles page reads them to rank lens
     # intersections lying along a causal edge above incidental overlaps, and
@@ -381,6 +391,8 @@ def load_config(
         ingest_interval_hours=int(os.getenv("INGEST_INTERVAL_HOURS", "6")),
         web_page_size=int(os.getenv("WEB_PAGE_SIZE", "25")),
         ma_eligibility_gate=os.getenv("MA_ELIGIBILITY_GATE", "false").lower()
+        in ("1", "true", "yes"),
+        ma_eligibility_rescue=os.getenv("MA_ELIGIBILITY_RESCUE", "false").lower()
         in ("1", "true", "yes"),
         digest_hour=int(os.getenv("DIGEST_HOUR", "13")),
         digest_lookback_hours=int(os.getenv("DIGEST_LOOKBACK_HOURS", "24")),
@@ -601,6 +613,9 @@ def _load_app_yaml(path: Path, config: AppConfig) -> None:
     )
     config.ma_eligibility_gate = processing.get(
         "ma_eligibility_gate", config.ma_eligibility_gate
+    )
+    config.ma_eligibility_rescue = processing.get(
+        "ma_eligibility_rescue", config.ma_eligibility_rescue
     )
     config.max_item_age_days = processing.get(
         "max_item_age_days", config.max_item_age_days

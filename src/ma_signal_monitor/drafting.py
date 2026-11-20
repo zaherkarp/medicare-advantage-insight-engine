@@ -229,6 +229,18 @@ def draft_alert(scored: ScoredItem, config: AppConfig) -> Alert:
     return Alert(internal=internal, public_draft=public_draft, scored_item=scored)
 
 
+def clears_score_bar(scored: ScoredItem, config: AppConfig) -> bool:
+    """True if a story clears the bar for a public draft.
+
+    The score threshold, plus, when ``ma_eligibility_rescue`` is on, any story
+    the eligibility gate tiers ``brief`` (MA-specific vocabulary) even under the
+    threshold. Rescue only adds: a story over the threshold always clears.
+    """
+    if scored.relevance_score >= config.min_relevance_score:
+        return True
+    return config.ma_eligibility_rescue and scored.eligibility_tier == "brief"
+
+
 def draft_alerts(scored_items: list[ScoredItem], config: AppConfig) -> list[Alert]:
     """Generate alerts for all scored items above the relevance threshold.
 
@@ -241,7 +253,7 @@ def draft_alerts(scored_items: list[ScoredItem], config: AppConfig) -> list[Aler
     """
     alerts = []
     for scored in scored_items:
-        if scored.relevance_score < config.min_relevance_score:
+        if not clears_score_bar(scored, config):
             continue
         # MA-eligibility gate (default off): a public draft additionally
         # requires tier >= alert, so owner-designated noise (tier 'exclude')

@@ -85,6 +85,7 @@ def _config_hash(config: AppConfig) -> str:
         "exclusions_hard",
         "exclusions_soft",
         "ma_eligibility_gate",
+        "ma_eligibility_rescue",
         "eligibility_ma_specific",
         "eligibility_medicare_adjacent",
         "eligibility_negative_context",

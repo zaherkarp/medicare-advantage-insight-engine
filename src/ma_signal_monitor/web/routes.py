@@ -1552,6 +1552,11 @@ def register_routes(app: FastAPI, templates: Jinja2Templates) -> None:
         if row is None:
             raise HTTPException(status_code=404, detail="Story not found")
         view = _story_view(row)
+        # The eligibility badge audits the gate's keep/drop decisions, so it
+        # shows only when the gate is on. The rescue flag also stores a tier on
+        # every new story; without this the story page would publish it.
+        if not config.ma_eligibility_gate:
+            view = {**view, "eligibility_tier": None, "eligibility_reason": None}
         # Link into the scoped timeline the same way the card captions do:
         # exactly one payer group → its payer timeline; else a real topic →
         # its topic timeline; else no link.
