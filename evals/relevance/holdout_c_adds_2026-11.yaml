@@ -1,0 +1,344 @@
+# Disagreement set (policy C adds over A), 18 August to 16 November 2026.
+# All 22 labels are owner labels (label_source: owner).
+_meta:
+  purpose: 'Disagreement set: every story from 2026-08-18 to 2026-11-16 that policy C (threshold, plus
+    the eligibility gate''s brief tier) surfaces and policy A (threshold alone) does not, less any story
+    already in an earlier holdout. Labels are owner ground truth, entered 2026-11-19 on a labeling page
+    that hid the gate''s guess. proposed_label is circular and NOT ground truth.'
+  heldout_since: '2026-08-18'
+  strata:
+    c_adds: 22
+  n: 22
+  content_sha256: 9a931c5739b46d5fd57f9dd43b175d478d86b121e037bb37c57300c0a706ec97
+  label_values:
+  - relevant_brief
+  - relevant_context
+  - borderline_display
+  - irrelevant
+  heldout_until: '2026-11-17'
+  labeled: '2026-11-19'
+  built_by: python -m evals.relevance.backtest --db <state.db exported 2026-11-17> --since 2026-08-18
+    --until 2026-11-17 --holdout evals/relevance/holdout_2026-08.yaml --holdout evals/relevance/holdout_2026-10.yaml
+    --disagreements-out <this file>
+items:
+- item_id: 0b9a90451e18094a
+  title: Providence Health Plan to close completely after Medicare Advantage deal falls through
+  summary: The regional health plan was in talks with an unnamed national insurer to keep its MA plans
+    afloat. But the agreement sputtered “despite significant effort on all sides,” a Providence spokesperson
+    said.
+  source_name: Healthcare Dive
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 218871e6c299a15f
+  title: Ohio report cards show 38 school districts need help to meet state standards
+  summary: 'About 6% of Ohio school districts need support to meet state standards, according to the new
+    state report cards the Ohio Department of Education and Workforce released Tuesday. The department
+    uses 1 to 5 star ratings in half increments based on six categories: achievement (25% weight toward
+    overall rating), progress (25%), early literacy (12.5%), gap […]'
+  source_name: Ohio Capital Journal
+  score_at_capture: 0.22
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: irrelevant
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 42861c962dfde70c
+  title: Nevada Charter School Authority flags underperforming schools
+  summary: Two Las Vegas charter schools may be at risk of closure following years of poor academic performance.
+    Explore Academy’s middle school and DPAC Nevada’s elementary school both received three consecutive
+    1-star ratings in the Nevada School Performance Framework. Nevada state law sets that as a trigger
+    for the mandatory termination of a charter contract, though […]
+  source_name: Nevada Current
+  score_at_capture: 0.22
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: irrelevant
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 5748bc2b2a0f1d48
+  title: Medicare Advantage plans owe Providence $1B, CEO says
+  summary: Renton, Wash.-based Providence says it’s owed $1 billion by Medicare Advantage plans. About
+    $600 million of it is from this year alone, according to President and CEO Erik Wexler, and he wants
+    Congress to make payers pay faster. Mr. Wexler is a leading voice behind the Medicare Advantage Prompt
+    Pay Act. The bill would require […] The post Medicare Advantage plans owe Providence $1B, CEO says
+    appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 6159c1a80868253a
+  title: Democrats renew push to open Medicare to people 50 and older
+  summary: Sen. Tammy Baldwin, D-Wis., announced the Medicare at 50 Act on Nov. 10, aiming to lower the
+    eligibility age. Under the bill, people ages 50-64 could buy into Medicare. The buy-in would be optional,
+    and these beneficiaries would be entitled to the same benefits as other Medicare recipients, including
+    Medicare Advantage access. States would not […] The post Democrats renew push to open Medicare to
+    people 50 and older appeared first on Becker's Payer Issues | Payer News .
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: borderline_display
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 6f9bfa6d6a427278
+  title: Alignment files motion to dismiss whistleblower lawsuit
+  summary: The lawsuit accuses the Medicare Advantage insurer of allegedly manipulating its finances to
+    boost its stock price.
+  source_name: Modern Healthcare
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 75d9e8a35360eb18
+  title: 'The lowest-rated health plans of 2026: NCQA'
+  summary: 'Of the 956 health plans rated by the NCQA in 2026, 15 received a rating of 2 stars or lower.
+    The ratings, published Sept. 15, evaluate plans on clinical quality, patient experience and health
+    plan accreditation status. A total of 18 plans received a 5-star rating. See the list of the best-rated
+    plans here. Lowest-rated […] The post The lowest-rated health plans of 2026: NCQA appeared first on
+    Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.24
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 7811030188b9130c
+  title: Sherrod v. Nexion Health at Marrero, Inc.
+  summary: at any time Marrero Healthcare had a staffing level above 2.6 hours per patient day as called
+    for by its own facility assessment; 4. any legal opinion; 5. the significance of Marrero Healthcare’s
+    ratings under the Centers for Medicare & Medicare Services’ Five-Star Rating System; and 6. Defendants’
+    respective responsibility for the operation and staffing of Marrero Healthcare. R. Doc. 111 at 1.
+    Defendants argue that this Court should accept Mr. LeBreton Original document
+  source_name: CourtListener - MA Stars Filings
+  score_at_capture: 0.26
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: irrelevant
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 7d8e07a440d4f9d5
+  title: 'Medigap Guaranteed Issue Requirements: An Overview of Federal and State Rules'
+  summary: This issue brief analyzes federal and state rules related to guaranteed issue requirements
+    for Medigap policies and how they impact beneficiaries’ access to Medigap, including the implications
+    for Medicare beneficiaries with pre-existing medical conditions and those under age 65 with long-term
+    disabilities.
+  source_name: KFF Medicare
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: borderline_display
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 8512a21c81a0dae2
+  title: '‘A real checkerboard’: The Medicare Advantage threats facing older adults, community plans'
+  summary: 'In 2026, 4.6 million Medicare Advantage beneficiaries, or 16% of enrollees, experienced disruptions
+    to their health plan, according to a recent brief from the Alliance of Community Health Plans and
+    consulting firm HealthScape Advisors. Hospitals have been dropping MA plans, often citing prior authorization
+    issues and slow reimbursement. Meanwhile, health insurers have been exiting markets […] The post ‘A
+    real checkerboard’: The Medicare Advantage threats facing older adults, community plans a...'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 8e37b1c499c5615a
+  title: '‘Our goal is to be a payvider’: MultiCare bets on Medicare Advantage as others pull back'
+  summary: 'Tacoma, Wash.-based MultiCare Health System has entered the Medicare Advantage market with
+    its new health plan, a move more than a decade in the making that runs against a tide of health system-owned
+    plan closures across the country. MultiCare Health Plan officially launched in October, offering an
+    MA HMO plan with prescription drug coverage in […] The post ‘Our goal is to be a payvider’: MultiCare
+    bets on Medicare Advantage as others pull back appeared first on Becker''s Payer Issues | Payer...'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: 9eefaca9e72598fd
+  title: Medicare Advantage Plan Availability Varies Widely by County for 2027
+  summary: The analysis shows that plan level Medicare Advantage prescription drug availability varies
+    widely across the country in 2027, with a modest reduction in the share of enrollees having more than
+    40 MA-PDs to choose from compared to 2026, and some major insurers exiting a much larger number of
+    counties than they are entering.
+  source_name: KFF Medicare
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: a475012d4158e4ea
+  title: 'Sharp COO: ‘Very tough decisions’ ahead for managed care'
+  summary: 'Scott Evans, PharmD, is taking over operations at San Diego-based Sharp HealthCare with a
+    focus on moving quickly from strategy to execution, as the system evaluates its Medicare Advantage
+    arrangements. Sharp’s health plan is withdrawing from the individual Medicare Advantage market, and
+    Dr. Evans expects some of the system’s most difficult operational decisions over the […] The post
+    Sharp COO: ‘Very tough decisions’ ahead for managed care appeared first on Becker''s Payer Issues
+    | Payer News .'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: aa470764feafb9de
+  title: '‘Now’s the right time’: Why an Idaho health system is launching a Medicare Advantage plan'
+  summary: 'Boise, Idaho-based St. Luke’s Health System will begin offering Medicare Advantage coverage
+    for the first time in 2027, making it one of just a handful of new entrants into the market. The launch
+    comes as more than a dozen payers nationwide, including several prominent health systems, have made
+    the decision to stop offering MA plans […] The post ‘Now’s the right time’: Why an Idaho health system
+    is launching a Medicare Advantage plan appeared first on Becker''s Payer Issues | Payer News .'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: c0d59e87b5dadd36
+  title: Medicare Advantage is making billions. Taxpayers deserve to know what they are buying
+  summary: For too long, Medicare Advantage has rewarded plans for becoming better at documenting how
+    sick their members are. The next era should reward them for demonstrating how much healthier they
+    make their members. Medicare Advantage is now the dominant alternative to traditional Medicare, enrolling
+    about 55% of beneficiaries eligible for the program. It is popular […] The post Medicare Advantage
+    is making billions. Taxpayers deserve to know what they are buying appeared first on Becker's Payer
+    Iss...
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: c1880808162ed2d9
+  title: Closing the Post-Discharge and Readmission Gap:How Me+U Care Modernizes Member Communications
+    for Health Plans
+  summary: In today’s highly regulated landscape, health plans face increasing pressure to deliver timely,
+    interactive outreach after a covered patient’s hospital discharge. Federal and state regulators require
+    Medicare Advantage and Medicaid Managed Care Organizations to document every attempt and prove that
+    outreach occurred within strict timelines. Medicare Advantage plans must complete outreach within
+    two business days. […] The post Closing the Post-Discharge and Readmission Gap:How Me+U Care Modern...
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: borderline_display
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: c237a32f3594551d
+  title: Highmark Health’s insurance unit powers first-half turnaround
+  summary: The subsidiary reworked its Medicare Advantage benefit offerings and directed members toward
+    lower-cost care sites.
+  source_name: Modern Healthcare
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: c5ff0dfc40fab336
+  title: 'Health plan underwriting losses balloon to $10.4B: Report'
+  summary: 'Health insurers collectively lost $10.4 billion on underwriting in 2025, a dramatic deterioration
+    from $1.7 billion the year before, according to a Mark Farrah Associates analysis. The Aug. 25 analysis
+    compared 2024 and 2025 profitability across four segments: individual, employer-group, Medicare Advantage
+    and managed Medicaid. The analysis is based on aggregated NAIC financial filings and […] The post
+    Health plan underwriting losses balloon to $10.4B: Report appeared first on Becker''s Payer...'
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: f03269ed242e03f1
+  title: 'STAT+: New Trump regulation promises to crush ‘fraudsters.’ All the savings come from Medicare
+    Advantage'
+  summary: New Trump regulation promises to crush ‘fraudsters.’ All the savings come from Medicare Advantage.
+  source_name: STAT News
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_brief
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: f2259870c8cb35ff
+  title: 5 best insurers for Medicare plan shopping resources
+  summary: Five insurers lead the industry in public-facing Medicare plan shopping resources, according
+    to an October report from Corporate Insight shared with Becker’s. The report evaluated 18 insurers’
+    public websites across homepage and menu navigation, Medicare product overview pages, Medicare Advantage
+    resources and the findability of quote and plan recommendation tools. Insurers were placed in four
+    […] The post 5 best insurers for Medicare plan shopping resources appeared first on Becker's Payer
+    I...
+  source_name: Becker's Payer Issues
+  score_at_capture: 0.21
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: borderline_display
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: f9e6b35241a029c7
+  title: AHA comments to MedPAC on differences in post-acute care use between MA, fee-for-service Medicare
+    beneficiaries
+  summary: The AHA provided comments to the Medicare Payment Advisory Commission Oct. 2 on a discussion
+    from the commission’s September meeting on its examination of differences in post-acute care use between
+    beneficiaries enrolled in Medicare Advantage and fee-for-service Medicare. The AHA said MedPAC’s preliminary
+    findings reinforced concerns the AHA repeatedly shared with the commission, Congress and federal agencies.
+    MedPAC found that MA beneficiaries used less post-acute care overall than FFS benef...
+  source_name: AHA News
+  score_at_capture: 0.19
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
+- item_id: fb280e660ee7e921
+  title: Medicare Advantage Spending Comparisons Miss Key Costs and Benefits for Seniors, New Analysis
+    Finds
+  summary: BMA-commissioned analysis identifies gaps in MedPAC methodology as Commission convenes September
+    meeting WASHINGTON —As the Medicare Payment Advisory Commission (MedPAC) convenes its September meeting,
+    Better Medicare Alliance today released a … Continue reading "Medicare Advantage Spending Comparisons
+    Miss Key Costs and Benefits for Seniors, New Analysis Finds" The post Medicare Advantage Spending
+    Comparisons Miss Key Costs and Benefits for Seniors, New Analysis Finds appeared first on Bette...
+  source_name: Better Medicare Alliance
+  score_at_capture: 0.19
+  stratum: c_adds
+  predicted_tier: brief
+  proposed_label: relevant_brief
+  label: relevant_context
+  note: added by policy C (gate brief tier, under the threshold)
+  label_source: owner
