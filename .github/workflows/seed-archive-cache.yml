@@ -66,6 +66,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          # The run id is used inside an API path below, so accept digits only.
+          # Anything else (a slash, "..", a space) could point the gh api call
+          # at a different endpoint. (Hardening, 2026-11-27.)
+          if ! [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::source_run_id must be a numeric run ID."
+            exit 1
+          fi
+
           artifact_id="$(gh api \
             "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts" \
             --jq '.artifacts[] | select(.name=="github-pages" and .expired==false) | .id' \
@@ -118,11 +126,19 @@ jobs:
           key: state-db-seed-${{ github.run_id }}
 
       - name: Summary
+        # The dispatch input reaches the shell through env, not `${{ }}`
+        # inside the script. `${{ }}` is pasted into the script text before
+        # bash parses it, so an input containing `"` or `$(...)` would run
+        # as a command. Dispatch needs write access, so this is hardening
+        # rather than a privilege boundary, but it is the safe pattern and
+        # it matches the extract step above. (Audit 2026-11-26, line 125.)
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
         run: |
           {
             echo "### Archive cache seeded"
             echo ""
-            echo "- Source run: \`${{ inputs.source_run_id }}\`"
+            echo "- Source run: \`${SOURCE_RUN_ID}\`"
             echo "- Rows restored: **${SEEDED_ROWS}**"
             echo "- Cache key: \`state-db-seed-${{ github.run_id }}\`"
             echo ""
