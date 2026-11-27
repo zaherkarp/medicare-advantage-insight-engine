@@ -51,6 +51,13 @@ jobs:
       #
       STATIC_BASE_PATH: ""
       MIN_RELEVANCE_SCORE: ${{ vars.MIN_RELEVANCE_SCORE || '0.3' }}
+      # MA-eligibility rescue (policy C): a story under MIN_RELEVANCE_SCORE still
+      # gets a public draft and a briefing candidacy when its eligibility tier is
+      # 'brief'. It only adds stories; nothing over the threshold is hidden and no
+      # score changes. Evidence: evals/relevance/holdout_c_adds_2026-11.yaml.
+      # Roll back without a PR by setting the repo Variable MA_ELIGIBILITY_RESCUE
+      # to "false" (Settings -> Secrets and variables -> Actions -> Variables).
+      MA_ELIGIBILITY_RESCUE: ${{ vars.MA_ELIGIBILITY_RESCUE || 'true' }}
       USER_AGENT: ${{ vars.USER_AGENT || 'MA-Signal-Monitor (research; contact via repo)' }}
       # sec.gov 403s any User-Agent without a real contact email (see
       # fetchers/sec.py) — set as a secret, not a Variable, so it's masked in
