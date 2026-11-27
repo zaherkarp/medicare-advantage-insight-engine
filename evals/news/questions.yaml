@@ -1,0 +1,825 @@
+# News retrieval track: development questions (DRAFT).
+# Protocol: docs/research/01-news-track-protocol.md section 5. Vet each item, then freeze.
+_meta:
+  status: draft, pending owner vetting; not frozen
+  snapshot: evals/news/snapshot
+  snapshot_sha256: fc5139d1c33524818b3da31208aabc049977c93824eee30280d1f451e3b85fad
+  protocol: docs/research/01-news-track-protocol.md
+  split: development
+  grades:
+    2: directly answers
+    1: related, partially answers
+  how_drafted: Candidates were found by reading all 1,445 titles in the snapshot, then reading the summaries
+    of the candidates. No keyword search chose any relevant story; substring scans were used only to confirm
+    that the unanswerable questions have no answer. No retriever exists in the repository.
+  known_limits: A story whose relevance is visible only in its summary, not its title, can be missed.
+    Relevant sets may therefore be incomplete; vetting should add any story you know is missing.
+questions:
+- id: news-dev-001
+  query: SCAN Health Plan star ratings lawsuit
+  question_type: entity_ambiguity
+  answerable: true
+  expected_answer: SCAN has sued HHS over its Star Ratings twice (SCAN I in July 2026, SCAN II in October
+    2026); the government opposed consolidating four related cases.
+  relevant:
+  - stories:
+    - 1c7db6e71960adb3
+    grade: 2
+  - stories:
+    - 20f7b3ff0c1d1278
+    grade: 2
+  - stories:
+    - fdabada91e738c32
+    grade: 2
+  - stories:
+    - 093202a2854fb393
+    grade: 1
+  - stories:
+    - feb9ae90e1e3041a
+    grade: 1
+  distractors:
+  - 9e348419d10474a5
+  - 3dc0272bd1a85e71
+  - ce2c4de2aba52985
+  failure_mode_targeted: 'The insurer''s name is also an ordinary word: substring and prefix matching
+    hit lung, calcium and full-body scan stories.'
+  query_source: drafted
+  vetting: pending
+  note: 093202 is a docket entry with no text beyond the caption, so it gets 1. feb9ae is a roundup of
+    2027 suits whose summary does not name SCAN; grade it up if you know SCAN is in it.
+- id: news-dev-002
+  query: Humana quarterly dividend
+  question_type: entity_ambiguity
+  answerable: true
+  expected_answer: Humana declared a $0.885 per share dividend, payable Nov. 27 (announced Sept. 2).
+  relevant:
+  - stories:
+    - b9ad52c92883bbd6
+    grade: 2
+  distractors:
+  - 2be0b86c07680ac3
+  - 833da707afd2621c
+  - be6ef99d307c8137
+  - 4ef62945b988d78a
+  failure_mode_targeted: Three insurers publish identically templated dividend headlines; only the payer
+    name separates them.
+  query_source: drafted
+  vetting: pending
+  note: This is the case where title-similarity clustering wrongly merged five dividend stories into one
+    group.
+- id: news-dev-003
+  query: Anthem Medicare Advantage risk adjustment False Claims Act case
+  question_type: entity_ambiguity
+  answerable: true
+  expected_answer: United States v. Anthem (S.D.N.Y., No. 20-cv-2593) is DOJ's Medicare Advantage risk
+    adjustment coding case; filings continued through Nov. 2026.
+  relevant:
+  - stories:
+    - 8d88b116df8b63bf
+    grade: 2
+  - stories:
+    - e941a8dabd394b8e
+    - 15b26232b94d5df0
+    - abc19e2e06119033
+    grade: 1
+  distractors:
+  - fe47d1b123e2a3e3
+  - 92c961f17d9bb5b7
+  - 8ae129c5c780ee16
+  - 4d20a8269535548d
+  failure_mode_targeted: Many unrelated Anthem stories (provider contracts, data sharing, hospital disputes)
+    share the entity name.
+  query_source: drafted
+  vetting: pending
+  note: 'The three CourtListener filings are grouped as one unit: same case, and none states the subject
+    in its summary.'
+- id: news-dev-004
+  query: CVS lawsuit over Medicare Advantage star ratings
+  question_type: entity_ambiguity
+  answerable: true
+  expected_answer: CVS (with Aetna subsidiaries) sued HHS on Oct. 26, 2026 to prevent a $2B 2027 Star
+    Ratings hit.
+  relevant:
+  - stories:
+    - 54d7a8dce440c68f
+    grade: 2
+  - stories:
+    - aa647a8610e3cca0
+    grade: 2
+  distractors:
+  - 44122e0492346888
+  - 8b3e3523bbaa07ca
+  - a53df8b7ed3ae5a6
+  - c0f16ca397e6ecae
+  failure_mode_targeted: CVS appears in many unrelated legal and corporate stories (the split, the opioid
+    settlement, the FTC insulin case).
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-005
+  query: IDR entities denied recertification
+  question_type: acronym
+  answerable: true
+  expected_answer: HHS, Labor and Treasury denied recertification to two independent dispute resolution
+    entities, IPRO and Network Medical Review Company (Nov. 2026).
+  relevant:
+  - stories:
+    - e1c75da7fdc4603e
+    - d626fd03e5cce4c0
+    grade: 2
+  - stories:
+    - 5b32bbd3ae670451
+    grade: 1
+  - stories:
+    - 320cd829cc8fcf0f
+    grade: 1
+  distractors: []
+  failure_mode_targeted: The acronym is expanded in some titles and replaced by 'arbiters' in others.
+  query_source: drafted
+  vetting: pending
+  note: e1c75d and d626fd report the same decision and form one unit.
+- id: news-dev-006
+  query: RPM third-party vendor payment delay
+  question_type: acronym
+  answerable: true
+  expected_answer: The CY2027 physician fee schedule final rule moved the end of payment for third-party
+    remote patient monitoring from Jan. 1, 2027 to Jan. 1, 2029.
+  relevant:
+  - stories:
+    - 57d3ea12e127b7c0
+    - 9ff11b58182e4db2
+    - cf25e461ef51e59b
+    grade: 2
+  - stories:
+    - 438dd30a804dc019
+    - 47fbcd286e77ff21
+    grade: 1
+  - stories:
+    - 2d1a752dbc47056f
+    grade: 1
+  - stories:
+    - d253efb508fef82b
+    grade: 1
+  distractors: []
+  failure_mode_targeted: Acronym in the query, expansion in most titles; the grade-1 stories cover the
+    earlier proposal, not the delay.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-007
+  query: QBP spending 2026
+  question_type: acronym
+  answerable: true
+  expected_answer: Medicare will spend at least $13 billion on the Medicare Advantage quality bonus program
+    in 2026 (KFF).
+  relevant:
+  - stories:
+    - ad1968aab8af153f
+    grade: 2
+  distractors: []
+  failure_mode_targeted: Acronym in the query, spelled out in the only relevant title.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-008
+  query: special needs plan footprint changes for 2027
+  question_type: acronym
+  answerable: true
+  expected_answer: Some MA insurers are expanding special needs plans (D-SNP, C-SNP, I-SNP) for 2027 while
+    others shrink them.
+  relevant:
+  - stories:
+    - 2365347fce00cb7d
+    grade: 2
+  - stories:
+    - 84d691270b485e0a
+    grade: 1
+  distractors: []
+  failure_mode_targeted: 'The reverse of the usual direction: the query spells it out, the titles use
+    ''SNP'' and ''C-SNPs''.'
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-009
+  query: what did CMS rename ICHRA to
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: CHOICE Arrangements (Custom Health Option and Individual Care Expense), announced Sept.
+    3, 2026.
+  relevant:
+  - stories:
+    - 8cd1dc4e87a9be74
+    grade: 2
+  - stories:
+    - 208a6e7579702b99
+    grade: 2
+  distractors: []
+  failure_mode_targeted: The old and new names for the same arrangement; later stories use only 'CHOICE'.
+  query_source: drafted
+  vetting: pending
+  note: 'The many CHOICE-only stories are left unjudged on purpose: they use the new name but do not say
+    it replaced ICHRA.'
+- id: news-dev-010
+  query: BCBSMA quarterly financial results
+  question_type: acronym
+  answerable: true
+  expected_answer: Blue Cross Blue Shield of Massachusetts posted an $83.4M Q2 profit and a $43.5M Q3
+    operating loss.
+  relevant:
+  - stories:
+    - 65235029884f94ca
+    grade: 2
+  - stories:
+    - a8082b1a08c141cf
+    grade: 2
+  distractors:
+  - 24f585c4b49a5283
+  - 75e8e10d3469065d
+  failure_mode_targeted: The acronym never appears in a relevant title.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-011
+  query: IBX Medicare Advantage coding settlement
+  question_type: acronym
+  answerable: true
+  expected_answer: Independence Blue Cross agreed to pay $22.5M (Sept. 30, 2026) to resolve allegations
+    of inaccurate MA diagnosis codes from 2017 to 2021.
+  relevant:
+  - stories:
+    - 64a1687480879f44
+    - 958d29a491327f0c
+    - e17fcd0de7ee18e6
+    grade: 2
+  distractors:
+  - f52fc76a63288408
+  - 617cbcbd3686a722
+  - 1fb297071df20406
+  failure_mode_targeted: Titles say 'Independence Blue Cross', never 'IBX'; other IBX stories are about
+    hospital disputes.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-012
+  query: Medicare coverage of weight-loss drugs
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: The Medicare GLP-1 Bridge (launched July 1, 2026) gives eligible Part D enrollees certain
+    GLP-1s for $50 a month; about 1.1 million had signed up by October.
+  relevant:
+  - stories:
+    - 1e14291417a03bd9
+    grade: 2
+  - stories:
+    - 60491237289d1c0b
+    grade: 2
+  - stories:
+    - 51ec00e1b5aa81f5
+    grade: 2
+  - stories:
+    - bd918f4e5a9dede1
+    grade: 2
+  - stories:
+    - b0dbbdcce3e6a281
+    grade: 2
+  - stories:
+    - 687e303f98a49f83
+    grade: 1
+  - stories:
+    - 82ea2137ff4827cc
+    grade: 1
+  - stories:
+    - 61819c32c861fcf2
+    grade: 1
+  distractors: []
+  failure_mode_targeted: No relevant title says 'weight loss'; they say GLP-1, Bridge or BALANCE.
+  query_source: drafted
+  vetting: pending
+  note: 'Employer and commercial GLP-1 coverage stories are not judged relevant: the query asks about
+    Medicare.'
+- id: news-dev-013
+  query: inaccurate provider directories in Medicare Advantage
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: CMS proposed (Oct. 16, 2026) rules to make MA provider directories accurate, including
+    public directory scores, under the Consolidated Appropriations Act of 2026.
+  relevant:
+  - stories:
+    - 6a6a5dc80c8a870d
+    - 712e6be549be50bb
+    - 60b2af54c16f37b9
+    - c57d86ae3bd3c6a9
+    - 814a07ff0e94b39d
+    grade: 2
+  - stories:
+    - b841ca97a3e96296
+    grade: 1
+  - stories:
+    - a123d21f636b181e
+    grade: 1
+  - stories:
+    - 8f41a3ee61db175e
+    grade: 1
+  - stories:
+    - ce2e1612fa774dad
+    grade: 1
+  distractors: []
+  failure_mode_targeted: '''Ghost networks'' and ''provider directory accuracy'' name the same problem.'
+  query_source: drafted
+  vetting: pending
+  note: The five proposed-rule stories form one unit. The grade-1 stories are about directories generally
+    or commercial plans.
+- id: news-dev-014
+  query: Humana sells stake in its senior primary care clinics
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: Humana formed a $2.8B joint venture in which BlackRock takes a majority stake in about
+    150 CenterWell Senior Primary Care clinics, replacing Welsh Carson.
+  relevant:
+  - stories:
+    - c49543bcf2e28e3f
+    - 98cbbaca60e6ceee
+    - e0af98353bf91d7b
+    - 85c484cccc0e58d8
+    grade: 2
+  distractors: []
+  failure_mode_targeted: Titles say 'CenterWell', 'joint venture' and 'BlackRock' rather than 'sells'
+    or 'primary care clinics'.
+  query_source: drafted
+  vetting: pending
+  note: All four report the same deal.
+- id: news-dev-015
+  query: Medicare Improvement Fund premium rebate
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: A one-time $90 Part B premium rebate to more than 20 million Medicare enrollees, paid
+    from the Medicare Improvement Fund (October 2026).
+  relevant:
+  - stories:
+    - 9b3aa4f608402ed4
+    grade: 2
+  - stories:
+    - 1a7badfa7011e4aa
+    - bc5368a0d94dc04f
+    grade: 2
+  - stories:
+    - 5d997e7a1ac9ec59
+    grade: 2
+  distractors: []
+  failure_mode_targeted: The official program name against the popular '$90 payments' framing.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-016
+  query: Medicare Advantage plans hit with enrollment sanctions
+  question_type: terminology_drift
+  answerable: true
+  expected_answer: Recent enrollment freezes include eternalHealth (imposed Aug. 27, lifted Oct. 7), Provider
+    Partners' Maryland I-SNP (lifted), and Astiva Health (a California state order, Nov. 9).
+  relevant:
+  - stories:
+    - 3c4ab1cc4af7b058
+    grade: 2
+  - stories:
+    - f214f760a1c578e6
+    grade: 2
+  - stories:
+    - fac37979561a0d2d
+    grade: 2
+  - stories:
+    - 2c9edb45b7a07ea9
+    grade: 2
+  - stories:
+    - 9f0193ddc04259e1
+    grade: 2
+  - stories:
+    - 92d0501eb39492a7
+    grade: 1
+  distractors: []
+  failure_mode_targeted: Freeze, suspension, sanction and cease-and-desist describe the same kind of action.
+  query_source: drafted
+  vetting: pending
+  note: 2c9edb is a state regulator's freeze, not a CMS sanction. Graded 2 because the query does not
+    say CMS; downgrade if it should.
+- id: news-dev-017
+  query: which insurers gained or lost in the 2027 star ratings
+  question_type: distractor_rich
+  answerable: true
+  expected_answer: Humana rebounded (95% of members in 4+ star plans, from 20%), while Aetna and Alignment
+    slipped.
+  relevant:
+  - stories:
+    - 393a0fadce988061
+    grade: 2
+  - stories:
+    - d3fd2af2243f85fa
+    grade: 2
+  - stories:
+    - 60353750de6e7f57
+    grade: 1
+  - stories:
+    - 83a72c828dde3404
+    grade: 1
+  distractors:
+  - 827041b75a7fc9f6
+  - 853be84d0894dd9b
+  failure_mode_targeted: Stories about the July recalculation of the 2026 ratings use nearly the same
+    words.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-018
+  query: Medicare Advantage upcoding settlements
+  question_type: multi_story
+  answerable: true
+  expected_answer: Recent False Claims Act settlements include The Villages Health ($541.5M), Independence
+    Blue Cross ($22.5M), Complete Health ($14.1M) and Monogram Health ($2.4M).
+  relevant:
+  - stories:
+    - 7ba7b8a48c8eeb46
+    grade: 2
+  - stories:
+    - d2937bef93fcae77
+    - 85295aa9bc7fbbfd
+    - fddbb82df43581cc
+    grade: 2
+  - stories:
+    - 64a1687480879f44
+    - 958d29a491327f0c
+    - e17fcd0de7ee18e6
+    grade: 2
+  - stories:
+    - bd208f0ed957a2d4
+    - 212aa58185dd94fc
+    - 25eef08082e7bb52
+    grade: 2
+  - stories:
+    - b3bc8e90605b9cfb
+    - 1c664363b638cea0
+    grade: 2
+  distractors:
+  - 810226d60c4bf658
+  - 9f2e2bdf0377a60c
+  failure_mode_targeted: Each settlement is a separate unit, so returning one many times earns nothing.
+  query_source: drafted
+  vetting: pending
+  note: The UnitedHealthcare-TeamHealth case is commercial emergency department upcoding, not Medicare
+    Advantage.
+- id: news-dev-019
+  query: which insurers have sued CMS over their 2027 star ratings
+  question_type: multi_story
+  answerable: true
+  expected_answer: News coverage confirms at least Centene, CVS/Aetna, Healthfirst and Alignment; the
+    trackers list further star-ratings suits (SCAN, Mount Carmel, Elevance, BCBS Rhode Island, UPMC for
+    You and others) without stating the ratings year.
+  relevant:
+  - stories:
+    - feb9ae90e1e3041a
+    grade: 2
+  - stories:
+    - 766d0564842a5b6c
+    - f4221b16253acad7
+    grade: 2
+  - stories:
+    - 54d7a8dce440c68f
+    grade: 2
+  - stories:
+    - b99346eda08bf450
+    grade: 2
+  - stories:
+    - 1e94c9e86e314b6f
+    grade: 2
+  - stories:
+    - 6535fffed23526aa
+    grade: 1
+  - stories:
+    - aa647a8610e3cca0
+    grade: 1
+  - stories:
+    - 796c1d37c2045c92
+    grade: 1
+  - stories:
+    - d7a763302ceeb8ea
+    grade: 1
+  - stories:
+    - 20f7b3ff0c1d1278
+    grade: 1
+  - stories:
+    - 15704bed1be9a1ae
+    - 536ea430b33e71d2
+    grade: 1
+  - stories:
+    - a8e4f47e1255a1d0
+    - e1dea8763ee0a56b
+    grade: 1
+  - stories:
+    - cc173fc05ec472ad
+    - e9de69afb5a76b9a
+    grade: 1
+  - stories:
+    - 438394178acdadf8
+    grade: 1
+  - stories:
+    - 266a5081d7ebc25b
+    grade: 1
+  - stories:
+    - bade9f3326c0b12e
+    grade: 1
+  - stories:
+    - ca0b9982f18368e1
+    grade: 1
+  - stories:
+    - 093202a2854fb393
+    grade: 1
+  distractors: []
+  failure_mode_targeted: A long tail of near-empty docket entries; the answer is spread across many stories.
+  query_source: drafted
+  vetting: pending
+  note: Tracker and docket entries get 1 because their text never states which ratings year is at issue.
+    Each payer's entries form one unit. Please check these grades.
+- id: news-dev-020
+  query: which big insurers are pulling back from Medicare Advantage for 2027 and cutting plans
+  question_type: natural_language
+  answerable: true
+  expected_answer: Eleven payers are exiting the individual MA market; Humana, UnitedHealthcare and Centene
+    are cutting plans, BCBS Minnesota is dropping most of its plans, and HCSC halved its footprint.
+  relevant:
+  - stories:
+    - d5cbaf94c7a19bf6
+    grade: 2
+  - stories:
+    - d2e28dcab75463b6
+    grade: 2
+  - stories:
+    - 6de2d037b293dbb7
+    - bb8dd0f08d314620
+    grade: 2
+  - stories:
+    - 59caa033fdc32201
+    grade: 2
+  - stories:
+    - 25ca1478c7e046d0
+    grade: 2
+  - stories:
+    - 818e2da32206cd2d
+    grade: 2
+  - stories:
+    - ae7e2c58433a5fe9
+    grade: 2
+  - stories:
+    - 821a714ee89a2a98
+    grade: 2
+  - stories:
+    - b7280a25ebcf10c2
+    grade: 1
+  - stories:
+    - 2ab570405a39b9c1
+    grade: 1
+  distractors: []
+  failure_mode_targeted: 'A long natural-language question: an all-terms-required matcher returns nothing.'
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-021
+  query: how much will standalone Part D premiums change in 2027
+  question_type: conflicting_sources
+  answerable: true
+  expected_answer: The sources conflict. KFF projects a 50% rise in the average stand-alone PDP premium
+    ($34 to $51) for enrollees who stay put, and modest increases for many who switch; CMS projected stable
+    or lower average premiums.
+  relevant:
+  - stories:
+    - ac601955c06cc47d
+    - 7162ea5fe58f8c42
+    - d22b4a70ba2f53ab
+    - 71b90eb4013e4a4e
+    - d18466805eebd70c
+    - 393ffbf1b0a2d2ba
+    - 5cbc82ce8a0b2662
+    grade: 2
+  - stories:
+    - 883422e8fa6b6848
+    grade: 2
+  - stories:
+    - 648213f52e5b3023
+    grade: 2
+  - stories:
+    - 58a302d53579865a
+    grade: 2
+  distractors: []
+  failure_mode_targeted: A good answer needs both sides; a ranker that returns only the most-repeated
+    story misses the conflict.
+  query_source: drafted
+  vetting: pending
+  note: The KFF 50% coverage is one unit across seven outlets.
+- id: news-dev-022
+  query: what share of Medicare beneficiaries are enrolled in Medicare Advantage
+  question_type: conflicting_sources
+  answerable: true
+  expected_answer: 'The sources disagree because their denominators differ: CBO says 51% in 2026, KFF
+    55% of eligible beneficiaries in 2026, and plans'' projections imply 47.4% for 2027 (CMS).'
+  relevant:
+  - stories:
+    - eff7311838328257
+    grade: 2
+  - stories:
+    - c6abf2e7d9111e4e
+    grade: 2
+  - stories:
+    - d8e7c52708bedb90
+    grade: 2
+  distractors: []
+  failure_mode_targeted: Three correct numbers that disagree; a good result shows why.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-023
+  query: Medicare Advantage enrollment share projected for 2036
+  question_type: exact_numeric
+  answerable: true
+  expected_answer: 57% by 2036 (CBO, July 2026), up from 51% in 2026.
+  relevant:
+  - stories:
+    - eff7311838328257
+    grade: 2
+  distractors: []
+  failure_mode_targeted: One exact number, in a title.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-024
+  query: how many Medicare beneficiaries will have their plans terminated at the end of 2026
+  question_type: exact_numeric
+  answerable: true
+  expected_answer: 4.3 million (3.1 million in Medicare Advantage drug plans and 1.2 million in stand-alone
+    drug plans), per KFF from CMS data.
+  relevant:
+  - stories:
+    - 2abb0354c658fad0
+    - c3b36e36aa311ab1
+    grade: 2
+  - stories:
+    - b7280a25ebcf10c2
+    grade: 1
+  distractors: []
+  failure_mode_targeted: The query's wording ('terminated') matches only one of the two titles.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-025
+  query: why is Providence Health Plan shutting down
+  question_type: natural_language
+  answerable: true
+  expected_answer: A deal for a national insurer to run its Medicare Advantage business fell through,
+    so Providence is winding down the health plan.
+  relevant:
+  - stories:
+    - 0b9a90451e18094a
+    - e33d871e031c3c03
+    - a71cbf56ea18c2f7
+    - 0492270a9ff2b0c1
+    grade: 2
+  distractors:
+  - 5748bc2b2a0f1d48
+  failure_mode_targeted: A why-question; a separate Providence story about MA plans owing it $1B is a
+    strong distractor.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-026
+  query: did the court let Aetna force Jefferson Health into arbitration over its level of severity policy
+  question_type: negation
+  answerable: true
+  expected_answer: No. On Nov. 4, 2026 a federal judge in Pennsylvania denied Aetna's request for arbitration.
+  relevant:
+  - stories:
+    - 476401f9471bfdb3
+    - e91f421faff147eb
+    grade: 2
+  - stories:
+    - 8fad3d4674fc9f54
+    grade: 1
+  distractors: []
+  failure_mode_targeted: The query's affirmative wording against a denial in the evidence.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-027
+  query: did UnitedHealth's independent audit look at how it denies claims
+  question_type: negation
+  answerable: true
+  expected_answer: No. The FTI review rated medical policy development 'strong' but did not assess how
+    criteria are applied to denials.
+  relevant:
+  - stories:
+    - 04d81e6bb178a637
+    grade: 2
+  - stories:
+    - b935372b8dca6304
+    grade: 2
+  - stories:
+    - b88f37e7afd25ed4
+    grade: 1
+  distractors:
+  - 64e8df3e1a041cdb
+  - 8a17263c1d9dcb1d
+  failure_mode_targeted: The relevant evidence says the audit did not cover denials; a story that only
+    reports the audit is grade 1.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-028
+  query: Clover Health star ratings court win appealed
+  question_type: negation
+  answerable: true
+  expected_answer: CMS appealed to the Eleventh Circuit (July 21, 2026) the ruling that forced a recalculation
+    of Clover's 2026 star ratings.
+  relevant:
+  - stories:
+    - 80dc796ac6b703e4
+    - 5998a011c7d11ab0
+    - c2e2a6fd6f7efce6
+    grade: 2
+  - stories:
+    - 35a69d13c9861b91
+    grade: 1
+  - stories:
+    - f7dd364de135f1be
+    grade: 1
+  - stories:
+    - 130a03153158645e
+    grade: 1
+  distractors: []
+  failure_mode_targeted: Clover is a pure MA insurer whose stories often lack MA vocabulary; the appeal
+    is by CMS, not Clover.
+  query_source: drafted
+  vetting: pending
+  note: ''
+- id: news-dev-029
+  query: what does the end of the Part D premium stabilization demonstration mean for Medicare Advantage
+  question_type: natural_language
+  answerable: true
+  expected_answer: CMS ends the demonstration after 2026, returning stand-alone plans to 'traditional
+    market conditions'; some PDP enrollees may face larger premium increases.
+  relevant:
+  - stories:
+    - 9753c003036f349d
+    grade: 2
+  - stories:
+    - e5b5e72d2d69d2a4
+    - ab82d115182ef25e
+    - 3a4e42243583748f
+    - f946347a2c98cbb6
+    - f8a2a08eba327ed1
+    - 6b42a55f6c88533c
+    - 8c5394ba763af410
+    grade: 1
+  - stories:
+    - 781c654b2aa7f14f
+    grade: 1
+  distractors: []
+  failure_mode_targeted: Only one story takes the Medicare Advantage angle; the rest report the end of
+    the program in general.
+  query_source: drafted
+  vetting: pending
+  note: The announcement coverage is one unit. It and the KFF analysis get 1 because neither addresses
+    Medicare Advantage, which is what the query asks.
+- id: news-dev-030
+  query: 2028 Medicare Advantage advance notice payment increase
+  question_type: unanswerable
+  answerable: false
+  expected_answer: null
+  relevant: []
+  distractors:
+  - 21e334eacd6e700a
+  failure_mode_targeted: 'Must abstain: the 2028 Advance Notice is not in the snapshot.'
+  query_source: drafted
+  vetting: pending
+  note: Absence checked by reading every title and by a substring scan of titles and summaries for 'advance
+    notice' (0 hits).
+- id: news-dev-031
+  query: Kaiser Permanente lawsuit over 2027 star ratings
+  question_type: unanswerable
+  answerable: false
+  expected_answer: null
+  relevant: []
+  distractors:
+  - feb9ae90e1e3041a
+  failure_mode_targeted: 'Must abstain: Kaiser appears in many stories and star-ratings suits are plentiful,
+    but no story joins them.'
+  query_source: drafted
+  vetting: pending
+  note: Absence checked by reading every title and by scanning titles and summaries for Kaiser within
+    80 characters of 'star rating' (0 hits).
+- id: news-dev-032
+  query: Humana merger with Cigna
+  question_type: unanswerable
+  answerable: false
+  expected_answer: null
+  relevant: []
+  distractors: []
+  failure_mode_targeted: 'Must abstain: both companies appear constantly; no merger is reported.'
+  query_source: drafted
+  vetting: pending
+  note: Absence checked by reading every title and by scanning for Humana or Cigna near 'acquire' or 'merge'
+    (0 hits).
